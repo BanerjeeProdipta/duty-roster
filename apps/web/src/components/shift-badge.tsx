@@ -7,7 +7,7 @@ import {
 	DropdownMenuRadioItem,
 	DropdownMenuTrigger,
 } from "@Duty-Roster/ui/components/dropdown-menu";
-import { Check } from "lucide-react";
+import { Check, CheckCircle } from "lucide-react";
 import { useState } from "react";
 import {
 	SHIFT_ICONS,
@@ -93,9 +93,6 @@ export function ShiftBadge({
 									{item.time}
 								</span>
 							</div>
-							{type === item.value && (
-								<Check className="ml-auto h-6 w-6 text-primary" />
-							)}
 						</DropdownMenuRadioItem>
 					))}
 				</DropdownMenuRadioGroup>
