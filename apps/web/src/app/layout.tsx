@@ -33,7 +33,7 @@ export default function RootLayout({
 				<Providers>
 					<div className="grid min-h-svh grid-rows-[auto_1fr] bg-slate-100">
 						<Header />
-						{children}
+						<div className="container mx-auto py-8">{children}</div>
 					</div>
 				</Providers>
 			</body>
