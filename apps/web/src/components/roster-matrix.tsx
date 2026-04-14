@@ -23,7 +23,7 @@ export function RosterMatrix({ editable = false }: { editable?: boolean }) {
 				isWeekTransitioning ? "opacity-95" : "opacity-100"
 			}`}
 		>
-			<Card className="w-full overflow-hidden rounded-md">
+			<Card className="w-full rounded-md">
 				<RosterHeader
 					nurseCount={NURSES.length}
 					weekDates={weekDates}

@@ -18,13 +18,13 @@ export function RosterHeader({
 	onCurrentWeek,
 }: RosterHeaderProps) {
 	return (
-		<CardHeader className="flex flex-row items-center justify-between border-b pb-4">
+		<CardHeader className="flex flex-col gap-3 border-b pb-4 lg:flex-row lg:items-center lg:justify-between">
 			<div className="flex items-center gap-4">
 				<div className="flex flex-col gap-1">
-					<CardTitle className="font-bold text-2xl tracking-tight">
+					<CardTitle className="font-bold text-xl tracking-tight sm:text-2xl">
 						Weekly Duty Roster
 					</CardTitle>
-					<p className="text-lg text-muted-foreground">
+					<p className="text-muted-foreground text-sm sm:text-base">
 						{nurseCount} nurses ·{" "}
 						{weekDates[0].toLocaleDateString("en-US", {
 							month: "long",
@@ -33,34 +33,36 @@ export function RosterHeader({
 					</p>
 				</div>
 			</div>
-			<div className="flex w-full min-w-60 max-w-100 items-center justify-between gap-1 rounded-lg border p-1">
+			<div className="grid w-full grid-cols-[auto_1fr_auto] items-center gap-1 rounded-lg border p-1 lg:max-w-[520px]">
 				<Button
 					variant="ghost"
 					size="sm"
-					className="h-12 w-12 rounded-md"
+					className="h-10 w-10 rounded-md sm:h-12 sm:w-12"
 					onClick={onPreviousWeek}
 				>
 					<ChevronLeft className="h-4 w-4" />
 				</Button>
-				<Button
-					variant="outline"
-					size="sm"
-					className="h-12 gap-3 rounded-md border-dashed px-3 font-semibold text-lg"
-					onClick={onCurrentWeek}
-				>
-					<Calendar className="h-12 w-12" size={12} />
-					<p>Today</p>
-				</Button>
-				<span className="min-w-[160px] px-3 text-center font-semibold text-xl">
-					{weekDates[0].toLocaleDateString("en-US", { month: "short" })}{" "}
-					{weekDates[0].getDate()} -{" "}
-					{weekDates[6].toLocaleDateString("en-US", { month: "short" })}{" "}
-					{weekDates[6].getDate()}
-				</span>
+				<div className="flex min-w-0 items-center justify-center gap-1 sm:gap-2">
+					<Button
+						variant="outline"
+						size="sm"
+						className="h-10 gap-2 rounded-md border-dashed px-2 font-semibold text-sm sm:h-12 sm:px-3 sm:text-base"
+						onClick={onCurrentWeek}
+					>
+						<Calendar className="h-4 w-4 sm:h-5 sm:w-5" />
+						<p>Today</p>
+					</Button>
+					<span className="truncate px-1 text-center font-semibold text-sm sm:px-3 sm:text-base">
+						{weekDates[0].toLocaleDateString("en-US", { month: "short" })}{" "}
+						{weekDates[0].getDate()} -{" "}
+						{weekDates[6].toLocaleDateString("en-US", { month: "short" })}{" "}
+						{weekDates[6].getDate()}
+					</span>
+				</div>
 				<Button
 					variant="ghost"
 					size="sm"
-					className="h-9 w-9 rounded-md"
+					className="h-10 w-10 rounded-md sm:h-12 sm:w-12"
 					onClick={onNextWeek}
 				>
 					<ChevronRight className="h-4 w-4" />

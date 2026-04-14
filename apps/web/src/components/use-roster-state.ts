@@ -1,23 +1,11 @@
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { NURSES } from "./roster-matrix.constants";
 import type { Shift, ShiftType } from "./roster-matrix.types";
 import {
 	buildShiftKey,
 	DEFAULT_SHIFTS,
 	getWeekDates,
-	STORAGE_KEY,
 } from "./roster-matrix.utils";
-
-function loadFromSessionStorage(): Shift[] | null {
-	if (typeof window === "undefined") return null;
-	const stored = sessionStorage.getItem(STORAGE_KEY);
-	return stored ? JSON.parse(stored) : null;
-}
-
-function saveToSessionStorage(shifts: Shift[]) {
-	if (typeof window === "undefined") return;
-	sessionStorage.setItem(STORAGE_KEY, JSON.stringify(shifts));
-}
 
 function generateShifts(weekDates: Date[], existingShifts?: Shift[]): Shift[] {
 	const shifts: Shift[] = [];
@@ -56,13 +44,6 @@ export function useRosterState() {
 		generateShifts(getWeekDates(0)),
 	);
 
-	useEffect(() => {
-		const stored = loadFromSessionStorage();
-		if (stored) {
-			setShifts(generateShifts(getWeekDates(0), stored));
-		}
-	}, []);
-
 	const shiftMap = useMemo(() => {
 		const map = new Map<string, Shift>();
 		shifts.forEach((shift) => {
@@ -73,15 +54,13 @@ export function useRosterState() {
 
 	const updateShift = (nurseName: string, date: Date, newType: ShiftType) => {
 		const dateStr = date.toISOString().split("T")[0];
-		setShifts((previous) => {
-			const updated = previous.map((shift) =>
+		setShifts((previous) =>
+			previous.map((shift) =>
 				shift.employeeName === nurseName && shift.date === dateStr
 					? { ...shift, shiftType: newType }
 					: shift,
-			);
-			saveToSessionStorage(updated);
-			return updated;
-		});
+			),
+		);
 	};
 
 	const changeWeekOffset = (updater: (current: number) => number) => {
