@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { NURSES } from "./roster-matrix.constants";
 import type { Shift, ShiftType } from "./roster-matrix.types";
 import {
@@ -50,24 +50,18 @@ function generateShifts(weekDates: Date[], existingShifts?: Shift[]): Shift[] {
 
 export function useRosterState() {
 	const [weekOffset, setWeekOffset] = useState(0);
+	const [isPending, startTransition] = useTransition();
 	const weekDates = useMemo(() => getWeekDates(weekOffset), [weekOffset]);
 	const [shifts, setShifts] = useState<Shift[]>(() =>
 		generateShifts(getWeekDates(0)),
 	);
-	const [storageHydrated, setStorageHydrated] = useState(false);
 
 	useEffect(() => {
 		const stored = loadFromSessionStorage();
 		if (stored) {
-			setShifts(stored);
+			setShifts(generateShifts(getWeekDates(0), stored));
 		}
-		setStorageHydrated(true);
 	}, []);
-
-	useEffect(() => {
-		if (!storageHydrated) return;
-		setShifts((previous) => generateShifts(weekDates, previous));
-	}, [weekDates, storageHydrated]);
 
 	const shiftMap = useMemo(() => {
 		const map = new Map<string, Shift>();
@@ -90,5 +84,25 @@ export function useRosterState() {
 		});
 	};
 
-	return { setWeekOffset, weekDates, shiftMap, updateShift };
+	const changeWeekOffset = (updater: (current: number) => number) => {
+		startTransition(() => {
+			setWeekOffset((currentOffset) => {
+				const nextOffset = updater(currentOffset);
+				setShifts((previous) =>
+					generateShifts(getWeekDates(nextOffset), previous),
+				);
+				return nextOffset;
+			});
+		});
+	};
+
+	return {
+		weekDates,
+		shiftMap,
+		updateShift,
+		isWeekTransitioning: isPending,
+		goToPreviousWeek: () => changeWeekOffset((current) => current - 1),
+		goToNextWeek: () => changeWeekOffset((current) => current + 1),
+		goToCurrentWeek: () => changeWeekOffset(() => 0),
+	};
 }
