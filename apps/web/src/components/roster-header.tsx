@@ -33,7 +33,7 @@ export function RosterHeader({
 					</p>
 				</div>
 			</div>
-			<div className="grid w-full grid-cols-[auto_1fr_auto] items-center gap-1 rounded-lg border p-1 lg:max-w-[520px]">
+			<div className="grid w-full grid-cols-[auto_1fr_auto] items-center justify-between gap-1 rounded-lg border p-1 sm:w-max">
 				<Button
 					variant="ghost"
 					size="sm"
@@ -46,11 +46,19 @@ export function RosterHeader({
 					<Button
 						variant="outline"
 						size="sm"
-						className="h-10 gap-2 rounded-md border-dashed px-2 font-semibold text-sm sm:h-12 sm:px-3 sm:text-base"
+						className="h-10 gap-2 rounded-md border-dashed px-2 font-medium text-slate-500 text-xs sm:h-12 sm:px-3 sm:text-sm"
 						onClick={onCurrentWeek}
 					>
 						<Calendar className="h-4 w-4 sm:h-5 sm:w-5" />
-						<p>Today</p>
+						<p>
+							<span className="pr-2">Today</span>
+							<span className="border-l pl-2">
+								{new Date().toLocaleDateString("en-US", {
+									month: "short",
+									day: "numeric",
+								})}
+							</span>
+						</p>
 					</Button>
 					<span className="truncate px-1 text-center font-semibold text-sm sm:px-3 sm:text-base">
 						{weekDates[0].toLocaleDateString("en-US", { month: "short" })}{" "}

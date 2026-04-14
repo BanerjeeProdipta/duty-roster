@@ -19,7 +19,7 @@ export function RosterMatrix({ editable = false }: { editable?: boolean }) {
 
 	return (
 		<div
-			className={`flex flex-col gap-6 transition-opacity duration-150 ${
+			className={`m-2 flex flex-col gap-6 transition-opacity duration-150 ${
 				isWeekTransitioning ? "opacity-95" : "opacity-100"
 			}`}
 		>
