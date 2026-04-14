@@ -7,15 +7,29 @@ import { RosterTable } from "./roster-table";
 import { useRosterState } from "./use-roster-state";
 
 export function RosterMatrix({ editable = false }: { editable?: boolean }) {
-	const { setWeekOffset, weekDates, shiftMap, updateShift } = useRosterState();
+	const {
+		weekDates,
+		shiftMap,
+		updateShift,
+		isWeekTransitioning,
+		goToPreviousWeek,
+		goToNextWeek,
+		goToCurrentWeek,
+	} = useRosterState();
 
 	return (
-		<div className="flex flex-col gap-6">
-			<Card className="w-full overflow-hidden">
+		<div
+			className={`flex flex-col gap-6 transition-opacity duration-150 ${
+				isWeekTransitioning ? "opacity-95" : "opacity-100"
+			}`}
+		>
+			<Card className="w-full overflow-hidden rounded-md">
 				<RosterHeader
 					nurseCount={NURSES.length}
 					weekDates={weekDates}
-					setWeekOffset={setWeekOffset}
+					onPreviousWeek={goToPreviousWeek}
+					onNextWeek={goToNextWeek}
+					onCurrentWeek={goToCurrentWeek}
 				/>
 				<CardContent className="p-0">
 					<RosterTable

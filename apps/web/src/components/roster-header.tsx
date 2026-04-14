@@ -5,13 +5,17 @@ import { Calendar, ChevronLeft, ChevronRight } from "lucide-react";
 interface RosterHeaderProps {
 	nurseCount: number;
 	weekDates: Date[];
-	setWeekOffset: React.Dispatch<React.SetStateAction<number>>;
+	onPreviousWeek: () => void;
+	onNextWeek: () => void;
+	onCurrentWeek: () => void;
 }
 
 export function RosterHeader({
 	nurseCount,
 	weekDates,
-	setWeekOffset,
+	onPreviousWeek,
+	onNextWeek,
+	onCurrentWeek,
 }: RosterHeaderProps) {
 	return (
 		<CardHeader className="flex flex-row items-center justify-between border-b pb-4">
@@ -29,22 +33,22 @@ export function RosterHeader({
 					</p>
 				</div>
 			</div>
-			<div className="flex items-center gap-1 rounded-lg border p-1">
+			<div className="flex w-full min-w-60 max-w-100 items-center justify-between gap-1 rounded-lg border p-1">
 				<Button
 					variant="ghost"
 					size="sm"
 					className="h-12 w-12 rounded-md"
-					onClick={() => setWeekOffset((o) => o - 1)}
+					onClick={onPreviousWeek}
 				>
 					<ChevronLeft className="h-4 w-4" />
 				</Button>
 				<Button
 					variant="outline"
 					size="sm"
-					className="h-12 gap-3 rounded-md border-dashed px-3 font-semibold text-xl"
-					onClick={() => setWeekOffset(0)}
+					className="h-12 gap-3 rounded-md border-dashed px-3 font-semibold text-lg"
+					onClick={onCurrentWeek}
 				>
-					<Calendar className="h-8 w-8" />
+					<Calendar className="h-12 w-12" size={12} />
 					<p>Today</p>
 				</Button>
 				<span className="min-w-[160px] px-3 text-center font-semibold text-xl">
@@ -57,7 +61,7 @@ export function RosterHeader({
 					variant="ghost"
 					size="sm"
 					className="h-9 w-9 rounded-md"
-					onClick={() => setWeekOffset((o) => o + 1)}
+					onClick={onNextWeek}
 				>
 					<ChevronRight className="h-4 w-4" />
 				</Button>

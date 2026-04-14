@@ -1,33 +1,49 @@
 "use client";
-import Link from "next/link";
 
+import { cn } from "@Duty-Roster/ui/lib/utils";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { ModeToggle } from "./mode-toggle";
 import UserMenu from "./user-menu";
 
 export default function Header() {
+	const pathname = usePathname();
 	const links = [
 		{ to: "/", label: "Home" },
 		{ to: "/dashboard", label: "Dashboard" },
 	] as const;
 
 	return (
-		<div>
-			<div className="flex flex-row items-center justify-between px-2 py-1">
-				<nav className="flex gap-4 text-lg">
-					{links.map(({ to, label }) => {
-						return (
-							<Link key={to} href={to}>
-								{label}
-							</Link>
-						);
-					})}
-				</nav>
-				<div className="flex items-center gap-2">
-					<ModeToggle />
-					<UserMenu />
+		<header className="border-b bg-background/80 px-3 backdrop-blur-sm sm:px-6">
+			<div className="mx-auto flex h-14 w-full max-w-7xl items-center justify-between gap-3">
+				<div className="flex items-center gap-4 sm:gap-8">
+					<Link
+						href="/"
+						className="font-semibold text-base italic tracking-tight sm:text-lg"
+					>
+						simple-roster
+					</Link>
+					<nav className="flex items-center gap-1 rounded-lg border bg-muted/40 p-1">
+						{links.map(({ to, label }) => {
+							const isActive = pathname === to;
+							return (
+								<Link
+									key={to}
+									href={to}
+									className={cn(
+										"rounded-md px-3 py-1 font-medium text-sm transition-colors sm:text-base",
+										isActive
+											? "bg-background text-foreground shadow-sm"
+											: "text-muted-foreground hover:text-foreground",
+									)}
+								>
+									{label}
+								</Link>
+							);
+						})}
+					</nav>
 				</div>
 			</div>
-			<hr />
-		</div>
+		</header>
 	);
 }

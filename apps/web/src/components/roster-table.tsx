@@ -19,13 +19,13 @@ export function RosterTable({
 }: RosterTableProps) {
 	return (
 		<div className="relative w-full overflow-x-auto">
-			<table className="w-max min-w-[900px] min-w-full">
+			<table className="w-max min-w-full table-auto">
 				<thead>
 					<tr>
-						<th className="sticky left-0 z-30 w-[200px] min-w-[200px] border-r bg-slate-50 py-4 pr-4 pl-5 text-left font-bold text-lg text-muted-foreground uppercase tracking-wide dark:bg-slate-900">
+						<th className="sticky left-0 z-30 w-[140px] min-w-[140px] border-r bg-slate-50 py-3 pr-2 pl-3 text-left font-bold text-muted-foreground text-sm uppercase tracking-wide sm:w-[180px] sm:min-w-[180px] sm:py-4 sm:pr-4 sm:pl-5 sm:text-lg dark:bg-slate-900">
 							<div className="flex items-center gap-2">
-								<User className="h-8 w-8" />
-								<span className="text-lg">Name</span>
+								<User className="h-5 w-5 sm:h-8 sm:w-8" />
+								<span className="text-sm sm:text-lg">Name</span>
 							</div>
 						</th>
 						{weekDates.map((date, index) => {
@@ -33,7 +33,7 @@ export function RosterTable({
 							return (
 								<th
 									key={date.toISOString()}
-									className={`min-w-[100px] border-l py-4 text-center font-bold text-lg uppercase tracking-wide ${
+									className={`min-w-[92px] border-l px-1 py-3 text-center font-bold text-sm uppercase tracking-wide sm:min-w-[110px] sm:py-4 sm:text-lg ${
 										isToday
 											? "bg-primary/10 dark:bg-primary/20"
 											: "bg-slate-50/95 dark:bg-slate-900/95"
@@ -41,13 +41,13 @@ export function RosterTable({
 								>
 									<div className="flex flex-col items-center gap-0.5">
 										<span
-											className={`text-lg ${
+											className={`text-sm sm:text-lg ${
 												isToday ? "font-bold text-primary" : "text-foreground"
 											}`}
 										>
 											{DAYS[index]}
 										</span>
-										<span className="font-medium text-md text-muted-foreground">
+										<span className="font-medium text-muted-foreground text-xs sm:text-sm">
 											{formatDate(date)}
 										</span>
 									</div>
@@ -66,9 +66,9 @@ export function RosterTable({
 									: "bg-slate-50/30 dark:bg-slate-900/20"
 							}`}
 						>
-							<td className="sticky left-0 z-20 w-[200px] min-w-[200px] border-r bg-white py-3 pr-4 pl-5 font-semibold text-base tracking-wide dark:bg-slate-950">
+							<td className="sticky left-0 z-20 w-[140px] min-w-[140px] border-r bg-white py-3 pr-2 pl-3 font-semibold text-sm tracking-wide sm:w-[180px] sm:min-w-[180px] sm:pr-4 sm:pl-5 sm:text-base dark:bg-slate-950">
 								<div className="flex items-center gap-3">
-									<div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-primary/80 to-primary font-bold text-primary-foreground text-xs">
+									<div className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-primary/80 to-primary font-bold text-[10px] text-primary-foreground sm:h-8 sm:w-8 sm:text-xs">
 										{nurse
 											.split(" ")
 											.map((name) => name[0])
@@ -85,7 +85,7 @@ export function RosterTable({
 								return (
 									<td
 										key={date.toISOString()}
-										className={`border-l p-2 text-center transition-colors ${
+										className={`min-w-[92px] border-l p-1 text-center transition-colors sm:min-w-[110px] sm:p-2 ${
 											isToday ? "bg-primary/5" : ""
 										}`}
 									>
