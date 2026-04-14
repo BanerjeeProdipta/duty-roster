@@ -29,7 +29,7 @@ export function RosterHeader({
 					</p>
 				</div>
 			</div>
-			<div className="flex items-center gap-1 rounded-lg border p-1">
+			<div className="flex w-full min-w-60 max-w-100 items-center justify-between gap-1 rounded-lg border p-1">
 				<Button
 					variant="ghost"
 					size="sm"
@@ -41,10 +41,10 @@ export function RosterHeader({
 				<Button
 					variant="outline"
 					size="sm"
-					className="h-12 gap-3 rounded-md border-dashed px-3 font-semibold text-xl"
+					className="h-12 gap-3 rounded-md border-dashed px-3 font-semibold text-lg"
 					onClick={() => setWeekOffset(0)}
 				>
-					<Calendar className="h-8 w-8" />
+					<Calendar className="h-12 w-12" size={12} />
 					<p>Today</p>
 				</Button>
 				<span className="min-w-[160px] px-3 text-center font-semibold text-xl">

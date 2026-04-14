@@ -11,7 +11,7 @@ export function RosterMatrix({ editable = false }: { editable?: boolean }) {
 
 	return (
 		<div className="flex flex-col gap-6">
-			<Card className="w-full overflow-hidden">
+			<Card className="w-full overflow-hidden rounded-md">
 				<RosterHeader
 					nurseCount={NURSES.length}
 					weekDates={weekDates}
