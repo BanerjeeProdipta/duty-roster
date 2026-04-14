@@ -13,7 +13,7 @@
   "$schema": "https://r2.better-t-stack.dev/schema.json",
   "version": "3.27.0",
   "createdAt": "2026-04-14T09:18:13.943Z",
-  "reproducibleCommand": "bun create better-t-stack@latest Duty-Roster- --frontend next native-uniwind --backend hono --runtime bun --database postgres --orm drizzle --api trpc --auth better-auth --payments none --addons biome husky pwa turborepo --examples none --db-setup neon --web-deploy none --server-deploy none --git --package-manager bun --install",
+  "reproducibleCommand": "bun create better-t-stack@latest Duty-Roster --frontend next native-uniwind --backend hono --runtime bun --database postgres --orm drizzle --api trpc --auth better-auth --payments none --addons biome husky pwa turborepo --examples none --db-setup neon --web-deploy none --server-deploy none --git --package-manager bun --install",
   "database": "postgres",
   "orm": "drizzle",
   "backend": "hono",

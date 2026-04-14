@@ -1,30 +1,30 @@
 {
-  "name": "server",
-  "type": "module",
-  "main": "src/index.ts",
-  "scripts": {
-    "build": "tsdown",
-    "check-types": "tsc -b",
-    "compile": "bun build --compile --minify --sourcemap --bytecode ./src/index.ts --outfile server",
-    "dev": "bun run --hot src/index.ts",
-    "start": "bun run dist/index.mjs"
-  },
-  "dependencies": {
-    "@Duty-Roster-/api": "workspace:*",
-    "@Duty-Roster-/auth": "workspace:*",
-    "@Duty-Roster-/db": "workspace:*",
-    "@Duty-Roster-/env": "workspace:*",
-    "@hono/trpc-server": "^0.4.0",
-    "@trpc/server": "catalog:",
-    "better-auth": "catalog:",
-    "dotenv": "catalog:",
-    "hono": "catalog:",
-    "zod": "catalog:"
-  },
-  "devDependencies": {
-    "@Duty-Roster-/config": "workspace:*",
-    "@types/bun": "catalog:",
-    "tsdown": "^0.16.5",
-    "typescript": "^5"
-  }
+	"name": "server",
+	"type": "module",
+	"main": "src/index.ts",
+	"scripts": {
+		"build": "tsdown",
+		"check-types": "tsc -b",
+		"compile": "bun build --compile --minify --sourcemap --bytecode ./src/index.ts --outfile server",
+		"dev": "bun run --hot src/index.ts",
+		"start": "bun run dist/index.mjs"
+	},
+	"dependencies": {
+		"@Duty-Roster/api": "workspace:*",
+		"@Duty-Roster/auth": "workspace:*",
+		"@Duty-Roster/db": "workspace:*",
+		"@Duty-Roster/env": "workspace:*",
+		"@hono/trpc-server": "^0.4.0",
+		"@trpc/server": "catalog:",
+		"better-auth": "catalog:",
+		"dotenv": "catalog:",
+		"hono": "catalog:",
+		"zod": "catalog:"
+	},
+	"devDependencies": {
+		"@Duty-Roster/config": "workspace:*",
+		"@types/bun": "catalog:",
+		"tsdown": "^0.16.5",
+		"typescript": "^5"
+	}
 }

@@ -1,13 +1,13 @@
 {
-  "extends": "@Duty-Roster-/config/tsconfig.base.json",
-  "compilerOptions": {
-    "baseUrl": ".",
-    "jsx": "react-jsx",
-    "lib": ["ESNext", "DOM", "DOM.Iterable"],
-    "paths": {
-      "@Duty-Roster-/ui/*": ["./src/*"]
-    }
-  },
-  "include": ["src/**/*.ts", "src/**/*.tsx"],
-  "exclude": ["node_modules"]
+	"extends": "@Duty-Roster/config/tsconfig.base.json",
+	"compilerOptions": {
+		"baseUrl": ".",
+		"jsx": "react-jsx",
+		"lib": ["ESNext", "DOM", "DOM.Iterable"],
+		"paths": {
+			"@Duty-Roster/ui/*": ["./src/*"]
+		}
+	},
+	"include": ["src/**/*.ts", "src/**/*.tsx"],
+	"exclude": ["node_modules"]
 }

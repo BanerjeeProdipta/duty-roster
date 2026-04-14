@@ -1,15 +1,11 @@
 "use client";
-import { useQuery } from "@tanstack/react-query";
+import { RosterMatrix } from "@/components/roster-matrix";
 
-import { authClient } from "@/lib/auth-client";
-import { trpc } from "@/utils/trpc";
-
-export default function Dashboard({ session }: { session: typeof authClient.$Infer.Session }) {
-  const privateData = useQuery(trpc.privateData.queryOptions());
-
-  return (
-    <>
-      <p>API: {privateData.data?.message}</p>
-    </>
-  );
+export default function Dashboard() {
+	return (
+		<div className="container mx-auto py-8">
+			<h1 className="mb-6 font-bold text-2xl">Dashboard</h1>
+			<RosterMatrix />
+		</div>
+	);
 }
