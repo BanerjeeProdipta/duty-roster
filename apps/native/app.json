@@ -1,0 +1,17 @@
+{
+  "expo": {
+    "scheme": "Duty-Roster-",
+    "userInterfaceStyle": "automatic",
+    "orientation": "default",
+    "web": {
+      "bundler": "metro"
+    },
+    "name": "Duty-Roster-",
+    "slug": "Duty-Roster-",
+    "plugins": ["expo-font"],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    }
+  }
+}
