@@ -53,7 +53,7 @@ export function RosterTable({
 				</div>
 
 				<div className="overflow-x-auto [webkit-overflow-scrolling:touch]">
-					<table className="min-w-[840px] table-auto border-collapse">
+					<table className="w-full min-w-[840px] table-fixed border-collapse">
 						<thead>
 							<tr>
 								{weekDates.map((date, index) => {
@@ -62,7 +62,7 @@ export function RosterTable({
 									return (
 										<th
 											key={date.toISOString()}
-											className={`min-w-[120px] whitespace-nowrap border-l px-2 py-3 text-center font-bold text-sm uppercase ${
+											className={`whitespace-nowrap border-l px-2 py-3 text-center font-bold text-sm uppercase ${
 												isToday
 													? "bg-primary/20"
 													: "bg-slate-100 dark:bg-slate-900"
@@ -89,7 +89,7 @@ export function RosterTable({
 										return (
 											<td
 												key={date.toISOString()}
-												className={`h-[84px] min-w-[120px] whitespace-nowrap border-l px-1 py-2 text-center ${
+												className={`h-[84px] whitespace-nowrap border-l px-1 py-2 text-center ${
 													isToday ? "bg-primary/10" : ""
 												}`}
 											>
