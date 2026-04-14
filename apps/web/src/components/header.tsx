@@ -3,8 +3,6 @@
 import { cn } from "@Duty-Roster/ui/lib/utils";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ModeToggle } from "./mode-toggle";
-import UserMenu from "./user-menu";
 
 export default function Header() {
 	const pathname = usePathname();
@@ -17,11 +15,8 @@ export default function Header() {
 		<header className="border-b bg-background/80 px-3 backdrop-blur-sm sm:px-6">
 			<div className="mx-auto flex h-14 w-full max-w-7xl items-center justify-between gap-3">
 				<div className="flex items-center gap-4 sm:gap-8">
-					<Link
-						href="/"
-						className="font-semibold text-base italic tracking-tight sm:text-lg"
-					>
-						simple-roster
+					<Link href="/" className="font-bold text-2xl italic tracking-tight">
+						<p className="font-bold">simple-roster</p>
 					</Link>
 					<nav className="flex items-center gap-1 rounded-lg border bg-muted/40 p-1">
 						{links.map(({ to, label }) => {
