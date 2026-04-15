@@ -24,57 +24,52 @@ export function RosterHeader({
 					<CardTitle className="font-bold text-xl tracking-tight sm:text-2xl">
 						Weekly Duty Roster
 					</CardTitle>
-					<p className="text-muted-foreground text-sm sm:text-base">
-						{nurseCount} nurses ·{" "}
-						{weekDates[0].toLocaleDateString("en-US", {
-							month: "long",
-							year: "numeric",
-						})}
-					</p>
 				</div>
 			</div>
-			<div className="grid w-full grid-cols-[auto_1fr_auto] items-center justify-between gap-1 rounded-lg border p-1 sm:w-max">
+			<div className="flex flex-col justify-center gap-4 sm:flex-row sm:items-center">
 				<Button
-					variant="ghost"
+					variant="outline"
 					size="sm"
-					className="h-10 w-10 rounded-md sm:h-12 sm:w-12"
-					onClick={onPreviousWeek}
+					className="h-12 gap-2 rounded-md px-4 font-semibold text-slate-600 sm:h-15 sm:px-3 sm:text-base"
+					onClick={onCurrentWeek}
 				>
-					<ChevronLeft className="h-4 w-4" />
+					<Calendar className="h-4 w-4 sm:h-5 sm:w-5" />
+					<p>
+						<span className="pr-2">Today</span>
+						<span className="border-l pl-2">
+							{new Date().toLocaleDateString("en-US", {
+								month: "short",
+								day: "numeric",
+							})}
+						</span>
+					</p>
 				</Button>
-				<div className="flex min-w-0 items-center justify-center gap-1 sm:gap-2">
+				<div className="grid w-full min-w-66 grid-cols-[auto_1fr_auto] items-center justify-between gap-1 rounded-lg border p-1 sm:w-max">
 					<Button
-						variant="outline"
+						variant="ghost"
 						size="sm"
-						className="h-10 gap-2 rounded-md border-dashed px-2 font-medium text-slate-500 text-xs sm:h-12 sm:px-3 sm:text-sm"
-						onClick={onCurrentWeek}
+						className="h-10 w-10 rounded-md sm:h-12 sm:w-12"
+						onClick={onPreviousWeek}
 					>
-						<Calendar className="h-4 w-4 sm:h-5 sm:w-5" />
-						<p>
-							<span className="pr-2">Today</span>
-							<span className="border-l pl-2">
-								{new Date().toLocaleDateString("en-US", {
-									month: "short",
-									day: "numeric",
-								})}
-							</span>
-						</p>
+						<ChevronLeft className="h-4 w-4" />
 					</Button>
-					<span className="truncate px-1 text-center font-semibold text-sm sm:px-3 sm:text-base">
-						{weekDates[0].toLocaleDateString("en-US", { month: "short" })}{" "}
-						{weekDates[0].getDate()} -{" "}
-						{weekDates[6].toLocaleDateString("en-US", { month: "short" })}{" "}
-						{weekDates[6].getDate()}
-					</span>
+					<div className="flex min-w-0 items-center justify-center gap-1 sm:gap-2">
+						<span className="truncate px-1 text-center font-semibold text-sm sm:px-3 sm:text-base">
+							{weekDates[0].toLocaleDateString("en-US", { month: "short" })}{" "}
+							{weekDates[0].getDate()} -{" "}
+							{weekDates[6].toLocaleDateString("en-US", { month: "short" })}{" "}
+							{weekDates[6].getDate()}
+						</span>
+					</div>
+					<Button
+						variant="ghost"
+						size="sm"
+						className="h-10 w-10 rounded-md sm:h-12 sm:w-12"
+						onClick={onNextWeek}
+					>
+						<ChevronRight className="h-4 w-4" />
+					</Button>
 				</div>
-				<Button
-					variant="ghost"
-					size="sm"
-					className="h-10 w-10 rounded-md sm:h-12 sm:w-12"
-					onClick={onNextWeek}
-				>
-					<ChevronRight className="h-4 w-4" />
-				</Button>
 			</div>
 		</CardHeader>
 	);
