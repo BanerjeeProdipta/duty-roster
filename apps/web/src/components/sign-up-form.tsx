@@ -30,6 +30,7 @@ export default function SignUpForm({
 					email: value.email,
 					password: value.password,
 					name: value.name,
+					role: "user",
 				},
 				{
 					onSuccess: () => {
@@ -46,7 +47,7 @@ export default function SignUpForm({
 			onSubmit: z.object({
 				name: z.string().min(2, "Name must be at least 2 characters"),
 				email: z.email("Invalid email address"),
-				password: z.string().min(8, "Password must be at least 8 characters"),
+				password: z.string().min(1, "Password is required"),
 			}),
 		},
 	});
@@ -56,7 +57,7 @@ export default function SignUpForm({
 	}
 
 	return (
-		<div className="mx-auto mt-10 w-full max-w-md p-6">
+		<div>
 			<h1 className="mb-6 text-center font-bold text-3xl">Create Account</h1>
 
 			<form

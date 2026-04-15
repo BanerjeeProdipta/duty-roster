@@ -13,7 +13,7 @@ import Loader from "./loader";
 export default function SignInForm({
 	onSwitchToSignUp,
 }: {
-	onSwitchToSignUp: () => void;
+	onSwitchToSignUp?: () => void;
 }) {
 	const router = useRouter();
 	const { isPending } = authClient.useSession();
@@ -43,7 +43,7 @@ export default function SignInForm({
 		validators: {
 			onSubmit: z.object({
 				email: z.email("Invalid email address"),
-				password: z.string().min(8, "Password must be at least 8 characters"),
+				password: z.string().min(1, "Password is required"),
 			}),
 		},
 	});
@@ -53,7 +53,7 @@ export default function SignInForm({
 	}
 
 	return (
-		<div className="mx-auto mt-10 w-full max-w-md p-6">
+		<div>
 			<h1 className="mb-6 text-center font-bold text-3xl">Welcome Back</h1>
 
 			<form
@@ -127,16 +127,6 @@ export default function SignInForm({
 					)}
 				</form.Subscribe>
 			</form>
-
-			<div className="mt-4 text-center">
-				<Button
-					variant="link"
-					onClick={onSwitchToSignUp}
-					className="text-indigo-600 hover:text-indigo-800"
-				>
-					Need an account? Sign Up
-				</Button>
-			</div>
 		</div>
 	);
 }
