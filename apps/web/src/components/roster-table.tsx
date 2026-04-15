@@ -2,7 +2,7 @@ import { User } from "lucide-react";
 import { NURSES } from "./roster-matrix.constants";
 import type { Shift, ShiftType } from "./roster-matrix.types";
 import { buildShiftKey, DAYS, formatDate } from "./roster-matrix.utils";
-import { ShiftBadge } from "./shift-badge";
+import { ShiftBadge } from "./shift-dropdown";
 
 /**
  * Layout constants (single source of truth)

@@ -51,7 +51,7 @@ export function ShiftBadge({
 
 	return (
 		<DropdownMenu open={open} onOpenChange={setOpen}>
-			<DropdownMenuTrigger className="cursor-pointer rounded-xl p-1 transition-all hover:bg-black/5 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2">
+			<DropdownMenuTrigger className="cursor-pointer rounded-xl transition-all hover:bg-black/5 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1">
 				{badge}
 			</DropdownMenuTrigger>
 			<DropdownMenuContent
