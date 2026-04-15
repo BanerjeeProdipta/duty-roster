@@ -4,19 +4,16 @@ export default function AuthLayout({
 	children: React.ReactNode;
 }) {
 	return (
-		<div className="flex min-h-['calc(100%-40px)'] bg-gray-100">
+		<div className="flex min-h-[calc(100vh-200px)] justify-center gap-6 bg-gray-100">
 			{/* Left (Form Section) */}
-			<div className="flex w-full flex-col justify-center px-6 sm:px-10 lg:w-1/2 lg:px-16">
-				<div className="mx-auto w-full max-w-md space-y-6">
-					{/* Form Content */}
-					<div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-lg sm:p-8">
-						{children}
-					</div>
-				</div>
+
+			{/* Form Content */}
+			<div className="flex min-w-96 flex-col justify-center rounded-2xl border border-gray-200 bg-white p-6 shadow-lg sm:p-8">
+				{children}
 			</div>
 
 			{/* Right (Visual Section) */}
-			<div className="hidden items-center justify-center bg-gray-900 lg:flex lg:w-1/2">
+			<div className="hidden items-center justify-center rounded-2xl bg-gray-900 lg:flex lg:w-1/2">
 				<div className="max-w-md space-y-6 px-10">
 					{/* Headline */}
 					<h2 className="font-bold text-4xl text-white leading-tight">
