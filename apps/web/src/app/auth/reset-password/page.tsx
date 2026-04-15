@@ -1,38 +1,45 @@
+"use client";
+
 import { Button } from "@Duty-Roster/ui/components/button";
 import { Input } from "@Duty-Roster/ui/components/input";
 import { Label } from "@Duty-Roster/ui/components/label";
 import { useForm } from "@tanstack/react-form";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import z from "zod";
 
 import { authClient } from "@/lib/auth-client";
 
-import Loader from "./loader";
-
-export default function SignInForm({
-	onSwitchToSignUp,
-}: {
-	onSwitchToSignUp?: () => void;
-}) {
+export default function ResetPasswordPage() {
 	const router = useRouter();
-	const { isPending } = authClient.useSession();
+	const searchParams = useSearchParams();
+	const token = searchParams.get("token");
 
 	const form = useForm({
 		defaultValues: {
-			email: "",
 			password: "",
+			confirmPassword: "",
 		},
 		onSubmit: async ({ value }) => {
-			await authClient.signIn.email(
+			if (!token) {
+				toast.error("Invalid reset token");
+				return;
+			}
+
+			if (value.password !== value.confirmPassword) {
+				toast.error("Passwords do not match");
+				return;
+			}
+
+			await authClient.resetPassword(
 				{
-					email: value.email,
-					password: value.password,
+					newPassword: value.password,
+					token,
 				},
 				{
 					onSuccess: () => {
-						router.push("/dashboard");
-						toast.success("Sign in successful");
+						toast.success("Password reset successful");
+						router.push("/auth");
 					},
 					onError: (error) => {
 						toast.error(error.error.message || error.error.statusText);
@@ -42,19 +49,29 @@ export default function SignInForm({
 		},
 		validators: {
 			onSubmit: z.object({
-				email: z.email("Invalid email address"),
-				password: z.string().min(1, "Password is required"),
+				password: z.string().min(8, "Password must be at least 8 characters"),
+				confirmPassword: z.string(),
 			}),
 		},
 	});
 
-	if (isPending) {
-		return <Loader />;
+	if (!token) {
+		return (
+			<div>
+				<h1 className="mb-2 text-center font-bold text-3xl">Invalid Link</h1>
+				<p className="text-center text-muted-foreground">
+					This password reset link is invalid or has expired.
+				</p>
+			</div>
+		);
 	}
 
 	return (
 		<div>
-			<h1 className="mb-6 text-center font-bold text-3xl">Welcome Back</h1>
+			<h1 className="mb-2 text-center font-bold text-3xl">Reset Password</h1>
+			<p className="mb-6 text-center text-muted-foreground">
+				Enter your new password below.
+			</p>
 
 			<form
 				onSubmit={(e) => {
@@ -65,36 +82,10 @@ export default function SignInForm({
 				className="space-y-4"
 			>
 				<div>
-					<form.Field name="email">
-						{(field) => (
-							<div className="space-y-2">
-								<Label htmlFor={field.name}>Email</Label>
-								<Input
-									id={field.name}
-									name={field.name}
-									type="email"
-									value={field.state.value}
-									onBlur={field.handleBlur}
-									onChange={(e) => field.handleChange(e.target.value)}
-								/>
-								{field.state.meta.errors.map((error) => (
-									<p
-										key={typeof error === "string" ? error : error?.message}
-										className="text-red-500"
-									>
-										{typeof error === "string" ? error : error?.message}
-									</p>
-								))}
-							</div>
-						)}
-					</form.Field>
-				</div>
-
-				<div>
 					<form.Field name="password">
 						{(field) => (
 							<div className="space-y-2">
-								<Label htmlFor={field.name}>Password</Label>
+								<Label htmlFor={field.name}>New Password</Label>
 								<Input
 									id={field.name}
 									name={field.name}
@@ -116,13 +107,30 @@ export default function SignInForm({
 					</form.Field>
 				</div>
 
-				<div className="text-right">
-					<a
-						href="/auth/forgot-password"
-						className="text-primary text-sm hover:underline"
-					>
-						Forgot Password?
-					</a>
+				<div>
+					<form.Field name="confirmPassword">
+						{(field) => (
+							<div className="space-y-2">
+								<Label htmlFor={field.name}>Confirm Password</Label>
+								<Input
+									id={field.name}
+									name={field.name}
+									type="password"
+									value={field.state.value}
+									onBlur={field.handleBlur}
+									onChange={(e) => field.handleChange(e.target.value)}
+								/>
+								{field.state.meta.errors.map((error) => (
+									<p
+										key={typeof error === "string" ? error : error?.message}
+										className="text-red-500"
+									>
+										{typeof error === "string" ? error : error?.message}
+									</p>
+								))}
+							</div>
+						)}
+					</form.Field>
 				</div>
 
 				<form.Subscribe
@@ -137,7 +145,7 @@ export default function SignInForm({
 							className="w-full"
 							disabled={!canSubmit || isSubmitting}
 						>
-							{isSubmitting ? "Submitting..." : "Sign In"}
+							{isSubmitting ? "Resetting..." : "Reset Password"}
 						</Button>
 					)}
 				</form.Subscribe>

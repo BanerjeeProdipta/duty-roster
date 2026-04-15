@@ -42,6 +42,7 @@
 	"dependencies": {
 		"@Duty-Roster/env": "workspace:*",
 		"dotenv": "catalog:",
+		"react-window": "^2.2.7",
 		"zod": "catalog:"
 	},
 	"devDependencies": {

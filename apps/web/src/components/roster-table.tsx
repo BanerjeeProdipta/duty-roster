@@ -1,3 +1,4 @@
+import React, { useCallback, useMemo } from "react";
 import { NURSES } from "./roster-matrix.constants";
 import type { Shift, ShiftType } from "./roster-matrix.types";
 import { buildShiftKey, DAYS, formatDate } from "./roster-matrix.utils";
@@ -8,6 +9,10 @@ const LAYOUT = {
 	cellHeight: "80px",
 	headerHeight: "52px",
 };
+
+/* -----------------------------
+   MAIN TABLE
+------------------------------ */
 
 interface RosterTableProps {
 	weekDates: Date[];
@@ -22,11 +27,44 @@ export function RosterTable({
 	editable,
 	onShiftChange,
 }: RosterTableProps) {
-	const isToday = (date: Date) =>
-		date.toDateString() === new Date().toDateString();
+	const todayStr = useMemo(() => new Date().toDateString(), []);
+
+	/* Normalize week once */
+	const normalizedWeek = useMemo(() => {
+		return weekDates.map((date, index) => {
+			const isToday = date.toDateString() === todayStr;
+
+			return {
+				date,
+				index,
+				time: date.getTime(),
+				isToday,
+				label: DAYS[index],
+				formatted: formatDate(date),
+				shortLabel: date.toLocaleDateString("en-US", {
+					weekday: "short",
+					month: "short",
+					day: "numeric",
+				}),
+				key: date.getTime(),
+			};
+		});
+	}, [weekDates, todayStr]);
+
+	/* Pre-index shiftMap for O(1) lookup */
+	const shiftIndex = useMemo(() => {
+		const map = new Map<string, Shift>();
+
+		for (const [key, shift] of shiftMap.entries()) {
+			map.set(key, shift);
+		}
+
+		return map;
+	}, [shiftMap]);
 
 	return (
 		<div className="mb-12 flex flex-1 overflow-hidden">
+			{/* LEFT NAME COLUMN */}
 			<div className="flex shrink-0" style={{ width: LAYOUT.nameColWidth }}>
 				<table className="w-full table-fixed">
 					<thead>
@@ -54,60 +92,38 @@ export function RosterTable({
 				</table>
 			</div>
 
+			{/* RIGHT GRID */}
 			<div className="flex-1 overflow-x-auto">
 				<table className="w-full min-w-[800px] table-fixed">
 					<thead>
 						<tr>
-							{weekDates.map((date, index) => (
+							{normalizedWeek.map((d) => (
 								<th
-									key={date.toISOString()}
+									key={d.key}
 									className={`border-b px-2 text-center font-semibold text-sm uppercase tracking-wide ${
-										isToday(date) ? "bg-primary/5" : ""
+										d.isToday ? "bg-primary/5" : ""
 									}`}
 									style={{ height: LAYOUT.headerHeight }}
 								>
-									<span className="block">{DAYS[index]}</span>
+									<span className="block">{d.label}</span>
 									<span className="block font-normal text-muted-foreground text-xs">
-										{formatDate(date)}
+										{d.formatted}
 									</span>
 								</th>
 							))}
 						</tr>
 					</thead>
+
 					<tbody>
 						{NURSES.map((nurse) => (
-							<tr key={nurse}>
-								{weekDates.map((date) => {
-									const shift = shiftMap.get(buildShiftKey(nurse, date));
-
-									return (
-										<td
-											key={date.toISOString()}
-											className={`border-r border-b text-center ${
-												isToday(date) ? "bg-primary/5" : ""
-											}`}
-											style={{ height: LAYOUT.cellHeight }}
-										>
-											{shift && (
-												<ShiftBadge
-													type={shift.shiftType}
-													nurseName={nurse}
-													date={date.toLocaleDateString("en-US", {
-														weekday: "short",
-														month: "short",
-														day: "numeric",
-													})}
-													onChange={
-														editable
-															? (newType) => onShiftChange(nurse, date, newType)
-															: undefined
-													}
-												/>
-											)}
-										</td>
-									);
-								})}
-							</tr>
+							<NurseRow
+								key={nurse}
+								nurse={nurse}
+								week={normalizedWeek}
+								shiftIndex={shiftIndex}
+								editable={editable}
+								onShiftChange={onShiftChange}
+							/>
 						))}
 					</tbody>
 				</table>
@@ -115,3 +131,64 @@ export function RosterTable({
 		</div>
 	);
 }
+
+/* -----------------------------
+   MEMOIZED ROW
+------------------------------ */
+
+interface NurseRowProps {
+	nurse: string;
+	week: {
+		date: Date;
+		key: number;
+		isToday: boolean;
+		shortLabel: string;
+		formatted: string;
+		label: string;
+	}[];
+	shiftIndex: Map<string, Shift>;
+	editable: boolean;
+	onShiftChange: (nurse: string, date: Date, shiftType: ShiftType) => void;
+}
+
+const NurseRow = React.memo(function NurseRow({
+	nurse,
+	week,
+	shiftIndex,
+	editable,
+	onShiftChange,
+}: NurseRowProps) {
+	const handleChange = useCallback(
+		(date: Date) => (newType: ShiftType) => {
+			onShiftChange(nurse, date, newType);
+		},
+		[nurse, onShiftChange],
+	);
+
+	return (
+		<tr>
+			{week.map((d) => {
+				const shift = shiftIndex.get(buildShiftKey(nurse, d.date));
+
+				return (
+					<td
+						key={d.key}
+						className={`border-r border-b text-center ${
+							d.isToday ? "bg-primary/5" : ""
+						}`}
+						style={{ height: LAYOUT.cellHeight }}
+					>
+						{shift && (
+							<ShiftBadge
+								type={shift.shiftType}
+								nurseName={nurse}
+								date={d.shortLabel}
+								onChange={editable ? handleChange(d.date) : undefined}
+							/>
+						)}
+					</td>
+				);
+			})}
+		</tr>
+	);
+});
