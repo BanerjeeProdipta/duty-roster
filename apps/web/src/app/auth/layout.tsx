@@ -4,7 +4,7 @@ export default function AuthLayout({
 	children: React.ReactNode;
 }) {
 	return (
-		<div className="flex min-h-[calc(100vh-200px)] justify-center gap-6 bg-gray-100">
+		<div className="flex min-h-[calc(100vh-60px)] justify-center gap-6 bg-gray-100 py-20">
 			{/* Left (Form Section) */}
 
 			{/* Form Content */}
