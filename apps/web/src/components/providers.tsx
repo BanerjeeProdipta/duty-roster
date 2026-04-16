@@ -8,12 +8,10 @@ import { queryClient } from "@/utils/trpc";
 
 export default function Providers({ children }: { children: React.ReactNode }) {
 	return (
-		<>
-			<QueryClientProvider client={queryClient}>
-				{children}
-				<ReactQueryDevtools />
-			</QueryClientProvider>
+		<QueryClientProvider client={queryClient}>
+			{children}
+			<ReactQueryDevtools />
 			<Toaster richColors />
-		</>
+		</QueryClientProvider>
 	);
 }

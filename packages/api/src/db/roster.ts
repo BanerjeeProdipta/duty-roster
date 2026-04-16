@@ -11,6 +11,28 @@ export async function findAllShifts() {
 	return db.select().from(shift);
 }
 
+export async function findSchedulesByDateRange(startDate: Date, endDate: Date) {
+	return db
+		.select({
+			id: nurseSchedule.id,
+			nurseId: nurseSchedule.nurseId,
+			nurseName: nurse.name,
+			shiftId: nurseSchedule.shiftId,
+			shiftName: shift.name,
+			date: nurseSchedule.date,
+		})
+		.from(nurseSchedule)
+		.innerJoin(nurse, sql`${nurse.id} = ${nurseSchedule.nurseId}`)
+		.leftJoin(shift, sql`${shift.id} = ${nurseSchedule.shiftId}`)
+		.where(
+			and(
+				sql`${nurseSchedule.date} >= ${startDate.toISOString()}`,
+				sql`${nurseSchedule.date} <= ${endDate.toISOString()}`,
+			),
+		)
+		.orderBy(nurseSchedule.date);
+}
+
 export async function createSchedules(
 	schedules: {
 		nurseId: string;

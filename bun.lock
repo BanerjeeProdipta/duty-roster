@@ -6,6 +6,7 @@
       "name": "Duty-Roster",
       "dependencies": {
         "@Duty-Roster/env": "workspace:*",
+        "@trpc/tanstack-react-query": "^11.16.0",
         "dotenv": "catalog:",
         "react-window": "^2.2.7",
         "zod": "catalog:",
@@ -138,6 +139,7 @@
         "@Duty-Roster/env": "workspace:*",
         "@trpc/client": "catalog:",
         "@trpc/server": "catalog:",
+        "@trpc/tanstack-react-query": "catalog:",
         "dotenv": "catalog:",
         "zod": "catalog:",
       },

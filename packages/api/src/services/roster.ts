@@ -19,6 +19,10 @@ export async function getShifts() {
 	return rosterDb.findAllShifts();
 }
 
+export async function getSchedulesByDateRange(startDate: Date, endDate: Date) {
+	return rosterDb.findSchedulesByDateRange(startDate, endDate);
+}
+
 export async function generateRoster(params: GenerateRosterParams) {
 	try {
 		const __filename = fileURLToPath(import.meta.url);
