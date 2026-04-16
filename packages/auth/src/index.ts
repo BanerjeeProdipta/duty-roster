@@ -4,9 +4,6 @@ import { env } from "@Duty-Roster/env/server";
 import { expo } from "@better-auth/expo";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { adminClient } from "better-auth/client/plugins";
-
-export type UserRole = "admin" | "user";
 
 export function createAuth() {
 	const db = createDb();
@@ -33,17 +30,7 @@ export function createAuth() {
 			enabled: true,
 			minPasswordLength: 1,
 		},
-		user: {
-			additionalFields: {
-				role: {
-					type: "string",
-					defaultValue: "user",
-					required: false,
-					input: false,
-					returned: true,
-				},
-			},
-		},
+		user: {},
 		secret: env.BETTER_AUTH_SECRET,
 		baseURL: env.BETTER_AUTH_URL,
 		advanced: {
@@ -53,7 +40,7 @@ export function createAuth() {
 				httpOnly: true,
 			},
 		},
-		plugins: [expo(), adminClient()],
+		plugins: [expo()],
 	});
 }
 

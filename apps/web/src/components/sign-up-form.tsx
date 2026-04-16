@@ -13,7 +13,7 @@ import Loader from "./loader";
 export default function SignUpForm({
 	onSwitchToSignIn,
 }: {
-	onSwitchToSignIn: () => void;
+	onSwitchToSignIn?: () => void;
 }) {
 	const router = useRouter();
 	const { isPending } = authClient.useSession();
@@ -30,7 +30,6 @@ export default function SignUpForm({
 					email: value.email,
 					password: value.password,
 					name: value.name,
-					role: "user",
 				},
 				{
 					onSuccess: () => {

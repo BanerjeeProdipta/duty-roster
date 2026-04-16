@@ -1,22 +1,15 @@
 import { relations } from "drizzle-orm";
 import { boolean, index, pgTable, text, timestamp } from "drizzle-orm/pg-core";
-import { shift } from "./shift";
-import { userSchedule } from "./user-schedule";
 
 export const user = pgTable("user", {
 	id: text("id").primaryKey(),
 	name: text("name").notNull(),
 	email: text("email").notNull().unique(),
 	emailVerified: boolean("email_verified").default(false).notNull(),
-	image: text("image"),
-	role: text("role").default("user").notNull(),
-	preferredShiftId: text("preferred_shift_id")
-		.notNull()
-		.references(() => shift.id),
 	createdAt: timestamp("created_at").defaultNow().notNull(),
 	updatedAt: timestamp("updated_at")
 		.defaultNow()
-		.$onUpdate(() => /* @__PURE__ */ new Date())
+		.$onUpdate(() => new Date())
 		.notNull(),
 });
 
@@ -82,11 +75,6 @@ export const verification = pgTable(
 export const userRelations = relations(user, ({ many, one }) => ({
 	sessions: many(session),
 	accounts: many(account),
-	schedules: many(userSchedule),
-	preferredShift: one(shift, {
-		fields: [user.preferredShiftId],
-		references: [shift.id],
-	}),
 }));
 
 export const sessionRelations = relations(session, ({ one }) => ({
