@@ -11,6 +11,77 @@ type GenerateRosterParams = {
 	month: number;
 };
 
+type ScheduleRow = Awaited<
+	ReturnType<typeof rosterDb.findSchedulesByDateRange>
+>[number];
+
+function getDateKey(date: Date) {
+	return date.toISOString().split("T")[0] ?? "";
+}
+
+export function buildScheduleSummary(schedules: ScheduleRow[]) {
+	const dailyShiftCountsMap = new Map<
+		string,
+		{ morning: number; evening: number; night: number; totalAssigned: number }
+	>();
+	const nurseShiftCountsMap = new Map<
+		string,
+		{
+			nurse: { id: string; name: string };
+			shifts: {
+				morning: number;
+				evening: number;
+				night: number;
+				totalAssigned: number;
+			};
+		}
+	>();
+
+	for (const schedule of schedules) {
+		const dateKey = getDateKey(schedule.date);
+		const shiftId = schedule.shift?.id;
+
+		const dailyCounts = dailyShiftCountsMap.get(dateKey) ?? {
+			morning: 0,
+			evening: 0,
+			night: 0,
+			totalAssigned: 0,
+		};
+		const nurseCounts = nurseShiftCountsMap.get(schedule.nurse.id) ?? {
+			nurse: schedule.nurse,
+			shifts: {
+				morning: 0,
+				evening: 0,
+				night: 0,
+				totalAssigned: 0,
+			},
+		};
+
+		if (shiftId === "morning" || shiftId === "evening" || shiftId === "night") {
+			dailyCounts[shiftId] += 1;
+			dailyCounts.totalAssigned += 1;
+			nurseCounts.shifts[shiftId] += 1;
+			nurseCounts.shifts.totalAssigned += 1;
+		}
+
+		dailyShiftCountsMap.set(dateKey, dailyCounts);
+		nurseShiftCountsMap.set(schedule.nurse.id, nurseCounts);
+	}
+
+	return {
+		schedules,
+		dailyShiftCounts: Array.from(dailyShiftCountsMap.entries())
+			.sort(([left], [right]) => left.localeCompare(right))
+			.map(([date, shifts]) => ({
+				date,
+				shifts,
+			})),
+		nurseShiftCounts: Array.from(nurseShiftCountsMap.values()).sort(
+			(left, right) => left.nurse.name.localeCompare(right.nurse.name),
+		),
+	};
+}
+
 export async function getNurses() {
 	return rosterDb.findAllNurses();
 }
@@ -20,7 +91,9 @@ export async function getShifts() {
 }
 
 export async function getSchedulesByDateRange(startDate: Date, endDate: Date) {
-	return rosterDb.findSchedulesByDateRange(startDate, endDate);
+	const schedules = await rosterDb.findSchedulesByDateRange(startDate, endDate);
+
+	return buildScheduleSummary(schedules);
 }
 
 export async function generateRoster(params: GenerateRosterParams) {

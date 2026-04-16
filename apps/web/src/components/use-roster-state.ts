@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState, useTransition } from "react";
-import { NURSES } from "./roster-matrix.constants";
 import type { Shift, ShiftType } from "./roster-matrix.types";
 import {
 	buildShiftKey,
@@ -7,7 +6,16 @@ import {
 	getWeekDates,
 } from "./roster-matrix.utils";
 
-function generateShifts(weekDates: Date[], existingShifts?: Shift[]): Shift[] {
+type NurseOption = {
+	id: string;
+	name: string;
+};
+
+function generateShifts(
+	weekDates: Date[],
+	nurses: NurseOption[],
+	existingShifts?: Shift[],
+): Shift[] {
 	const shifts: Shift[] = [];
 	let shiftId = 0;
 	const existingMap = new Map<string, ShiftType>();
@@ -18,15 +26,15 @@ function generateShifts(weekDates: Date[], existingShifts?: Shift[]): Shift[] {
 
 	weekDates.forEach((_, dayIndex) => {
 		const dateStr = weekDates[dayIndex].toISOString().split("T")[0];
-		NURSES.forEach((nurse, nurseIndex) => {
-			const key = `${nurse}-${dateStr}`;
+		nurses.forEach((nurse, nurseIndex) => {
+			const key = `${nurse.name}-${dateStr}`;
 			const shiftType =
 				existingMap.get(key) || DEFAULT_SHIFTS[nurseIndex % 30] || "off";
 
 			shifts.push({
 				id: `${shiftId++}`,
-				employeeId: `n${nurseIndex}`,
-				employeeName: nurse,
+				employeeId: nurse.id,
+				employeeName: nurse.name,
 				date: dateStr,
 				shiftType,
 			});
@@ -36,17 +44,17 @@ function generateShifts(weekDates: Date[], existingShifts?: Shift[]): Shift[] {
 	return shifts;
 }
 
-export function useRosterState(initialShifts?: Shift[]) {
+export function useRosterState(nurses: NurseOption[], initialShifts?: Shift[]) {
 	const [weekOffset, setWeekOffset] = useState(0);
 	const [isPending, startTransition] = useTransition();
 	const weekDates = useMemo(() => getWeekDates(weekOffset), [weekOffset]);
 	const [shifts, setShifts] = useState<Shift[]>(() =>
-		generateShifts(weekDates, initialShifts),
+		generateShifts(weekDates, nurses, initialShifts),
 	);
 
 	useEffect(() => {
-		setShifts((previous) => generateShifts(weekDates, previous));
-	}, [weekDates]);
+		setShifts((previous) => generateShifts(weekDates, nurses, previous));
+	}, [nurses, weekDates]);
 
 	const shiftMap = useMemo(() => {
 		const map = new Map<string, Shift>();

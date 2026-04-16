@@ -1,5 +1,4 @@
 import React, { useCallback, useMemo } from "react";
-import { NURSES } from "./roster-matrix.constants";
 import type { Shift, ShiftType } from "./roster-matrix.types";
 import { buildShiftKey, DAYS, formatDate } from "./roster-matrix.utils";
 import { ShiftBadge } from "./shift-dropdown";
@@ -15,6 +14,10 @@ const LAYOUT = {
 ------------------------------ */
 
 interface RosterTableProps {
+	nurses: {
+		id: string;
+		name: string;
+	}[];
 	weekDates: Date[];
 	shiftMap: Map<string, Shift>;
 	editable: boolean;
@@ -22,6 +25,7 @@ interface RosterTableProps {
 }
 
 export function RosterTable({
+	nurses,
 	weekDates,
 	shiftMap,
 	editable,
@@ -78,13 +82,13 @@ export function RosterTable({
 						</tr>
 					</thead>
 					<tbody>
-						{NURSES.map((nurse) => (
-							<tr key={nurse}>
+						{nurses.map((nurse) => (
+							<tr key={nurse.id}>
 								<td
 									className="border-r border-b bg-muted/30 px-4 py-3"
 									style={{ height: LAYOUT.cellHeight }}
 								>
-									<span className="font-medium text-base">{nurse}</span>
+									<span className="font-medium text-base">{nurse.name}</span>
 								</td>
 							</tr>
 						))}
@@ -115,9 +119,9 @@ export function RosterTable({
 					</thead>
 
 					<tbody>
-						{NURSES.map((nurse) => (
+						{nurses.map((nurse) => (
 							<NurseRow
-								key={nurse}
+								key={nurse.id}
 								nurse={nurse}
 								week={normalizedWeek}
 								shiftIndex={shiftIndex}
@@ -137,7 +141,10 @@ export function RosterTable({
 ------------------------------ */
 
 interface NurseRowProps {
-	nurse: string;
+	nurse: {
+		id: string;
+		name: string;
+	};
 	week: {
 		date: Date;
 		key: number;
@@ -160,7 +167,7 @@ const NurseRow = React.memo(function NurseRow({
 }: NurseRowProps) {
 	const handleChange = useCallback(
 		(date: Date) => (newType: ShiftType) => {
-			onShiftChange(nurse, date, newType);
+			onShiftChange(nurse.name, date, newType);
 		},
 		[nurse, onShiftChange],
 	);
@@ -168,7 +175,7 @@ const NurseRow = React.memo(function NurseRow({
 	return (
 		<tr>
 			{week.map((d) => {
-				const shift = shiftIndex.get(buildShiftKey(nurse, d.date));
+				const shift = shiftIndex.get(buildShiftKey(nurse.name, d.date));
 
 				return (
 					<td
@@ -181,7 +188,7 @@ const NurseRow = React.memo(function NurseRow({
 						{shift && (
 							<ShiftBadge
 								type={shift.shiftType}
-								nurseName={nurse}
+								nurseName={nurse.name}
 								date={d.shortLabel}
 								onChange={editable ? handleChange(d.date) : undefined}
 							/>

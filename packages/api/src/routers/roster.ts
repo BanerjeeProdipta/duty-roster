@@ -16,6 +16,32 @@ const scheduleRowSchema = z.object({
 		.nullable(),
 });
 
+const shiftCountsSchema = z.object({
+	morning: z.number(),
+	evening: z.number(),
+	night: z.number(),
+	totalAssigned: z.number(),
+});
+
+const schedulesResponseSchema = z.object({
+	schedules: z.array(scheduleRowSchema),
+	dailyShiftCounts: z.array(
+		z.object({
+			date: z.string(),
+			shifts: shiftCountsSchema,
+		}),
+	),
+	nurseShiftCounts: z.array(
+		z.object({
+			nurse: z.object({
+				id: z.string(),
+				name: z.string(),
+			}),
+			shifts: shiftCountsSchema,
+		}),
+	),
+});
+
 export const rosterRouter = router({
 	getNurses: publicProcedure.query(async () => {
 		return rosterService.getNurses();
@@ -28,7 +54,7 @@ export const rosterRouter = router({
 				endDate: z.string(),
 			}),
 		)
-		.output(z.array(scheduleRowSchema))
+		.output(schedulesResponseSchema)
 		.query(async ({ input }) => {
 			const startDate = new Date(input.startDate);
 			const endDate = new Date(input.endDate);

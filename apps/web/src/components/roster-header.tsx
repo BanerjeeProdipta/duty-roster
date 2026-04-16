@@ -7,6 +7,8 @@ interface RosterHeaderProps {
 	onPreviousWeek: () => void;
 	onNextWeek: () => void;
 	onCurrentWeek: () => void;
+	onGenerate?: () => void;
+	isGenerating?: boolean;
 }
 
 export function RosterHeader({
@@ -15,6 +17,8 @@ export function RosterHeader({
 	onPreviousWeek,
 	onNextWeek,
 	onCurrentWeek,
+	onGenerate,
+	isGenerating = false,
 }: RosterHeaderProps) {
 	return (
 		<div className="flex flex-col gap-4 border-b px-4 py-6 lg:flex-row lg:items-center lg:justify-between">
@@ -22,6 +26,16 @@ export function RosterHeader({
 				Weekly Schedule
 			</h1>
 			<div className="flex items-center gap-4">
+				{onGenerate ? (
+					<Button
+						size="sm"
+						className="text-base"
+						onClick={onGenerate}
+						disabled={isGenerating}
+					>
+						{isGenerating ? "Generating..." : "Generate Schedule"}
+					</Button>
+				) : null}
 				<Button
 					variant="ghost"
 					size="sm"

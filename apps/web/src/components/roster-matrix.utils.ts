@@ -15,6 +15,28 @@ export type ScheduleRow = {
 	} | null;
 };
 
+export type ShiftCounts = {
+	morning: number;
+	evening: number;
+	night: number;
+	totalAssigned: number;
+};
+
+export type SchedulesResponse = {
+	schedules: ScheduleRow[];
+	dailyShiftCounts: {
+		date: string;
+		shifts: ShiftCounts;
+	}[];
+	nurseShiftCounts: {
+		nurse: {
+			id: string;
+			name: string;
+		};
+		shifts: ShiftCounts;
+	}[];
+};
+
 export function formatDate(date: Date): string {
 	return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
@@ -65,6 +87,18 @@ export function scheduleRowsToShifts(rows: ScheduleRow[]) {
 		date: new Date(schedule.date).toISOString().split("T")[0] ?? "",
 		shiftType: normalizeShiftType(schedule.shift?.id ?? null),
 	}));
+}
+
+export function getNursesFromScheduleRows(rows: ScheduleRow[]) {
+	const nurses = new Map<string, { id: string; name: string }>();
+
+	for (const row of rows) {
+		nurses.set(row.nurse.id, row.nurse);
+	}
+
+	return Array.from(nurses.values()).sort((a, b) =>
+		a.name.localeCompare(b.name),
+	);
 }
 
 export function buildShiftKey(nurseName: string, date: Date | string): string {

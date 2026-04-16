@@ -12,13 +12,20 @@ export type CreateContextOptions = {
 export async function createContextFromHeaders(
 	headers: Headers,
 ): Promise<Context> {
-	const { auth } = await import("@Duty-Roster/auth");
-	const session = await auth.api.getSession({ headers });
+	try {
+		const { auth } = await import("@Duty-Roster/auth");
+		const session = await auth.api.getSession({ headers });
 
-	return {
-		auth: null,
-		session,
-	};
+		return {
+			auth: null,
+			session,
+		};
+	} catch {
+		return {
+			auth: null,
+			session: null,
+		};
+	}
 }
 
 export async function createContext({ context }: CreateContextOptions) {
