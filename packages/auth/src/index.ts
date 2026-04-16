@@ -28,7 +28,9 @@ export function createAuth() {
 		],
 		emailAndPassword: {
 			enabled: true,
+			minPasswordLength: 1,
 		},
+		user: {},
 		secret: env.BETTER_AUTH_SECRET,
 		baseURL: env.BETTER_AUTH_URL,
 		advanced: {

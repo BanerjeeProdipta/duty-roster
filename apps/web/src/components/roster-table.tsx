@@ -1,17 +1,18 @@
-import { User } from "lucide-react";
+import React, { useCallback, useMemo } from "react";
 import { NURSES } from "./roster-matrix.constants";
 import type { Shift, ShiftType } from "./roster-matrix.types";
 import { buildShiftKey, DAYS, formatDate } from "./roster-matrix.utils";
 import { ShiftBadge } from "./shift-dropdown";
 
-/**
- * Layout constants (single source of truth)
- */
 const LAYOUT = {
-	nameColWidth: "200px",
+	nameColWidth: "180px",
 	cellHeight: "80px",
-	headerHeight: "58px",
+	headerHeight: "52px",
 };
+
+/* -----------------------------
+   MAIN TABLE
+------------------------------ */
 
 interface RosterTableProps {
 	weekDates: Date[];
@@ -26,125 +27,168 @@ export function RosterTable({
 	editable,
 	onShiftChange,
 }: RosterTableProps) {
-	const isToday = (date: Date) =>
-		date.toDateString() === new Date().toDateString();
+	const todayStr = useMemo(() => new Date().toDateString(), []);
+
+	/* Normalize week once */
+	const normalizedWeek = useMemo(() => {
+		return weekDates.map((date, index) => {
+			const isToday = date.toDateString() === todayStr;
+
+			return {
+				date,
+				index,
+				time: date.getTime(),
+				isToday,
+				label: DAYS[index],
+				formatted: formatDate(date),
+				shortLabel: date.toLocaleDateString("en-US", {
+					weekday: "short",
+					month: "short",
+					day: "numeric",
+				}),
+				key: date.getTime(),
+			};
+		});
+	}, [weekDates, todayStr]);
+
+	/* Pre-index shiftMap for O(1) lookup */
+	const shiftIndex = useMemo(() => {
+		const map = new Map<string, Shift>();
+
+		for (const [key, shift] of shiftMap.entries()) {
+			map.set(key, shift);
+		}
+
+		return map;
+	}, [shiftMap]);
 
 	return (
-		<div className="w-full bg-slate-200">
-			<div
-				className="grid bg-slate-200"
-				style={{
-					gridTemplateColumns: `${LAYOUT.nameColWidth} 1fr`,
-				}}
-			>
-				{/* LEFT: NURSE NAMES */}
-				<div className="bg-slate-100 dark:bg-slate-900">
-					<table className="w-full table-fixed border-collapse">
-						<thead>
-							<tr>
+		<div className="mb-12 flex flex-1 overflow-hidden">
+			{/* LEFT NAME COLUMN */}
+			<div className="flex shrink-0" style={{ width: LAYOUT.nameColWidth }}>
+				<table className="w-full table-fixed">
+					<thead>
+						<tr>
+							<th
+								className="border-r border-b px-4 py-3 text-left font-semibold text-sm uppercase tracking-wide"
+								style={{ height: LAYOUT.headerHeight }}
+							>
+								Name
+							</th>
+						</tr>
+					</thead>
+					<tbody>
+						{NURSES.map((nurse) => (
+							<tr key={nurse}>
+								<td
+									className="border-r border-b bg-muted/30 px-4 py-3"
+									style={{ height: LAYOUT.cellHeight }}
+								>
+									<span className="font-medium text-base">{nurse}</span>
+								</td>
+							</tr>
+						))}
+					</tbody>
+				</table>
+			</div>
+
+			{/* RIGHT GRID */}
+			<div className="flex-1 overflow-x-auto">
+				<table className="w-full min-w-[800px] table-fixed">
+					<thead>
+						<tr>
+							{normalizedWeek.map((d) => (
 								<th
-									className="border border-slate-200 px-3 py-3 text-left font-bold text-sm uppercase dark:border-slate-700"
+									key={d.key}
+									className={`border-b px-2 text-center font-semibold text-sm uppercase tracking-wide ${
+										d.isToday ? "bg-primary/5" : ""
+									}`}
 									style={{ height: LAYOUT.headerHeight }}
 								>
-									<div className="flex items-center gap-2">
-										<User className="h-5 w-5" />
-										Name
-									</div>
+									<span className="block">{d.label}</span>
+									<span className="block font-normal text-muted-foreground text-xs">
+										{d.formatted}
+									</span>
 								</th>
-							</tr>
-						</thead>
-
-						<tbody>
-							{NURSES.map((nurse) => (
-								<tr key={nurse}>
-									<td
-										className="border border-slate-200 bg-white px-3 py-3 font-semibold text-sm dark:border-slate-700 dark:bg-slate-950"
-										style={{ height: LAYOUT.cellHeight }}
-									>
-										<div className="flex items-center gap-2">
-											<div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary font-bold text-white text-xs">
-												{nurse
-													.split(" ")
-													.map((n) => n[0])
-													.join("")}
-											</div>
-											<span className="truncate">{nurse}</span>
-										</div>
-									</td>
-								</tr>
 							))}
-						</tbody>
-					</table>
-				</div>
+						</tr>
+					</thead>
 
-				{/* RIGHT: SCHEDULE GRID */}
-				<div className="overflow-x-auto [webkit-overflow-scrolling:touch]">
-					<table className="w-full min-w-[840px] table-fixed border-collapse">
-						<thead>
-							<tr>
-								{weekDates.map((date, index) => (
-									<th
-										key={date.toISOString()}
-										className={`border border-slate-200 text-center font-bold text-sm uppercase dark:border-slate-700 ${
-											isToday(date)
-												? "bg-slate-100"
-												: "bg-slate-100 dark:bg-slate-900"
-										}`}
-										style={{ height: LAYOUT.headerHeight }}
-									>
-										<div className="flex flex-col items-center">
-											<span>{DAYS[index]}</span>
-											<span className="text-muted-foreground text-xs">
-												{formatDate(date)}
-											</span>
-										</div>
-									</th>
-								))}
-							</tr>
-						</thead>
-
-						<tbody>
-							{NURSES.map((nurse) => (
-								<tr key={nurse}>
-									{weekDates.map((date) => {
-										const shift = shiftMap.get(buildShiftKey(nurse, date));
-
-										return (
-											<td
-												key={date.toISOString()}
-												className={`border border-slate-200 text-center dark:border-slate-700 ${
-													isToday(date)
-														? "bg-slate-100"
-														: "bg-white dark:bg-slate-950"
-												}`}
-												style={{ height: LAYOUT.cellHeight }}
-											>
-												{shift && (
-													<ShiftBadge
-														type={shift.shiftType}
-														nurseName={nurse}
-														date={date.toLocaleDateString("en-US", {
-															weekday: "short",
-															month: "short",
-															day: "numeric",
-														})}
-														onChange={
-															editable
-																? (newType) =>
-																		onShiftChange(nurse, date, newType)
-																: undefined
-														}
-													/>
-												)}
-											</td>
-										);
-									})}
-								</tr>
-							))}
-						</tbody>
-					</table>
-				</div>
+					<tbody>
+						{NURSES.map((nurse) => (
+							<NurseRow
+								key={nurse}
+								nurse={nurse}
+								week={normalizedWeek}
+								shiftIndex={shiftIndex}
+								editable={editable}
+								onShiftChange={onShiftChange}
+							/>
+						))}
+					</tbody>
+				</table>
 			</div>
 		</div>
 	);
 }
+
+/* -----------------------------
+   MEMOIZED ROW
+------------------------------ */
+
+interface NurseRowProps {
+	nurse: string;
+	week: {
+		date: Date;
+		key: number;
+		isToday: boolean;
+		shortLabel: string;
+		formatted: string;
+		label: string;
+	}[];
+	shiftIndex: Map<string, Shift>;
+	editable: boolean;
+	onShiftChange: (nurse: string, date: Date, shiftType: ShiftType) => void;
+}
+
+const NurseRow = React.memo(function NurseRow({
+	nurse,
+	week,
+	shiftIndex,
+	editable,
+	onShiftChange,
+}: NurseRowProps) {
+	const handleChange = useCallback(
+		(date: Date) => (newType: ShiftType) => {
+			onShiftChange(nurse, date, newType);
+		},
+		[nurse, onShiftChange],
+	);
+
+	return (
+		<tr>
+			{week.map((d) => {
+				const shift = shiftIndex.get(buildShiftKey(nurse, d.date));
+
+				return (
+					<td
+						key={d.key}
+						className={`border-r border-b text-center ${
+							d.isToday ? "bg-primary/5" : ""
+						}`}
+						style={{ height: LAYOUT.cellHeight }}
+					>
+						{shift && (
+							<ShiftBadge
+								type={shift.shiftType}
+								nurseName={nurse}
+								date={d.shortLabel}
+								onChange={editable ? handleChange(d.date) : undefined}
+							/>
+						)}
+					</td>
+				);
+			})}
+		</tr>
+	);
+});

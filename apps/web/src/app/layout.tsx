@@ -31,9 +31,9 @@ export default function RootLayout({
 				className={`${geistSans.variable} ${geistMono.variable} antialiased`}
 			>
 				<Providers>
-					<div className="grid min-h-svh grid-rows-[auto_1fr] bg-slate-100">
+					<div className="flex min-h-svh flex-col bg-background">
 						<Header />
-						<div className="container mx-auto lg:py-8">{children}</div>
+						<main className="flex-1">{children}</main>
 					</div>
 				</Providers>
 			</body>
