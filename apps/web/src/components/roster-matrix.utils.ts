@@ -3,20 +3,68 @@ import type { ShiftType } from "./roster-matrix.types";
 export const STORAGE_KEY = "roster-shifts";
 export const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
+export type ScheduleRow = {
+	id: string;
+	date: Date;
+	nurse: {
+		id: string;
+		name: string;
+	};
+	shift: {
+		id: string;
+	} | null;
+};
+
 export function formatDate(date: Date): string {
 	return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
 export function getWeekDates(offset: number): Date[] {
 	const today = new Date();
+	today.setHours(0, 0, 0, 0);
 	const startOfWeek = new Date(today);
 	startOfWeek.setDate(today.getDate() - today.getDay() + 1 + offset * 7);
+	startOfWeek.setHours(0, 0, 0, 0);
 
 	return Array.from({ length: 7 }, (_, i) => {
 		const d = new Date(startOfWeek);
 		d.setDate(startOfWeek.getDate() + i);
+		d.setHours(0, 0, 0, 0);
 		return d;
 	});
+}
+
+export function getWeekDateRange(offset: number) {
+	const weekDates = getWeekDates(offset);
+
+	return {
+		weekDates,
+		startDate: weekDates[0]?.toISOString() ?? new Date().toISOString(),
+		endDate:
+			weekDates[weekDates.length - 1]?.toISOString() ??
+			new Date().toISOString(),
+	};
+}
+
+export function normalizeShiftType(shiftId: string | null): ShiftType {
+	switch (shiftId) {
+		case "morning":
+		case "evening":
+		case "night":
+			return shiftId;
+		default:
+			return "off";
+	}
+}
+
+export function scheduleRowsToShifts(rows: ScheduleRow[]) {
+	return rows.map((schedule) => ({
+		id: schedule.id,
+		employeeId: schedule.nurse.id,
+		employeeName: schedule.nurse.name,
+		date: new Date(schedule.date).toISOString().split("T")[0] ?? "",
+		shiftType: normalizeShiftType(schedule.shift?.id ?? null),
+	}));
 }
 
 export function buildShiftKey(nurseName: string, date: Date | string): string {

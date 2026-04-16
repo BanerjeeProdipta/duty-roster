@@ -1,7 +1,7 @@
 import { createContext } from "@Duty-Roster/api/context";
 import { appRouter } from "@Duty-Roster/api/routers/index";
 import { auth } from "@Duty-Roster/auth";
-import { env } from "@Duty-Roster/env/server";
+import { env } from "@Duty-Roster/env/auth";
 import { trpcServer } from "@hono/trpc-server";
 import { Hono } from "hono";
 import { cors } from "hono/cors";

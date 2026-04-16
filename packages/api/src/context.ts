@@ -1,18 +1,26 @@
-import { auth } from "@Duty-Roster/auth";
 import type { Context as HonoContext } from "hono";
+
+export type Context = {
+	auth: null;
+	session: any;
+};
 
 export type CreateContextOptions = {
 	context: HonoContext;
 };
 
-export async function createContext({ context }: CreateContextOptions) {
-	const session = await auth.api.getSession({
-		headers: context.req.raw.headers,
-	});
+export async function createContextFromHeaders(
+	headers: Headers,
+): Promise<Context> {
+	const { auth } = await import("@Duty-Roster/auth");
+	const session = await auth.api.getSession({ headers });
+
 	return {
 		auth: null,
 		session,
 	};
 }
 
-export type Context = Awaited<ReturnType<typeof createContext>>;
+export async function createContext({ context }: CreateContextOptions) {
+	return createContextFromHeaders(context.req.raw.headers);
+}

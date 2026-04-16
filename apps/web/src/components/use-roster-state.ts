@@ -1,4 +1,4 @@
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { NURSES } from "./roster-matrix.constants";
 import type { Shift, ShiftType } from "./roster-matrix.types";
 import {
@@ -36,13 +36,17 @@ function generateShifts(weekDates: Date[], existingShifts?: Shift[]): Shift[] {
 	return shifts;
 }
 
-export function useRosterState() {
+export function useRosterState(initialShifts?: Shift[]) {
 	const [weekOffset, setWeekOffset] = useState(0);
 	const [isPending, startTransition] = useTransition();
 	const weekDates = useMemo(() => getWeekDates(weekOffset), [weekOffset]);
 	const [shifts, setShifts] = useState<Shift[]>(() =>
-		generateShifts(getWeekDates(0)),
+		generateShifts(weekDates, initialShifts),
 	);
+
+	useEffect(() => {
+		setShifts((previous) => generateShifts(weekDates, previous));
+	}, [weekDates]);
 
 	const shiftMap = useMemo(() => {
 		const map = new Map<string, Shift>();
@@ -67,9 +71,6 @@ export function useRosterState() {
 		startTransition(() => {
 			setWeekOffset((currentOffset) => {
 				const nextOffset = updater(currentOffset);
-				setShifts((previous) =>
-					generateShifts(getWeekDates(nextOffset), previous),
-				);
 				return nextOffset;
 			});
 		});
@@ -77,6 +78,7 @@ export function useRosterState() {
 
 	return {
 		weekDates,
+		setShifts,
 		shiftMap,
 		updateShift,
 		isWeekTransitioning: isPending,

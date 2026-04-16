@@ -1,6 +1,6 @@
 import { createDb } from "@Duty-Roster/db";
 import * as schema from "@Duty-Roster/db/schema/auth";
-import { env } from "@Duty-Roster/env/server";
+import { env } from "@Duty-Roster/env/auth";
 import { expo } from "@better-auth/expo";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";

@@ -15,11 +15,14 @@ export async function findSchedulesByDateRange(startDate: Date, endDate: Date) {
 	return db
 		.select({
 			id: nurseSchedule.id,
-			nurseId: nurseSchedule.nurseId,
-			nurseName: nurse.name,
-			shiftId: nurseSchedule.shiftId,
-			shiftName: shift.name,
 			date: nurseSchedule.date,
+			nurse: {
+				id: nurse.id,
+				name: nurse.name,
+			},
+			shift: {
+				id: shift.id,
+			},
 		})
 		.from(nurseSchedule)
 		.innerJoin(nurse, sql`${nurse.id} = ${nurseSchedule.nurseId}`)
@@ -40,10 +43,11 @@ export async function createSchedules(
 		date: Date;
 	}[],
 ) {
-	if (!schedules.length) return;
+	const firstSchedule = schedules[0];
+	if (!firstSchedule) return;
 
-	const year = schedules[0].date.getFullYear();
-	const month = schedules[0].date.getMonth() + 1;
+	const year = firstSchedule.date.getFullYear();
+	const month = firstSchedule.date.getMonth() + 1;
 
 	const startDate = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0));
 	const endDate = new Date(Date.UTC(year, month, 0, 23, 59, 59));
