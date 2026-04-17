@@ -36,12 +36,12 @@ export const NURSES = [
 
 export const SHIFT_STYLES: Record<ShiftType, string> = {
 	morning:
-		"bg-gradient-to-br from-amber-400 to-amber-500 text-white border-amber-600 shadow-md shadow-amber-500/25",
+		"bg-gradient-to-br from-[#FDE68A] to-[#FCD34D] text-amber-900 border-amber-300 shadow-sm shadow-amber-200/50",
 	evening:
-		"bg-gradient-to-br from-indigo-400 to-indigo-500 text-white border-indigo-600 shadow-md shadow-indigo-500/25",
+		"bg-gradient-to-br from-[#BFDBFE] to-[#93C5FD] text-blue-900 border-blue-200 shadow-sm shadow-blue-200/50",
 	night:
-		"bg-gradient-to-br from-slate-500 to-slate-600 text-white border-slate-700 shadow-md shadow-slate-500/25",
-	off: "bg-slate-100 text-slate-400 border-slate-200",
+		"bg-gradient-to-br from-[#C4B5FD] to-[#A78BFA] text-violet-900 border-violet-300 shadow-sm shadow-violet-300/50",
+	off: "bg-slate-50 text-slate-400 border-slate-100 ring-1 ring-slate-100/50",
 };
 
 export const SHIFT_LABELS: Record<ShiftType, string> = {

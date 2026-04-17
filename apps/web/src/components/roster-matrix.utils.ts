@@ -125,11 +125,13 @@ export function getWeekDateRange(offset: number) {
 }
 
 export function normalizeShiftType(shiftId: string | null): ShiftType {
-	switch (shiftId) {
+	if (!shiftId) return "off";
+	const id = shiftId.replace("shift_", "");
+	switch (id) {
 		case "morning":
 		case "evening":
 		case "night":
-			return shiftId;
+			return id as ShiftType;
 		default:
 			return "off";
 	}

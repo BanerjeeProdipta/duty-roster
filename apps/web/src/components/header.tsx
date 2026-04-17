@@ -31,15 +31,23 @@ export default function Header() {
 			<div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-6">
 				<Link
 					href="/"
-					className="inline-flex gap-2 font-bold text-2xl tracking-tight"
+					className="group inline-flex items-center gap-2 transition-all"
 				>
-					<Image src="/logo.jpg" alt="logo" height={20} width={30} />
-					<p className="font-bold text-3xl">
-						<span>simple</span>
-						<span className="text-red-700">roster</span>
+					<div className="rounded-lg border border-emerald-100 bg-emerald-50 p-1.5 transition-colors group-hover:bg-emerald-100">
+						<Image
+							src="/logo.jpg"
+							alt="logo"
+							height={24}
+							width={36}
+							className="rounded"
+						/>
+					</div>
+					<p className="font-bold text-2xl tracking-tight">
+						<span className="text-slate-900">simple</span>
+						<span className="text-emerald-600">roster</span>
 					</p>
 				</Link>
-				<nav className="flex items-center gap-6">
+				<nav className="flex items-center gap-1 sm:gap-2">
 					{links.map(({ to, label }) => {
 						const isActive = pathname === to;
 						return (
@@ -47,10 +55,10 @@ export default function Header() {
 								key={to}
 								href={to}
 								className={cn(
-									"font-medium text-sm transition-colors",
+									"rounded-full px-3 py-1.5 font-medium text-sm transition-all duration-200",
 									isActive
-										? "text-foreground"
-										: "text-muted-foreground hover:text-foreground",
+										? "bg-slate-100 text-slate-900 shadow-sm"
+										: "text-slate-500 hover:bg-slate-50 hover:text-slate-900",
 								)}
 							>
 								{label}

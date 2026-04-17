@@ -11,7 +11,7 @@ import { authClient } from "@/lib/auth-client";
 import Loader from "./loader";
 
 export default function SignInForm({
-	onSwitchToSignUp,
+	_onSwitchToSignUp,
 }: {
 	onSwitchToSignUp?: () => void;
 }) {

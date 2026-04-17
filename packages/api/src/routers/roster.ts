@@ -61,11 +61,34 @@ export const rosterRouter = router({
 			return rosterService.getSchedulesByDateRange(startDate, endDate);
 		}),
 
-	generate: publicProcedure
+	generateRoster: publicProcedure
 		.input(
 			z.object({
 				year: z.number(),
 				month: z.number(), // 1-12
+			}),
+		)
+		.output(
+			z.object({
+				year: z.number(),
+				month: z.number(),
+				schedulesCreated: z.number(),
+				coverage: z.object({
+					weekday: z.object({
+						morning: z.number(),
+						evening: z.number(),
+						night: z.number(),
+					}),
+					friday: z.object({
+						morning: z.number(),
+						evening: z.number(),
+						night: z.number(),
+					}),
+				}),
+				constraints: z.object({
+					maxNightsPerNurse: z.number(),
+					minDaysOffPerWeek: z.number(),
+				}),
 			}),
 		)
 		.mutation(async ({ input }) => {

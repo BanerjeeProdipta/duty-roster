@@ -7,7 +7,6 @@ import {
 	DropdownMenuRadioItem,
 	DropdownMenuTrigger,
 } from "@Duty-Roster/ui/components/dropdown-menu";
-import { Check, CheckCircle } from "lucide-react";
 import { useState } from "react";
 import {
 	SHIFT_ICONS,
@@ -77,11 +76,11 @@ export function ShiftBadge({
 							<div
 								className={`flex h-12 w-12 items-center justify-center rounded-xl text-2xl ${
 									item.value === "morning"
-										? "bg-amber-400 text-white"
+										? "bg-[#FDE68A] text-amber-900"
 										: item.value === "evening"
-											? "bg-indigo-400 text-white"
+											? "bg-[#BFDBFE] text-blue-900"
 											: item.value === "night"
-												? "bg-slate-500 text-white"
+												? "bg-[#C4B5FD] text-violet-900"
 												: "bg-slate-200 text-slate-500"
 								}`}
 							>

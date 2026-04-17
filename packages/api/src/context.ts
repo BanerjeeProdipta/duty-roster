@@ -2,7 +2,7 @@ import type { Context as HonoContext } from "hono";
 
 export type Context = {
 	auth: null;
-	session: any;
+	session: unknown;
 };
 
 export type CreateContextOptions = {

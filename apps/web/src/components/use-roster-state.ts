@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState, useTransition } from "react";
-import { toast } from "sonner";
 import type { Shift, ShiftType } from "./roster-matrix.types";
 import {
 	buildShiftKey,
@@ -21,13 +20,11 @@ function generateShifts(
 	let shiftId = 0;
 	const existingMap = new Map<string, ShiftType>();
 
-	toast.info(`Generating ${dates[0]}`);
-
 	existingShifts?.forEach((shift) => {
 		existingMap.set(`${shift.employeeName}-${shift.date}`, shift.shiftType);
 	});
 
-	dates.forEach((dateStr, dayIndex) => {
+	dates.forEach((dateStr, _dayIndex) => {
 		nurses.forEach((nurse) => {
 			const key = `${nurse.name}-${dateStr}`;
 			const shiftType = existingMap.get(key) || "off";
@@ -72,7 +69,7 @@ export function useRosterState(nurses: NurseOption[], initialShifts?: Shift[]) {
 		const firstDate = monthDates[0] ?? today.toISOString();
 		const lastDate = monthDates[monthDates.length - 1] ?? today.toISOString();
 		return { startDate: firstDate, endDate: lastDate };
-	}, [monthDates]);
+	}, [monthDates, today.toISOString]);
 
 	useEffect(() => {
 		setShifts((previous) => generateShifts(monthDates, nurses, previous));

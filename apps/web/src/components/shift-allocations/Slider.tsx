@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef } from "react";
+import { useRef } from "react";
 
 type Value = {
 	morning: number;
@@ -56,17 +56,17 @@ export function FourWaySlider({
 			const x = Math.round(getX(e.clientX));
 
 			if (activeRef.current === "a") {
-				const newA = Math.max(0, Math.min(x, B - 1));
+				const newA = Math.max(0, Math.min(x, B));
 				setFromBounds(newA, B, C);
 			}
 
 			if (activeRef.current === "b") {
-				const newB = Math.max(A + 1, Math.min(x, C - 1));
+				const newB = Math.max(A, Math.min(x, C));
 				setFromBounds(A, newB, C);
 			}
 
 			if (activeRef.current === "c") {
-				const newC = Math.max(B + 1, Math.min(x, total));
+				const newC = Math.max(B, Math.min(x, total));
 				setFromBounds(A, B, newC);
 			}
 		};
@@ -84,7 +84,7 @@ export function FourWaySlider({
 	return (
 		<div
 			ref={ref}
-			className="relative h-6 overflow-hidden rounded-full bg-gray-100 shadow-sm"
+			className="relative h-4 overflow-hidden rounded-full bg-gray-100 shadow-sm"
 		>
 			{/* morning */}
 			<Segment left={0} width={A} color="#FDE68A" label={value.morning} />
@@ -120,7 +120,7 @@ function Segment({
 	left,
 	width,
 	color,
-	label,
+	_label,
 }: {
 	left: number;
 	width: number;
@@ -131,21 +131,19 @@ function Segment({
 
 	return (
 		<div
-			className="absolute flex h-6 items-center justify-center font-medium text-gray-800 text-xs"
+			className="absolute flex h-4 items-center justify-center font-medium text-gray-800 text-xs"
 			style={{
 				left: `${left}%`,
 				width: `${width}%`,
 				backgroundColor: color,
 			}}
-		>
-			{width > 6 ? label : null}
-		</div>
+		/>
 	);
 }
 
 function Handle({
 	left,
-	color,
+	_color,
 	onDown,
 }: {
 	left: number;
@@ -159,7 +157,7 @@ function Handle({
 				(e.target as HTMLElement).setPointerCapture(e.pointerId);
 				onDown();
 			}}
-			className="absolute top-1/2 z-10 h-5.5 w-5.5 cursor-grab rounded-full border-3 border-white bg-slate-400 shadow"
+			className="absolute top-1/2 z-10 h-4 w-4 cursor-grab rounded-full border-3 border-white bg-slate-400 shadow"
 			style={{
 				left: `${left}%`,
 				transform: "translate(-50%, -50%)",

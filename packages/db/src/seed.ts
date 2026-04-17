@@ -8,7 +8,9 @@ import { neon } from "@neondatabase/serverless";
 import { drizzle } from "drizzle-orm/neon-http";
 import * as schema from "./schema";
 
-const sql = neon(process.env.DATABASE_URL_DIRECT || process.env.DATABASE_URL!);
+const dbUrl = process.env.DATABASE_URL_DIRECT || process.env.DATABASE_URL;
+if (!dbUrl) throw new Error("DATABASE_URL or DATABASE_URL_DIRECT must be set");
+const sql = neon(dbUrl);
 const db = drizzle(sql, { schema });
 
 const nurseNames = [

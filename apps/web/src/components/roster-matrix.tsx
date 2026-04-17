@@ -7,7 +7,6 @@ import Loader from "@/components/loader";
 import { trpc, trpcClient } from "@/utils/trpc";
 import { RosterHeader } from "./roster-header";
 import { NURSES } from "./roster-matrix.constants";
-import type { Shift } from "./roster-matrix.types";
 import {
 	getNursesFromScheduleRows,
 	type SchedulesResponse,
@@ -55,7 +54,7 @@ export function RosterMatrix({
 	} = useRosterState(initialNurses, initialShifts);
 
 	const monthDatesAsDate = useMemo(
-		() => monthDates.map((d) => new Date(d + "T00:00:00")),
+		() => monthDates.map((d) => new Date(`${d}T00:00:00`)),
 		[monthDates],
 	);
 
@@ -70,17 +69,13 @@ export function RosterMatrix({
 
 	const generateMutation = useMutation({
 		mutationFn: async () =>
-			trpcClient.roster.generate.mutate({
+			trpcClient.roster.generateRoster.mutate({
 				year: selectedMonth.year,
 				month: selectedMonth.month,
 			}),
 		onSuccess: async (result) => {
-			if (!result.success) {
-				toast.error(result.error ?? "Failed");
-				return;
-			}
 			await schedulesQuery.refetch();
-			toast.success(`Generated ${result.total}`);
+			toast.success(`Generated ${result.schedulesCreated} schedules`);
 		},
 	});
 
@@ -149,24 +144,23 @@ export function RosterMatrix({
 										<ShiftBar
 											label="Morning"
 											value={day.shifts.morning}
-											color="bg-yellow-400"
+											color="bg-[#FDE68A]"
 										/>
 										<ShiftBar
 											label="Evening"
 											value={day.shifts.evening}
-											color="bg-purple-500"
+											color="bg-[#BFDBFE]"
 										/>
 										<ShiftBar
 											label="Night"
 											value={day.shifts.night}
-											color="bg-gray-500"
+											color="bg-[#C4B5FD]"
 										/>
 									</div>
 								</div>
 							))}
 						</div>
 					</div>
-
 					{/* WORKLOAD */}
 					<div className="rounded-lg border bg-card p-4">
 						<h2 className="mb-3 font-semibold text-sm uppercase">
@@ -200,21 +194,21 @@ export function RosterMatrix({
 												<td className="w-full px-3 py-2">
 													<div className="flex items-center gap-2">
 														{/* STACKED BAR */}
-														<div className="flex h-4 w-full overflow-hidden rounded-full bg-muted font-semibold text-xs">
+														<div className="flex h-4 w-full overflow-hidden rounded-full bg-muted font-semibold text-[10px] text-black/60 shadow-inner">
 															<div
-																className="flex flex-col items-center justify-center bg-yellow-400"
+																className="flex flex-col items-center justify-center bg-[#FDE68A]"
 																style={{ width: `${m}%` }}
 															>
 																{n.shifts.morning > 0 && n.shifts.morning}
 															</div>
 															<div
-																className="flex flex-col items-center justify-center bg-purple-500"
+																className="flex flex-col items-center justify-center bg-[#BFDBFE]"
 																style={{ width: `${e}%` }}
 															>
 																{n.shifts.evening > 0 && n.shifts.evening}
 															</div>
 															<div
-																className="flex flex-col items-center justify-center bg-gray-500"
+																className="flex flex-col items-center justify-center bg-[#C4B5FD]"
 																style={{ width: `${ni}%` }}
 															>
 																{n.shifts.night > 0 && n.shifts.night}

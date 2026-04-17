@@ -1,4 +1,3 @@
-import React from "react";
 import { getTRPCServer } from "@/utils/trpc-server";
 import ShiftAllocationsClient from "./ShiftAllocationsClient";
 

@@ -58,7 +58,8 @@ export async function createSchedules(
 ) {
 	if (schedules.length === 0) return;
 
-	const firstSchedule = schedules[0]!;
+	const firstSchedule = schedules.at(0);
+	if (!firstSchedule) return;
 	const year = firstSchedule.date.getFullYear();
 	const month = firstSchedule.date.getMonth() + 1;
 
@@ -78,12 +79,12 @@ export async function createSchedules(
 
 	try {
 		await db.insert(nurseSchedule).values(
-			schedules.map((s, i) => {
-				const y = s.date.getFullYear();
-				const m = s.date.getMonth();
-				const d = s.date.getDate();
+			schedules.map((s, _i) => {
+				const y = s.date.getUTCFullYear();
+				const m = s.date.getUTCMonth();
+				const d = s.date.getUTCDate();
 				return {
-					id: `schedule_${Date.now()}_${i}`,
+					id: `schedule_${y}${m + 1}${d}_${s.nurseId}`,
 					nurseId: s.nurseId,
 					shiftId: s.shiftId,
 					// Store as UTC noon to avoid timezone date shifting
@@ -91,7 +92,7 @@ export async function createSchedules(
 				};
 			}),
 		);
-	} catch (e: any) {
+	} catch (e) {
 		console.error("DB Error:", e);
 		throw e;
 	}

@@ -16,7 +16,5 @@ export default async function Home() {
 		endDate,
 	});
 
-	return <></>;
-
-	// <RosterMatrix initialSchedules={initialSchedules} />;
+	return <RosterMatrix initialSchedules={initialSchedules} />;
 }
