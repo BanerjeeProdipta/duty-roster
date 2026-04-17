@@ -16,5 +16,7 @@ export default async function Home() {
 		endDate,
 	});
 
+	const _monthName = today.toLocaleString("default", { month: "long" });
+
 	return <RosterMatrix initialSchedules={initialSchedules} />;
 }

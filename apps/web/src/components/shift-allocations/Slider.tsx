@@ -13,66 +13,56 @@ type Active = "a" | "b" | "c";
 
 export function FourWaySlider({
 	value,
+	total = 100,
 	onChange,
 }: {
 	value: Value;
+	total?: number;
 	onChange: (v: Value) => void;
 }) {
 	const ref = useRef<HTMLDivElement | null>(null);
-	const activeRef = useRef<Active | null>(null);
-
-	const total = 100;
 
 	const A = value.morning;
 	const B = value.morning + value.evening;
 	const C = value.morning + value.evening + value.night;
 
-	function getX(clientX: number) {
-		if (!ref.current) return 0;
-		const r = ref.current.getBoundingClientRect();
-		return ((clientX - r.left) / r.width) * total;
-	}
-
-	function setFromBounds(a: number, b: number, c: number) {
-		const morning = Math.round(a);
-		const evening = Math.round(b - a);
-		const night = Math.round(c - b);
-
-		const used = morning + evening + night;
-		const off = total - used;
-
-		onChange({
-			morning,
-			evening,
-			night,
-			off,
-		});
-	}
+	// Use refs to avoid stale closures in window event listeners
+	const valueRef = useRef({ A, B, C, total, onChange });
+	valueRef.current = { A, B, C, total, onChange };
 
 	function startDrag(mode: Active) {
-		activeRef.current = mode;
-
 		const move = (e: PointerEvent) => {
-			const x = Math.round(getX(e.clientX));
+			if (!ref.current) return;
+			const r = ref.current.getBoundingClientRect();
+			const x = Math.round(
+				((e.clientX - r.left) / r.width) * valueRef.current.total,
+			);
 
-			if (activeRef.current === "a") {
-				const newA = Math.max(0, Math.min(x, B));
-				setFromBounds(newA, B, C);
-			}
+			const {
+				A: curA,
+				B: curB,
+				C: curC,
+				total: curTotal,
+				onChange: curOnChange,
+			} = valueRef.current;
 
-			if (activeRef.current === "b") {
-				const newB = Math.max(A, Math.min(x, C));
-				setFromBounds(A, newB, C);
-			}
+			let nextA = curA;
+			let nextB = curB;
+			let nextC = curC;
 
-			if (activeRef.current === "c") {
-				const newC = Math.max(B, Math.min(x, total));
-				setFromBounds(A, B, newC);
-			}
+			if (mode === "a") nextA = Math.max(0, Math.min(x, curB));
+			if (mode === "b") nextB = Math.max(curA, Math.min(x, curC));
+			if (mode === "c") nextC = Math.max(curB, Math.min(x, curTotal));
+
+			curOnChange({
+				morning: nextA,
+				evening: nextB - nextA,
+				night: nextC - nextB,
+				off: curTotal - nextC,
+			});
 		};
 
 		const up = () => {
-			activeRef.current = null;
 			window.removeEventListener("pointermove", move);
 			window.removeEventListener("pointerup", up);
 		};
@@ -81,75 +71,41 @@ export function FourWaySlider({
 		window.addEventListener("pointerup", up);
 	}
 
+	const pct = (val: number) =>
+		total > 0 ? Math.min(100, Math.max(0, (val / total) * 100)) : 0;
+
 	return (
 		<div
 			ref={ref}
-			className="relative h-4 overflow-hidden rounded-full bg-gray-100 shadow-sm"
+			className="relative h-3 w-full overflow-hidden rounded-full bg-slate-100"
 		>
-			{/* morning */}
-			<Segment left={0} width={A} color="#FDE68A" label={value.morning} />
-
-			{/* evening */}
-			<Segment
-				left={A}
-				width={value.evening}
-				color="#BFDBFE"
-				label={value.evening}
+			{/* Segments */}
+			<div
+				className="absolute h-full bg-[#FDE68A]"
+				style={{ left: 0, width: `${pct(A)}%` }}
+			/>
+			<div
+				className="absolute h-full bg-[#BFDBFE]"
+				style={{ left: `${pct(A)}%`, width: `${pct(B - A)}%` }}
+			/>
+			<div
+				className="absolute h-full bg-[#C4B5FD]"
+				style={{ left: `${pct(B)}%`, width: `${pct(C - B)}%` }}
+			/>
+			<div
+				className="absolute h-full bg-slate-200"
+				style={{ left: `${pct(C)}%`, width: `${pct(total - C)}%` }}
 			/>
 
-			{/* night */}
-			<Segment
-				left={B}
-				width={value.night}
-				color="#C4B5FD"
-				label={value.night}
-			/>
-
-			{/* off */}
-			<Segment left={C} width={value.off} color="#E5E7EB" label={value.off} />
-
-			{/* handles */}
-			<Handle left={A} color="#111827" onDown={() => startDrag("a")} />
-			<Handle left={B} color="#111827" onDown={() => startDrag("b")} />
-			<Handle left={C} color="#111827" onDown={() => startDrag("c")} />
+			{/* Handles */}
+			<Handle pos={pct(A)} onDown={() => startDrag("a")} />
+			<Handle pos={pct(B)} onDown={() => startDrag("b")} />
+			<Handle pos={pct(C)} onDown={() => startDrag("c")} />
 		</div>
 	);
 }
 
-function Segment({
-	left,
-	width,
-	color,
-	_label,
-}: {
-	left: number;
-	width: number;
-	color: string;
-	label: number;
-}) {
-	if (width <= 0) return null;
-
-	return (
-		<div
-			className="absolute flex h-4 items-center justify-center font-medium text-gray-800 text-xs"
-			style={{
-				left: `${left}%`,
-				width: `${width}%`,
-				backgroundColor: color,
-			}}
-		/>
-	);
-}
-
-function Handle({
-	left,
-	_color,
-	onDown,
-}: {
-	left: number;
-	color: string;
-	onDown: () => void;
-}) {
+function Handle({ pos, onDown }: { pos: number; onDown: () => void }) {
 	return (
 		<div
 			onPointerDown={(e) => {
@@ -157,11 +113,8 @@ function Handle({
 				(e.target as HTMLElement).setPointerCapture(e.pointerId);
 				onDown();
 			}}
-			className="absolute top-1/2 z-10 h-4 w-4 cursor-grab rounded-full border-3 border-white bg-slate-400 shadow"
-			style={{
-				left: `${left}%`,
-				transform: "translate(-50%, -50%)",
-			}}
+			className="absolute top-1/2 z-10 h-4 w-4 -translate-x-1/2 -translate-y-1/2 cursor-grab rounded-full border-2 border-white bg-slate-400"
+			style={{ left: `${pos}%` }}
 		/>
 	);
 }

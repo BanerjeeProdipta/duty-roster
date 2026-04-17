@@ -41,7 +41,7 @@ export const SHIFT_STYLES: Record<ShiftType, string> = {
 		"bg-gradient-to-br from-[#BFDBFE] to-[#93C5FD] text-blue-900 border-blue-200 shadow-sm shadow-blue-200/50",
 	night:
 		"bg-gradient-to-br from-[#C4B5FD] to-[#A78BFA] text-violet-900 border-violet-300 shadow-sm shadow-violet-300/50",
-	off: "bg-slate-50 text-slate-400 border-slate-100 ring-1 ring-slate-100/50",
+	off: "bg-slate-50 text-slate-400 border-slate-100 ring-1 ring-slate-100/50 shadow-sm",
 };
 
 export const SHIFT_LABELS: Record<ShiftType, string> = {

@@ -10,10 +10,6 @@ function getDateKey(date: Date | string) {
 	return date.toISOString().split("T")[0] ?? "";
 }
 
-function _getSolverNurseKey(index: number) {
-	return `nurse_${index + 1}`;
-}
-
 // ───────────── SUMMARY ─────────────
 
 type ScheduleRowInput = {
@@ -157,6 +153,8 @@ export async function generateRoster(params: GenerateRosterParams) {
 
 	const daysInMonth = getDaysInMonth(year, month);
 
+	const nurseShiftTargets = new Map<string, Record<string, number>>();
+	const nurseShiftAssigned = new Map<string, Record<string, number>>();
 	const nurseWorkDaysPerWeek = new Map<string, Map<string, number>>();
 	const nurseNightCount = new Map<string, number>();
 	const nurseTotalWorkCount = new Map<string, number>();
@@ -165,6 +163,15 @@ export async function generateRoster(params: GenerateRosterParams) {
 		nurseWorkDaysPerWeek.set(n.id, new Map());
 		nurseNightCount.set(n.id, 0);
 		nurseTotalWorkCount.set(n.id, 0);
+
+		// Initialize targets and assigned counts
+		const prefs = prefMap.get(n.id);
+		nurseShiftTargets.set(n.id, {
+			morning: Math.round(((prefs?.morning ?? 0) / 100) * daysInMonth),
+			evening: Math.round(((prefs?.evening ?? 0) / 100) * daysInMonth),
+			night: Math.round(((prefs?.night ?? 0) / 100) * daysInMonth),
+		});
+		nurseShiftAssigned.set(n.id, { morning: 0, evening: 0, night: 0 });
 	});
 
 	const finalSchedules: {
@@ -192,6 +199,8 @@ export async function generateRoster(params: GenerateRosterParams) {
 				const currentNights = nurseNightCount.get(nurse.id) ?? 0;
 				const totalWork = nurseTotalWorkCount.get(nurse.id) ?? 0;
 				const prefs = prefMap.get(nurse.id);
+				const targets = nurseShiftTargets.get(nurse.id);
+				const assigned = nurseShiftAssigned.get(nurse.id);
 
 				// Basic constraints
 				const canWorkAny = currentWeekWork < 6; // Max 6 days a week
@@ -203,16 +212,15 @@ export async function generateRoster(params: GenerateRosterParams) {
 					canWorkNight,
 					totalWork,
 					prefs,
+					targets,
+					assigned,
 				};
 			})
 			.filter((c): c is NonNullable<typeof c> => c !== null)
 			.filter((c) => c.canWorkAny);
 
-		// Shuffle candidates for basic randomness
-		candidates.sort(() => Math.random() - 0.5);
-
-		// Priority sort: nurses with less total work first
-		candidates.sort((a, b) => a.totalWork - b.totalWork);
+		// Priority sort: nurses by preference count (those with more remaining quota first?)
+		// Actually, let's keep the user's priority sort inside assignShift
 
 		const assignedToday = new Set<string>();
 
@@ -221,25 +229,35 @@ export async function generateRoster(params: GenerateRosterParams) {
 			count: number,
 			condition: (c: (typeof candidates)[0]) => boolean,
 		) => {
-			let assigned = 0;
-			// Further sort candidates by preference weight for this specific shift
+			let assignedCount = 0;
 			const shiftKey = type.replace("shift_", "") as
 				| "morning"
 				| "evening"
 				| "night";
 
 			const shiftCandidates = candidates
-				.filter((c) => !assignedToday.has(c.nurse.id) && condition(c))
+				.filter((c) => {
+					if (assignedToday.has(c.nurse.id)) return false;
+					if (!condition(c)) return false;
+
+					// ENFORCE SHIFT QUOTA
+					const currentCount = c.assigned?.[shiftKey] ?? 0;
+					const targetCount = c.targets?.[shiftKey] ?? 0;
+					return currentCount < targetCount;
+				})
 				.sort((a, b) => {
 					const weightA = a.prefs?.[shiftKey] ?? 0;
 					const weightB = b.prefs?.[shiftKey] ?? 0;
-					// If total work is same, prefer by weight. Otherwise prefer by total work.
-					if (a.totalWork !== b.totalWork) return a.totalWork - b.totalWork;
-					return weightB - weightA;
+
+					// Most priority: Preference Weight
+					if (weightA !== weightB) return weightB - weightA;
+
+					// Tie-breaker: Fairness (less total work first)
+					return a.totalWork - b.totalWork;
 				});
 
 			for (const c of shiftCandidates) {
-				if (assigned >= count) break;
+				if (assignedCount >= count) break;
 
 				finalSchedules.push({
 					nurseId: c.nurse.id,
@@ -248,7 +266,7 @@ export async function generateRoster(params: GenerateRosterParams) {
 				});
 
 				assignedToday.add(c.nurse.id);
-				assigned++;
+				assignedCount++;
 
 				// Update counters
 				nurseTotalWorkCount.set(
@@ -259,6 +277,12 @@ export async function generateRoster(params: GenerateRosterParams) {
 				if (nWeeks) {
 					nWeeks.set(weekKey, (nWeeks.get(weekKey) ?? 0) + 1);
 				}
+
+				// Update specific shift count
+				if (c.assigned && c.assigned[shiftKey] !== undefined) {
+					c.assigned[shiftKey]++;
+				}
+
 				if (type === "shift_night") {
 					nurseNightCount.set(
 						c.nurse.id,

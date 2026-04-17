@@ -33,7 +33,7 @@ export default function RootLayout({
 				<Providers>
 					<div className="flex min-h-svh flex-col bg-background">
 						<Header />
-						<main className="flex-1">{children}</main>
+						<main className="flex-1 p-4 lg:px-20 lg:py-8">{children}</main>
 					</div>
 				</Providers>
 			</body>

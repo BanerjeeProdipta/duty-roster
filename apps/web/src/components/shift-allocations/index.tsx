@@ -13,11 +13,7 @@ const ShiftAllocations = async () => {
 		return <div>No preferences found</div>;
 	}
 
-	return (
-		<div>
-			<ShiftAllocationsClient initialData={data} />
-		</div>
-	);
+	return <ShiftAllocationsClient initialData={data} />;
 };
 
 export default ShiftAllocations;

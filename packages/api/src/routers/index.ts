@@ -6,9 +6,10 @@ export const appRouter = router({
 		return "OK";
 	}),
 	privateData: protectedProcedure.query(({ ctx }) => {
+		const session = ctx.session as { user: unknown } | null;
 		return {
 			message: "This is private",
-			user: ctx.session.user,
+			user: session?.user ?? null,
 		};
 	}),
 	roster: rosterRouter,

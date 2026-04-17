@@ -33,7 +33,7 @@ export default function Header() {
 					href="/"
 					className="group inline-flex items-center gap-2 transition-all"
 				>
-					<div className="rounded-lg border border-emerald-100 bg-emerald-50 p-1.5 transition-colors group-hover:bg-emerald-100">
+					<div className="rounded-lg border border-red-100 bg-red-50 p-1.5 transition-colors group-hover:bg-red-100">
 						<Image
 							src="/logo.jpg"
 							alt="logo"
@@ -44,7 +44,7 @@ export default function Header() {
 					</div>
 					<p className="font-bold text-2xl tracking-tight">
 						<span className="text-slate-900">simple</span>
-						<span className="text-emerald-600">roster</span>
+						<span className="text-red-800">roster</span>
 					</p>
 				</Link>
 				<nav className="flex items-center gap-1 sm:gap-2">
@@ -55,7 +55,7 @@ export default function Header() {
 								key={to}
 								href={to}
 								className={cn(
-									"rounded-full px-3 py-1.5 font-medium text-sm transition-all duration-200",
+									"rounded-md px-3 py-1.5 font-medium text-sm transition-all duration-200",
 									isActive
 										? "bg-slate-100 text-slate-900 shadow-sm"
 										: "text-slate-500 hover:bg-slate-50 hover:text-slate-900",

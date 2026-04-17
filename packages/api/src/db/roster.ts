@@ -1,5 +1,5 @@
 import { db, schema } from "@Duty-Roster/db";
-import { and, desc, sql } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 
 const { nurse, nurseSchedule, shift, nurseShiftPreference } = schema;
 
@@ -38,8 +38,8 @@ export async function findSchedulesByDateRange(startDate: Date, endDate: Date) {
 			},
 		})
 		.from(nurseSchedule)
-		.innerJoin(nurse, sql`${nurse.id} = ${nurseSchedule.nurseId}`)
-		.leftJoin(shift, sql`${shift.id} = ${nurseSchedule.shiftId}`)
+		.innerJoin(nurse, eq(nurse.id, nurseSchedule.nurseId))
+		.leftJoin(shift, eq(shift.id, nurseSchedule.shiftId))
 		.where(
 			and(
 				sql`to_char(${nurseSchedule.date}::date, 'YYYY-MM-DD') >= ${startStr}`,
@@ -109,7 +109,7 @@ export async function findAllPreferredShiftsByNurse() {
 			weight: nurseShiftPreference.weight,
 		})
 		.from(nurseShiftPreference)
-		.innerJoin(nurse, sql`${nurse.id} = ${nurseShiftPreference.nurseId}`);
+		.innerJoin(nurse, eq(nurse.id, nurseShiftPreference.nurseId));
 }
 
 export async function upsertNurseShiftPreferences(
@@ -119,19 +119,21 @@ export async function upsertNurseShiftPreferences(
 		weight: number;
 	}[],
 ) {
-	for (const pref of preferences) {
-		await db
-			.insert(nurseShiftPreference)
-			.values({
+	if (preferences.length === 0) return;
+
+	await db
+		.insert(nurseShiftPreference)
+		.values(
+			preferences.map((pref) => ({
 				nurseId: pref.nurseId,
 				shiftId: pref.shiftId,
 				weight: pref.weight,
-			})
-			.onConflictDoUpdate({
-				target: [nurseShiftPreference.nurseId, nurseShiftPreference.shiftId],
-				set: {
-					weight: pref.weight,
-				},
-			});
-	}
+			})),
+		)
+		.onConflictDoUpdate({
+			target: [nurseShiftPreference.nurseId, nurseShiftPreference.shiftId],
+			set: {
+				weight: sql`excluded.weight`,
+			},
+		});
 }

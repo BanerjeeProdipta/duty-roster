@@ -10,14 +10,9 @@ import {
 import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { useMemo } from "react";
 
+import { useRosterMonthName, useRosterStore } from "../store/use-roster-store";
+
 interface RosterHeaderProps {
-	nurseCount: number;
-	monthName: string;
-	selectedMonth: { year: number; month: number };
-	onPreviousMonth: () => void;
-	onNextMonth: () => void;
-	onCurrentMonth: () => void;
-	onChangeMonth: (year: number, month: number) => void;
 	onGenerate?: () => void;
 	isGenerating?: boolean;
 }
@@ -43,22 +38,21 @@ function getMonthOptions(): { year: number; month: number; label: string }[] {
 }
 
 export function RosterHeader({
-	monthName,
-	selectedMonth,
-	onPreviousMonth,
-	onNextMonth,
-	onCurrentMonth,
-	onChangeMonth,
 	onGenerate,
 	isGenerating = false,
 }: RosterHeaderProps) {
 	const monthOptions = useMemo(() => getMonthOptions(), []);
+	const {
+		selectedMonth,
+		goToPreviousMonth,
+		goToNextMonth,
+		goToCurrentMonth,
+		changeMonth,
+	} = useRosterStore();
+	const monthName = useRosterMonthName();
 
 	return (
-		<div className="flex flex-col gap-4 border-b px-4 py-6 lg:flex-row lg:items-center lg:justify-between">
-			<h1 className="font-bold text-lg tracking-tight lg:text-xl">
-				Weekly Schedule
-			</h1>
+		<div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
 			<div className="flex items-center gap-4">
 				{onGenerate ? (
 					<Button
@@ -74,14 +68,14 @@ export function RosterHeader({
 					variant="ghost"
 					size="sm"
 					className="text-base"
-					onClick={onCurrentMonth}
+					onClick={goToCurrentMonth}
 				>
 					Today
 				</Button>
 
 				{/* Month Navigation with Dropdown */}
 				<div className="flex items-center gap-1 rounded-md border">
-					<Button variant="ghost" size="icon" onClick={onPreviousMonth}>
+					<Button variant="ghost" size="icon" onClick={goToPreviousMonth}>
 						<ChevronLeft className="h-5 w-5" />
 					</Button>
 
@@ -97,7 +91,7 @@ export function RosterHeader({
 							{monthOptions.map((option) => (
 								<DropdownMenuItem
 									key={`${option.year}-${option.month}`}
-									onClick={() => onChangeMonth(option.year, option.month)}
+									onClick={() => changeMonth(option.year, option.month)}
 									className={
 										option.year === selectedMonth.year &&
 										option.month === selectedMonth.month
@@ -111,7 +105,7 @@ export function RosterHeader({
 						</DropdownMenuContent>
 					</DropdownMenu>
 
-					<Button variant="ghost" size="icon" onClick={onNextMonth}>
+					<Button variant="ghost" size="icon" onClick={goToNextMonth}>
 						<ChevronRight className="h-5 w-5" />
 					</Button>
 				</div>
