@@ -10,8 +10,6 @@ import { NURSES } from "./roster-matrix.constants";
 import type { Shift } from "./roster-matrix.types";
 import {
 	getNursesFromScheduleRows,
-	getWeekDateRange,
-	type ScheduleRow,
 	type SchedulesResponse,
 	scheduleRowsToShifts,
 } from "./roster-matrix.utils";
@@ -30,6 +28,7 @@ export function RosterMatrix({
 		() => scheduleRowsToShifts(initialScheduleRows),
 		[initialScheduleRows],
 	);
+
 	const initialNurses = useMemo(() => {
 		if (!initialScheduleRows.length) {
 			return NURSES.map((name, index) => ({
@@ -37,203 +36,237 @@ export function RosterMatrix({
 				name,
 			}));
 		}
-
 		return getNursesFromScheduleRows(initialScheduleRows);
 	}, [initialScheduleRows]);
+
 	const {
-		weekDates,
+		monthDates,
 		setShifts,
 		shiftMap,
 		updateShift,
-		isWeekTransitioning,
-		goToPreviousWeek,
-		goToNextWeek,
-		goToCurrentWeek,
+		isTransitioning,
+		selectedMonth,
+		monthName,
+		monthDateRange,
+		goToPreviousMonth,
+		goToNextMonth,
+		goToCurrentMonth,
+		changeMonth,
 	} = useRosterState(initialNurses, initialShifts);
-	const initialDateRange = getWeekDateRange(0);
-	const activeDateRange = useMemo(
-		() => ({
-			startDate: weekDates[0]?.toISOString() ?? initialDateRange.startDate,
-			endDate:
-				weekDates[weekDates.length - 1]?.toISOString() ??
-				initialDateRange.endDate,
-		}),
-		[initialDateRange.endDate, initialDateRange.startDate, weekDates],
+
+	const monthDatesAsDate = useMemo(
+		() => monthDates.map((d) => new Date(d + "T00:00:00")),
+		[monthDates],
 	);
-	const isInitialWeek =
-		activeDateRange.startDate === initialDateRange.startDate &&
-		activeDateRange.endDate === initialDateRange.endDate;
+
 	const schedulesQuery = useQuery(
-		trpc.roster.getSchedules.queryOptions(activeDateRange, {
-			initialData: isInitialWeek ? initialSchedules : undefined,
+		trpc.roster.getSchedules.queryOptions(monthDateRange, {
+			initialData: initialSchedules,
 			staleTime: 60_000,
-			refetchOnMount: !isInitialWeek,
-			refetchOnWindowFocus: !isInitialWeek,
 		}),
 	);
-	const nurses = useMemo(() => {
-		if (schedulesQuery.data?.schedules.length) {
-			return getNursesFromScheduleRows(schedulesQuery.data.schedules);
-		}
 
-		return initialNurses;
-	}, [initialNurses, schedulesQuery.data]);
 	const summary = schedulesQuery.data ?? initialSchedules;
-	const generateMutation = useMutation({
-		mutationFn: async () => {
-			const baseDate = weekDates[0] ?? new Date();
 
-			return trpcClient.roster.generate.mutate({
-				year: baseDate.getFullYear(),
-				month: baseDate.getMonth() + 1,
-			});
-		},
+	const generateMutation = useMutation({
+		mutationFn: async () =>
+			trpcClient.roster.generate.mutate({
+				year: selectedMonth.year,
+				month: selectedMonth.month,
+			}),
 		onSuccess: async (result) => {
 			if (!result.success) {
-				toast.error(result.error ?? "Failed to generate schedule");
+				toast.error(result.error ?? "Failed");
 				return;
 			}
-
 			await schedulesQuery.refetch();
-			toast.success(`Generated ${result.total} schedules`);
-		},
-		onError: (error) => {
-			toast.error(error.message);
+			toast.success(`Generated ${result.total}`);
 		},
 	});
 
 	useEffect(() => {
-		if (!schedulesQuery.data?.schedules) {
-			return;
-		}
+		if (!schedulesQuery.data?.schedules) return;
 
-		const apiShifts: Shift[] = scheduleRowsToShifts(
-			schedulesQuery.data.schedules,
-		);
+		const apiShifts = scheduleRowsToShifts(schedulesQuery.data.schedules);
 
-		setShifts((previous) => {
-			const otherWeeks = previous.filter((shift) =>
-				weekDates.every(
-					(date) => shift.date !== date.toISOString().split("T")[0],
-				),
-			);
-			const currentWeek: Shift[] = nurses.flatMap((nurse, nurseIndex) =>
-				weekDates.map((date, dayIndex) => {
-					const dateKey = date.toISOString().split("T")[0] ?? "";
-					const existingShift = apiShifts.find(
-						(shift) => shift.employeeId === nurse.id && shift.date === dateKey,
+		setShifts((prev) => {
+			const otherMonths = prev.filter((s) => !monthDates.includes(s.date));
+
+			const current = initialNurses.flatMap((nurse, nurseIndex) =>
+				monthDates.map((dateStr, dayIndex) => {
+					const existing = apiShifts.find(
+						(s) => s.employeeId === nurse.id && s.date === dateStr,
 					);
-					const fallbackShift: Shift = {
-						id: `${dayIndex}-${nurseIndex}-${dateKey}`,
-						employeeId: nurse.id,
-						employeeName: nurse.name,
-						date: dateKey,
-						shiftType: "off",
-					};
 
-					return existingShift ?? fallbackShift;
+					return (
+						existing ?? {
+							id: `${dayIndex}-${nurseIndex}`,
+							employeeId: nurse.id,
+							employeeName: nurse.name,
+							date: dateStr,
+							shiftType: "off",
+						}
+					);
 				}),
 			);
-			return [...otherWeeks, ...currentWeek];
-		});
-	}, [nurses, schedulesQuery.data, setShifts, weekDates]);
 
-	if (
-		schedulesQuery.isLoading &&
-		schedulesQuery.data === undefined &&
-		initialSchedules === undefined
-	) {
-		return <Loader />;
-	}
+			return [...otherMonths, ...current];
+		});
+	}, [schedulesQuery.data, monthDates, initialNurses, setShifts]);
+
+	if (schedulesQuery.isLoading && !initialSchedules) return <Loader />;
 
 	return (
-		<div
-			className={`flex flex-1 flex-col transition-opacity duration-150 ${
-				isWeekTransitioning ? "opacity-95" : "opacity-100"
-			}`}
-		>
+		<div className={`flex flex-col ${isTransitioning ? "opacity-95" : ""}`}>
 			<RosterHeader
-				nurseCount={nurses.length}
-				weekDates={weekDates}
-				onPreviousWeek={goToPreviousWeek}
-				onNextWeek={goToNextWeek}
-				onCurrentWeek={goToCurrentWeek}
+				nurseCount={initialNurses.length}
+				monthName={monthName}
+				selectedMonth={selectedMonth}
+				onPreviousMonth={goToPreviousMonth}
+				onNextMonth={goToNextMonth}
+				onCurrentMonth={goToCurrentMonth}
+				onChangeMonth={changeMonth}
 				onGenerate={editable ? () => generateMutation.mutate() : undefined}
 				isGenerating={generateMutation.isPending}
 			/>
-			{summary ? (
-				<div className="grid gap-4 border-b px-4 py-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
+
+			{summary && (
+				<div className="grid gap-4 border-b px-4 py-4 lg:grid-cols-[2fr_3fr]">
+					{/* DAILY */}
 					<div className="rounded-lg border bg-card p-4">
-						<h2 className="mb-3 font-semibold text-sm uppercase tracking-wide">
+						<h2 className="mb-3 font-semibold text-sm uppercase">
 							Daily Shift Counts
 						</h2>
-						<div className="space-y-2">
+
+						<div className="max-h-64 space-y-2 overflow-y-auto">
 							{summary.dailyShiftCounts.map((day) => (
-								<div
-									key={day.date}
-									className="flex items-center justify-between rounded-md border px-3 py-2 text-sm"
-								>
-									<span className="font-medium">
-										{new Date(day.date).toLocaleDateString("en-US", {
-											weekday: "short",
-											month: "short",
-											day: "numeric",
-										})}
-									</span>
-									<span className="text-muted-foreground">
-										M {day.shifts.morning} | E {day.shifts.evening} | N{" "}
-										{day.shifts.night}
-									</span>
+								<div key={day.date} className="rounded border p-3">
+									<div className="font-medium text-sm">
+										{new Date(day.date).toDateString()}
+									</div>
+
+									<div className="mt-2 space-y-2">
+										<ShiftBar
+											label="Morning"
+											value={day.shifts.morning}
+											color="bg-yellow-400"
+										/>
+										<ShiftBar
+											label="Evening"
+											value={day.shifts.evening}
+											color="bg-purple-500"
+										/>
+										<ShiftBar
+											label="Night"
+											value={day.shifts.night}
+											color="bg-gray-500"
+										/>
+									</div>
 								</div>
 							))}
 						</div>
 					</div>
 
+					{/* WORKLOAD */}
 					<div className="rounded-lg border bg-card p-4">
-						<h2 className="mb-3 font-semibold text-sm uppercase tracking-wide">
-							Nurse Shift Counts
+						<h2 className="mb-3 font-semibold text-sm uppercase">
+							Nurse Workload
 						</h2>
-						<div className="max-h-64 overflow-y-auto rounded-md border">
-							<table className="w-full table-fixed text-sm">
+
+						<div className="max-h-64 overflow-y-auto">
+							<table className="w-full text-sm">
 								<thead className="sticky top-0 bg-card">
 									<tr className="border-b text-left text-muted-foreground">
-										<th className="px-3 py-2 font-medium">Nurse</th>
-										<th className="px-3 py-2 font-medium">M</th>
-										<th className="px-3 py-2 font-medium">E</th>
-										<th className="px-3 py-2 font-medium">N</th>
-										<th className="px-3 py-2 font-medium">Total</th>
+										<th className="px-3 py-2">Nurse</th>
+										<th className="px-3 py-2">Load</th>
 									</tr>
 								</thead>
+
 								<tbody>
-									{summary.nurseShiftCounts.map((entry) => (
-										<tr
-											key={entry.nurse.id}
-											className="border-b last:border-b-0"
-										>
-											<td className="px-3 py-2 font-medium">
-												{entry.nurse.name}
-											</td>
-											<td className="px-3 py-2">{entry.shifts.morning}</td>
-											<td className="px-3 py-2">{entry.shifts.evening}</td>
-											<td className="px-3 py-2">{entry.shifts.night}</td>
-											<td className="px-3 py-2">
-												{entry.shifts.totalAssigned}
-											</td>
-										</tr>
-									))}
+									{summary.nurseShiftCounts.map((n) => {
+										const total =
+											n.shifts.morning + n.shifts.evening + n.shifts.night || 1;
+
+										const m = (n.shifts.morning / total) * 100;
+										const e = (n.shifts.evening / total) * 100;
+										const ni = (n.shifts.night / total) * 100;
+
+										return (
+											<tr key={n.nurse.id} className="border-b">
+												<td className="whitespace-nowrap px-3 py-2 font-medium">
+													{n.nurse.name}
+												</td>
+
+												<td className="w-full px-3 py-2">
+													<div className="flex items-center gap-2">
+														{/* STACKED BAR */}
+														<div className="flex h-4 w-full overflow-hidden rounded-full bg-muted font-semibold text-xs">
+															<div
+																className="flex flex-col items-center justify-center bg-yellow-400"
+																style={{ width: `${m}%` }}
+															>
+																{n.shifts.morning > 0 && n.shifts.morning}
+															</div>
+															<div
+																className="flex flex-col items-center justify-center bg-purple-500"
+																style={{ width: `${e}%` }}
+															>
+																{n.shifts.evening > 0 && n.shifts.evening}
+															</div>
+															<div
+																className="flex flex-col items-center justify-center bg-gray-500"
+																style={{ width: `${ni}%` }}
+															>
+																{n.shifts.night > 0 && n.shifts.night}
+															</div>
+														</div>
+
+														<span className="w-10 text-right text-muted-foreground text-xs">
+															{n.shifts.totalAssigned}
+														</span>
+													</div>
+												</td>
+											</tr>
+										);
+									})}
 								</tbody>
 							</table>
 						</div>
 					</div>
 				</div>
-			) : null}
+			)}
+
 			<RosterTable
-				nurses={nurses}
-				weekDates={weekDates}
+				nurses={initialNurses}
+				weekDates={monthDatesAsDate}
 				shiftMap={shiftMap}
 				editable={editable}
 				onShiftChange={updateShift}
 			/>
+		</div>
+	);
+}
+
+/* ---------- reusable ---------- */
+function ShiftBar({
+	label,
+	value,
+	color,
+}: {
+	label: string;
+	value: number;
+	color: string;
+}) {
+	return (
+		<div className="flex items-center gap-2 text-xs">
+			<span className="w-20 text-muted-foreground">{label}</span>
+			<div className="h-2 flex-1 rounded-full bg-muted">
+				<div
+					className={`h-2 rounded-full ${color}`}
+					style={{ width: `${Math.min(value * 10, 100)}%` }}
+				/>
+			</div>
+			<span className="w-6 text-right text-muted-foreground">{value}</span>
 		</div>
 	);
 }

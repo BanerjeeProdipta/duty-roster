@@ -1,44 +1,42 @@
-import { exec } from "child_process";
+import { spawn } from "child_process";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
-import { promisify } from "util";
 import * as rosterDb from "../db/roster";
-
-const execAsync = promisify(exec);
 
 type GenerateRosterParams = {
 	year: number;
 	month: number;
 };
 
-type ScheduleRow = Awaited<
-	ReturnType<typeof rosterDb.findSchedulesByDateRange>
->[number];
-
-function getDateKey(date: Date) {
+function getDateKey(date: Date | string) {
+	if (typeof date === "string") return date;
 	return date.toISOString().split("T")[0] ?? "";
 }
 
-export function buildScheduleSummary(schedules: ScheduleRow[]) {
-	const dailyShiftCountsMap = new Map<
-		string,
-		{ morning: number; evening: number; night: number; totalAssigned: number }
-	>();
-	const nurseShiftCountsMap = new Map<
-		string,
-		{
-			nurse: { id: string; name: string };
-			shifts: {
-				morning: number;
-				evening: number;
-				night: number;
-				totalAssigned: number;
-			};
-		}
-	>();
+function getSolverNurseKey(index: number) {
+	return `nurse_${index + 1}`;
+}
+
+// ───────────── SUMMARY ─────────────
+
+type ScheduleRowInput = {
+	id: string;
+	date: string;
+	nurse: {
+		id: string;
+		name: string;
+	};
+	shift: {
+		id: string;
+	} | null;
+};
+
+export function buildScheduleSummary(schedules: ScheduleRowInput[]) {
+	const dailyShiftCountsMap = new Map<any, any>();
+	const nurseShiftCountsMap = new Map<any, any>();
 
 	for (const schedule of schedules) {
-		const dateKey = getDateKey(schedule.date);
+		const dateKey = schedule.date;
 		const shiftId = schedule.shift?.id;
 
 		const dailyCounts = dailyShiftCountsMap.get(dateKey) ?? {
@@ -47,6 +45,7 @@ export function buildScheduleSummary(schedules: ScheduleRow[]) {
 			night: 0,
 			totalAssigned: 0,
 		};
+
 		const nurseCounts = nurseShiftCountsMap.get(schedule.nurse.id) ?? {
 			nurse: schedule.nurse,
 			shifts: {
@@ -58,10 +57,11 @@ export function buildScheduleSummary(schedules: ScheduleRow[]) {
 		};
 
 		if (shiftId === "morning" || shiftId === "evening" || shiftId === "night") {
-			dailyCounts[shiftId] += 1;
-			dailyCounts.totalAssigned += 1;
-			nurseCounts.shifts[shiftId] += 1;
-			nurseCounts.shifts.totalAssigned += 1;
+			dailyCounts[shiftId]++;
+			dailyCounts.totalAssigned++;
+
+			nurseCounts.shifts[shiftId]++;
+			nurseCounts.shifts.totalAssigned++;
 		}
 
 		dailyShiftCountsMap.set(dateKey, dailyCounts);
@@ -71,17 +71,14 @@ export function buildScheduleSummary(schedules: ScheduleRow[]) {
 	return {
 		schedules,
 		dailyShiftCounts: Array.from(dailyShiftCountsMap.entries())
-			.sort(([left], [right]) => left.localeCompare(right))
-			.map(([date, shifts]) => ({
-				date,
-				shifts,
-			})),
-		nurseShiftCounts: Array.from(nurseShiftCountsMap.values()).sort(
-			(left, right) => left.nurse.name.localeCompare(right.nurse.name),
+			.sort(([a], [b]) => a.localeCompare(b))
+			.map(([date, shifts]) => ({ date, shifts })),
+
+		nurseShiftCounts: Array.from(nurseShiftCountsMap.values()).sort((a, b) =>
+			a.nurse.name.localeCompare(b.nurse.name),
 		),
 	};
 }
-
 export async function getNurses() {
 	return rosterDb.findAllNurses();
 }
@@ -93,55 +90,67 @@ export async function getShifts() {
 export async function getSchedulesByDateRange(startDate: Date, endDate: Date) {
 	const schedules = await rosterDb.findSchedulesByDateRange(startDate, endDate);
 
-	return buildScheduleSummary(schedules);
+	// Transform dates to ISO strings first
+	const transformedSchedules = schedules.map((s) => ({
+		...s,
+		date: getDateKey(s.date),
+	}));
+
+	// Build summary using transformed schedules (dates as strings)
+	const summary = buildScheduleSummary(transformedSchedules);
+
+	return {
+		...summary,
+		schedules: transformedSchedules,
+	};
 }
+
+// ───────────── MAIN GENERATOR ─────────────
 
 export async function generateRoster(params: GenerateRosterParams) {
 	try {
-		const __filename = fileURLToPath(import.meta.url);
-		const __dirname = dirname(__filename);
+		const nurseCount = (await getNurses()).length;
+		const shifts = await getShifts();
+		console.log({
+			nurseCount,
+			shifts,
+		});
+	} catch {}
+}
+export async function listNurseShiftPreferenceWeights() {
+	const rows = await rosterDb.findAllPreferredShiftsByNurse();
 
-		const solverPath = join(__dirname, "../../../../apps/server/src/solver.py");
+	const grouped = rows.reduce(
+		(acc, row) => {
+			const nurseId = row.nurse.id;
 
-		const { stdout } = await execAsync(
-			`python3 ${solverPath} '${JSON.stringify(params)}'`,
-		);
-
-		const data = JSON.parse(stdout);
-
-		if (!data?.schedules) throw new Error("Invalid solver output");
-
-		const shifts = await rosterDb.findAllShifts();
-		const shiftMap = new Map(shifts.map((s) => [s.name, s.id]));
-
-		const formatted = data.schedules.map((s: any, i: number) => {
-			const date = new Date(params.year, params.month - 1, s.day);
-
-			const shiftId = shiftMap.get(s.shift);
-
-			if (!shiftId) {
-				throw new Error(`Invalid shift from solver: ${s.shift}`);
+			if (!acc[nurseId]) {
+				acc[nurseId] = {
+					nurseId,
+					name: row.nurse.name,
+				};
 			}
 
-			return {
-				id: `schedule_${Date.now()}_${i}`,
-				nurseId: s.nurseId,
-				shiftId,
-				date,
-			};
-		});
+			// Convert "shift_night" -> "night"
+			const shiftKey = row.shiftId.replace("shift_", "");
 
-		await rosterDb.createSchedules(formatted);
+			acc[nurseId][shiftKey] = row.weight;
 
-		return {
-			success: true,
-			total: formatted.length,
-		};
-	} catch (err: any) {
-		return {
-			success: false,
-			error: err.message,
-			stack: err.stack,
-		};
-	}
+			return acc;
+		},
+		{} as Record<string, any>,
+	);
+
+	// convert object → array
+	return Object.values(grouped);
+}
+
+export async function updateNurseShiftPreferenceWeights(
+	preferences: {
+		nurseId: string;
+		shiftId: string;
+		weight: number;
+	}[],
+) {
+	return rosterDb.upsertNurseShiftPreferences(preferences);
 }

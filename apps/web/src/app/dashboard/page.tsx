@@ -1,16 +1,24 @@
 import { RosterMatrix } from "@/components/roster-matrix";
-import { getWeekDateRange } from "@/components/roster-matrix.utils";
+import { getMonthDateRange } from "@/components/roster-matrix.utils";
+import ShiftAllocations from "@/components/shift-allocations";
 import { getTRPCServer } from "@/utils/trpc-server";
 
 export const revalidate = 60;
 
 export default async function DashboardPage() {
-	const { startDate, endDate } = getWeekDateRange(0);
-	const trpcServer = await getTRPCServer();
-	const initialSchedules = await trpcServer.roster.getSchedules({
-		startDate,
-		endDate,
-	});
-	console.log({ initialSchedules });
-	return <RosterMatrix editable initialSchedules={initialSchedules} />;
+	//   const today = new Date();
+	//   const { startDate, endDate } = getMonthDateRange(
+	//     today.getFullYear(),
+	//     today.getMonth() + 1,
+	//   );
+	//   const initialSchedules = await trpcServer.roster.getSchedules({
+	//     startDate,
+	//     endDate,
+	//   });
+
+	return (
+		<>
+			<ShiftAllocations />
+		</>
+	);
 }

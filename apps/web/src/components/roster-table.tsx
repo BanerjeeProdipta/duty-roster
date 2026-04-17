@@ -1,12 +1,12 @@
 import React, { useCallback, useMemo } from "react";
 import type { Shift, ShiftType } from "./roster-matrix.types";
-import { buildShiftKey, DAYS, formatDate } from "./roster-matrix.utils";
+import { buildShiftKey } from "./roster-matrix.utils";
 import { ShiftBadge } from "./shift-dropdown";
 
 const LAYOUT = {
 	nameColWidth: "180px",
-	cellHeight: "80px",
-	headerHeight: "52px",
+	cellHeight: "90px",
+	headerHeight: "56px",
 };
 
 /* -----------------------------
@@ -33,18 +33,21 @@ export function RosterTable({
 }: RosterTableProps) {
 	const todayStr = useMemo(() => new Date().toDateString(), []);
 
-	/* Normalize week once */
-	const normalizedWeek = useMemo(() => {
-		return weekDates.map((date, index) => {
+	/* Normalize dates for the month */
+	const normalizedDates = useMemo(() => {
+		return weekDates.map((date) => {
 			const isToday = date.toDateString() === todayStr;
+			const dayOfWeek = date.toLocaleDateString("en-US", { weekday: "short" });
 
 			return {
 				date,
-				index,
 				time: date.getTime(),
 				isToday,
-				label: DAYS[index],
-				formatted: formatDate(date),
+				label: dayOfWeek,
+				formatted: date.toLocaleDateString("en-US", {
+					month: "short",
+					day: "numeric",
+				}),
 				shortLabel: date.toLocaleDateString("en-US", {
 					weekday: "short",
 					month: "short",
@@ -96,18 +99,21 @@ export function RosterTable({
 				</table>
 			</div>
 
-			{/* RIGHT GRID */}
+			{/* RIGHT GRID - Scrollable */}
 			<div className="flex-1 overflow-x-auto">
-				<table className="w-full min-w-[800px] table-fixed">
+				<table
+					className="table-fixed"
+					style={{ minWidth: `${normalizedDates.length * 100}px` }}
+				>
 					<thead>
 						<tr>
-							{normalizedWeek.map((d) => (
+							{normalizedDates.map((d) => (
 								<th
 									key={d.key}
-									className={`border-b px-2 text-center font-semibold text-sm uppercase tracking-wide ${
-										d.isToday ? "bg-primary/5" : ""
+									className={`border-b px-1 text-center font-semibold text-xs uppercase tracking-wide ${
+										d.isToday ? "bg-primary/10" : ""
 									}`}
-									style={{ height: LAYOUT.headerHeight }}
+									style={{ height: LAYOUT.headerHeight, minWidth: "100px" }}
 								>
 									<span className="block">{d.label}</span>
 									<span className="block font-normal text-muted-foreground text-xs">
@@ -123,7 +129,7 @@ export function RosterTable({
 							<NurseRow
 								key={nurse.id}
 								nurse={nurse}
-								week={normalizedWeek}
+								dates={normalizedDates}
 								shiftIndex={shiftIndex}
 								editable={editable}
 								onShiftChange={onShiftChange}
@@ -145,7 +151,7 @@ interface NurseRowProps {
 		id: string;
 		name: string;
 	};
-	week: {
+	dates: {
 		date: Date;
 		key: number;
 		isToday: boolean;
@@ -160,7 +166,7 @@ interface NurseRowProps {
 
 const NurseRow = React.memo(function NurseRow({
 	nurse,
-	week,
+	dates,
 	shiftIndex,
 	editable,
 	onShiftChange,
@@ -174,7 +180,7 @@ const NurseRow = React.memo(function NurseRow({
 
 	return (
 		<tr>
-			{week.map((d) => {
+			{dates.map((d) => {
 				const shift = shiftIndex.get(buildShiftKey(nurse.name, d.date));
 
 				return (
@@ -183,7 +189,7 @@ const NurseRow = React.memo(function NurseRow({
 						className={`border-r border-b text-center ${
 							d.isToday ? "bg-primary/5" : ""
 						}`}
-						style={{ height: LAYOUT.cellHeight }}
+						style={{ height: LAYOUT.cellHeight, minWidth: "100px" }}
 					>
 						{shift && (
 							<ShiftBadge

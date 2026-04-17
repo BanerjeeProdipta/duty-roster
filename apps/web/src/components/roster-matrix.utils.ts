@@ -3,9 +3,61 @@ import type { ShiftType } from "./roster-matrix.types";
 export const STORAGE_KEY = "roster-shifts";
 export const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
+export function getMonthDates(year: number, month: number): string[] {
+	const dates: string[] = [];
+	const lastDay = new Date(year, month, 0).getDate();
+
+	for (let d = 1; d <= lastDay; d++) {
+		// Use local date format to avoid timezone issues
+		const dateStr = `${year}-${String(month).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+		dates.push(dateStr);
+	}
+
+	return dates;
+}
+
+export function getMonthDateRange(year: number, month: number) {
+	const dates = getMonthDates(year, month);
+	const today = new Date();
+	const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+	return {
+		dates,
+		startDate: dates[0] ?? todayStr,
+		endDate: dates[dates.length - 1] ?? todayStr,
+	};
+}
+
+export function getMonthName(year: number, month: number): string {
+	return new Date(year, month - 1, 1).toLocaleDateString("en-US", {
+		month: "long",
+		year: "numeric",
+	});
+}
+
+export function getMonthOptions(): {
+	year: number;
+	month: number;
+	label: string;
+}[] {
+	const options: { year: number; month: number; label: string }[] = [];
+	const today = new Date();
+
+	// Generate 12 months back and 12 months forward
+	for (let offset = -12; offset <= 12; offset++) {
+		const date = new Date(today.getFullYear(), today.getMonth() + offset, 1);
+		options.push({
+			year: date.getFullYear(),
+			month: date.getMonth() + 1,
+			label: getMonthName(date.getFullYear(), date.getMonth() + 1),
+		});
+	}
+
+	return options;
+}
+
 export type ScheduleRow = {
 	id: string;
-	date: Date;
+	date: string;
 	nurse: {
 		id: string;
 		name: string;
@@ -41,30 +93,34 @@ export function formatDate(date: Date): string {
 	return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
-export function getWeekDates(offset: number): Date[] {
+export function getWeekDates(offset: number): string[] {
 	const today = new Date();
-	today.setHours(0, 0, 0, 0);
+	const currentDay = today.getDate();
 	const startOfWeek = new Date(today);
-	startOfWeek.setDate(today.getDate() - today.getDay() + 1 + offset * 7);
-	startOfWeek.setHours(0, 0, 0, 0);
+	startOfWeek.setDate(currentDay - today.getDay() + 1 + offset * 7);
 
 	return Array.from({ length: 7 }, (_, i) => {
 		const d = new Date(startOfWeek);
 		d.setDate(startOfWeek.getDate() + i);
-		d.setHours(0, 0, 0, 0);
-		return d;
+		const year = d.getFullYear();
+		const month = d.getMonth() + 1;
+		const day = d.getDate();
+		return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 	});
 }
 
 export function getWeekDateRange(offset: number) {
 	const weekDates = getWeekDates(offset);
+	const today = new Date();
 
 	return {
 		weekDates,
-		startDate: weekDates[0]?.toISOString() ?? new Date().toISOString(),
+		startDate:
+			weekDates[0] ??
+			`${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`,
 		endDate:
-			weekDates[weekDates.length - 1]?.toISOString() ??
-			new Date().toISOString(),
+			weekDates[weekDates.length - 1] ??
+			`${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`,
 	};
 }
 
@@ -84,7 +140,7 @@ export function scheduleRowsToShifts(rows: ScheduleRow[]) {
 		id: schedule.id,
 		employeeId: schedule.nurse.id,
 		employeeName: schedule.nurse.name,
-		date: new Date(schedule.date).toISOString().split("T")[0] ?? "",
+		date: schedule.date,
 		shiftType: normalizeShiftType(schedule.shift?.id ?? null),
 	}));
 }
@@ -102,42 +158,15 @@ export function getNursesFromScheduleRows(rows: ScheduleRow[]) {
 }
 
 export function buildShiftKey(nurseName: string, date: Date | string): string {
-	const dateStr =
-		typeof date === "string" ? date : date.toISOString().split("T")[0];
+	let dateStr: string;
+	if (typeof date === "string") {
+		dateStr = date;
+	} else {
+		// Use local date methods to avoid timezone issues
+		const year = date.getFullYear();
+		const month = date.getMonth() + 1;
+		const day = date.getDate();
+		dateStr = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+	}
 	return `${nurseName}-${dateStr}`;
 }
-
-// Default shift pattern - more balanced rotation
-export const DEFAULT_SHIFTS: Record<number, ShiftType> = {
-	// Monday: 10 morning, 5 evening, 3 night, 12 off
-	0: "morning",
-	1: "morning",
-	2: "morning",
-	3: "morning",
-	4: "morning",
-	5: "morning",
-	6: "morning",
-	7: "morning",
-	8: "morning",
-	9: "morning",
-	10: "evening",
-	11: "evening",
-	12: "evening",
-	13: "evening",
-	14: "evening",
-	15: "night",
-	16: "night",
-	17: "night",
-	18: "off",
-	19: "off",
-	20: "off",
-	21: "off",
-	22: "off",
-	23: "off",
-	24: "off",
-	25: "off",
-	26: "off",
-	27: "off",
-	28: "off",
-	29: "off",
-};

@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState, useTransition } from "react";
+import { toast } from "sonner";
 import type { Shift, ShiftType } from "./roster-matrix.types";
 import {
 	buildShiftKey,
-	DEFAULT_SHIFTS,
-	getWeekDates,
+	getMonthDates,
+	getMonthName,
 } from "./roster-matrix.utils";
 
 type NurseOption = {
@@ -12,7 +13,7 @@ type NurseOption = {
 };
 
 function generateShifts(
-	weekDates: Date[],
+	dates: string[],
 	nurses: NurseOption[],
 	existingShifts?: Shift[],
 ): Shift[] {
@@ -20,16 +21,16 @@ function generateShifts(
 	let shiftId = 0;
 	const existingMap = new Map<string, ShiftType>();
 
+	toast.info(`Generating ${dates[0]}`);
+
 	existingShifts?.forEach((shift) => {
 		existingMap.set(`${shift.employeeName}-${shift.date}`, shift.shiftType);
 	});
 
-	weekDates.forEach((_, dayIndex) => {
-		const dateStr = weekDates[dayIndex].toISOString().split("T")[0];
-		nurses.forEach((nurse, nurseIndex) => {
+	dates.forEach((dateStr, dayIndex) => {
+		nurses.forEach((nurse) => {
 			const key = `${nurse.name}-${dateStr}`;
-			const shiftType =
-				existingMap.get(key) || DEFAULT_SHIFTS[nurseIndex % 30] || "off";
+			const shiftType = existingMap.get(key) || "off";
 
 			shifts.push({
 				id: `${shiftId++}`,
@@ -45,16 +46,37 @@ function generateShifts(
 }
 
 export function useRosterState(nurses: NurseOption[], initialShifts?: Shift[]) {
-	const [weekOffset, setWeekOffset] = useState(0);
+	const today = new Date();
+	const [selectedMonth, setSelectedMonth] = useState(() => ({
+		year: today.getFullYear(),
+		month: today.getMonth() + 1,
+	}));
 	const [isPending, startTransition] = useTransition();
-	const weekDates = useMemo(() => getWeekDates(weekOffset), [weekOffset]);
-	const [shifts, setShifts] = useState<Shift[]>(() =>
-		generateShifts(weekDates, nurses, initialShifts),
+
+	// Get all dates for the selected month
+	const monthDates = useMemo(
+		() => getMonthDates(selectedMonth.year, selectedMonth.month),
+		[selectedMonth],
 	);
 
+	const [shifts, setShifts] = useState<Shift[]>(() =>
+		generateShifts(monthDates, nurses, initialShifts),
+	);
+
+	const monthName = useMemo(
+		() => getMonthName(selectedMonth.year, selectedMonth.month),
+		[selectedMonth],
+	);
+
+	const monthDateRange = useMemo(() => {
+		const firstDate = monthDates[0] ?? today.toISOString();
+		const lastDate = monthDates[monthDates.length - 1] ?? today.toISOString();
+		return { startDate: firstDate, endDate: lastDate };
+	}, [monthDates]);
+
 	useEffect(() => {
-		setShifts((previous) => generateShifts(weekDates, nurses, previous));
-	}, [nurses, weekDates]);
+		setShifts((previous) => generateShifts(monthDates, nurses, previous));
+	}, [nurses, monthDates]);
 
 	const shiftMap = useMemo(() => {
 		const map = new Map<string, Shift>();
@@ -75,23 +97,55 @@ export function useRosterState(nurses: NurseOption[], initialShifts?: Shift[]) {
 		);
 	};
 
-	const changeWeekOffset = (updater: (current: number) => number) => {
+	const goToPreviousMonth = () => {
 		startTransition(() => {
-			setWeekOffset((currentOffset) => {
-				const nextOffset = updater(currentOffset);
-				return nextOffset;
+			setSelectedMonth((current) => {
+				if (current.month === 1) {
+					return { year: current.year - 1, month: 12 };
+				}
+				return { ...current, month: current.month - 1 };
 			});
 		});
 	};
 
+	const goToNextMonth = () => {
+		startTransition(() => {
+			setSelectedMonth((current) => {
+				if (current.month === 12) {
+					return { year: current.year + 1, month: 1 };
+				}
+				return { ...current, month: current.month + 1 };
+			});
+		});
+	};
+
+	const goToCurrentMonth = () => {
+		startTransition(() => {
+			setSelectedMonth({
+				year: today.getFullYear(),
+				month: today.getMonth() + 1,
+			});
+		});
+	};
+
+	const changeMonth = (year: number, month: number) => {
+		startTransition(() => {
+			setSelectedMonth({ year, month });
+		});
+	};
+
 	return {
-		weekDates,
+		monthDates,
 		setShifts,
 		shiftMap,
 		updateShift,
-		isWeekTransitioning: isPending,
-		goToPreviousWeek: () => changeWeekOffset((current) => current - 1),
-		goToNextWeek: () => changeWeekOffset((current) => current + 1),
-		goToCurrentWeek: () => changeWeekOffset(() => 0),
+		isTransitioning: isPending,
+		selectedMonth,
+		monthName,
+		monthDateRange,
+		goToPreviousMonth,
+		goToNextMonth,
+		goToCurrentMonth,
+		changeMonth,
 	};
 }

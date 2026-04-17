@@ -4,7 +4,7 @@ import { publicProcedure, router } from "../trpc";
 
 const scheduleRowSchema = z.object({
 	id: z.string(),
-	date: z.date(),
+	date: z.string(),
 	nurse: z.object({
 		id: z.string(),
 		name: z.string(),
@@ -70,5 +70,23 @@ export const rosterRouter = router({
 		)
 		.mutation(async ({ input }) => {
 			return rosterService.generateRoster(input);
+		}),
+
+	getNurseShiftPreferences: publicProcedure.query(async () => {
+		return rosterService.listNurseShiftPreferenceWeights();
+	}),
+
+	updateNurseShiftPreferences: publicProcedure
+		.input(
+			z.array(
+				z.object({
+					nurseId: z.string(),
+					shiftId: z.string(),
+					weight: z.number(),
+				}),
+			),
+		)
+		.mutation(async ({ input }) => {
+			return rosterService.updateNurseShiftPreferenceWeights(input);
 		}),
 });
