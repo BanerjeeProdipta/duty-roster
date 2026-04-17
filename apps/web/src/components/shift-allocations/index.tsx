@@ -1,8 +1,8 @@
-import { getTRPCServer } from "@/utils/trpc-server";
+import { getAuthedTRPCServer } from "@/utils/trpc-server";
 import ShiftAllocationsClient from "./ShiftAllocationsClient";
 
 const ShiftAllocations = async () => {
-	const trpcServer = await getTRPCServer();
+	const trpcServer = await getAuthedTRPCServer();
 	const nursePreferences = await trpcServer.roster.getNurseShiftPreferences();
 
 	console.log(nursePreferences);

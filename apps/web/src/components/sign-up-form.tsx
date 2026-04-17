@@ -3,11 +3,10 @@ import { Input } from "@Duty-Roster/ui/components/input";
 import { Label } from "@Duty-Roster/ui/components/label";
 import { useForm } from "@tanstack/react-form";
 import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 import { toast } from "sonner";
 import z from "zod";
-
 import { authClient } from "@/lib/auth-client";
-
 import Loader from "./loader";
 
 export default function SignUpForm({
@@ -16,7 +15,13 @@ export default function SignUpForm({
 	onSwitchToSignIn?: () => void;
 }) {
 	const router = useRouter();
-	const { isPending } = authClient.useSession();
+	const { data: session, isPending } = authClient.useSession();
+
+	useEffect(() => {
+		if (session) {
+			router.push("/dashboard");
+		}
+	}, [session, router]);
 
 	const form = useForm({
 		defaultValues: {
@@ -30,9 +35,11 @@ export default function SignUpForm({
 					email: value.email,
 					password: value.password,
 					name: value.name,
+					callbackURL: "/dashboard",
 				},
 				{
 					onSuccess: () => {
+						router.refresh();
 						router.push("/dashboard");
 						toast.success("Sign up successful");
 					},
@@ -51,12 +58,12 @@ export default function SignUpForm({
 		},
 	});
 
-	if (isPending) {
+	if (isPending || session) {
 		return <Loader />;
 	}
 
 	return (
-		<div>
+		<div className="fade-in animate-in duration-500">
 			<h1 className="mb-6 text-center font-bold text-3xl">Create Account</h1>
 
 			<form

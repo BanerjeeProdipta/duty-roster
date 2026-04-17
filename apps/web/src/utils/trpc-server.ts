@@ -13,7 +13,9 @@ export const getTRPCServer = cache(async () => {
 });
 
 export const getAuthedTRPCServer = cache(async () => {
-	const requestHeaders = new Headers(await headers());
+	const requestHeaders = await headers();
 
-	return createCaller(await createContextFromHeaders(requestHeaders));
+	return createCaller(
+		await createContextFromHeaders(requestHeaders as unknown as Headers),
+	);
 });

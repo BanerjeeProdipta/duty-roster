@@ -1,11 +1,11 @@
 import { RosterMatrix } from "@/components/roster-matrix";
 import { getMonthDateRange } from "@/components/roster-matrix.utils";
-import { getTRPCServer } from "@/utils/trpc-server";
+import { getAuthedTRPCServer } from "@/utils/trpc-server";
 
 export const revalidate = 60;
 
 export default async function DashboardPage() {
-	const trpcServer = await getTRPCServer();
+	const trpcServer = await getAuthedTRPCServer();
 	const today = new Date();
 	const { startDate, endDate } = getMonthDateRange(
 		today.getFullYear(),

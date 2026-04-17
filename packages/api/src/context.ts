@@ -16,11 +16,19 @@ export async function createContextFromHeaders(
 		const { auth } = await import("@Duty-Roster/auth");
 		const session = await auth.api.getSession({ headers });
 
+		if (!session) {
+			console.error(
+				"tRPC Context: No session found for headers:",
+				JSON.stringify(Object.fromEntries(headers.entries())),
+			);
+		}
+
 		return {
 			auth: null,
 			session,
 		};
-	} catch {
+	} catch (error) {
+		console.error("tRPC Context Error:", error);
 		return {
 			auth: null,
 			session: null,
