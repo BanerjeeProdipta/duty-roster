@@ -210,10 +210,7 @@ export default function ShiftAllocationsClient({
 							<div className="fade-in slide-in-from-top-2 flex animate-in items-center justify-between rounded-md border border-amber-100 bg-amber-50 p-4 shadow-sm">
 								<div className="flex items-center gap-2 font-medium text-amber-800 text-sm">
 									<AlertCircle className="h-4 w-4" />
-									<span>
-										You have unsaved changes. Total shifts must sum to{" "}
-										{totalDays} days.
-									</span>
+									<span>You have unsaved changes.</span>
 								</div>
 
 								<Button type="submit" disabled={!canSubmit || isSubmitting}>

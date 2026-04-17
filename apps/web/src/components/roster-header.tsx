@@ -52,62 +52,77 @@ export function RosterHeader({
 	const monthName = useRosterMonthName();
 
 	return (
-		<div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-			<div className="flex items-center gap-4">
+		<div className="mb-6 flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
+			<div className="flex w-full flex-row flex-wrap items-center justify-between gap-2 sm:w-full sm:gap-4">
 				{onGenerate ? (
 					<Button
 						size="sm"
-						className="text-base"
+						className="flex-1 whitespace-nowrap text-sm sm:flex-initial sm:text-base"
 						onClick={onGenerate}
 						disabled={isGenerating}
 					>
 						{isGenerating ? "Generating..." : "Generate Schedule"}
 					</Button>
 				) : null}
-				<Button
-					variant="ghost"
-					size="sm"
-					className="text-base"
-					onClick={goToCurrentMonth}
-				>
-					Today
-				</Button>
 
-				{/* Month Navigation with Dropdown */}
-				<div className="flex items-center gap-1 rounded-md border">
-					<Button variant="ghost" size="icon" onClick={goToPreviousMonth}>
-						<ChevronLeft className="h-5 w-5" />
+				<div className="flex w-full items-center justify-between gap-2 md:w-auto">
+					<Button
+						variant="ghost"
+						size="sm"
+						className="text-sm sm:text-base"
+						onClick={goToCurrentMonth}
+					>
+						Today
 					</Button>
 
-					<DropdownMenu>
-						<DropdownMenuTrigger className="flex items-center gap-2 rounded-md px-3 py-2 font-medium text-base hover:bg-accent hover:text-accent-foreground">
-							{monthName}
-							<ChevronDown className="h-4 w-4" />
-						</DropdownMenuTrigger>
-						<DropdownMenuContent
-							align="center"
-							className="max-h-80 overflow-y-auto"
+					{/* Month Navigation with Dropdown */}
+					<div className="flex items-center gap-1 rounded-md border bg-white shadow-sm">
+						<Button
+							variant="ghost"
+							size="icon"
+							className="h-8 w-8 sm:h-9 sm:w-9"
+							onClick={goToPreviousMonth}
 						>
-							{monthOptions.map((option) => (
-								<DropdownMenuItem
-									key={`${option.year}-${option.month}`}
-									onClick={() => changeMonth(option.year, option.month)}
-									className={
-										option.year === selectedMonth.year &&
-										option.month === selectedMonth.month
-											? "bg-accent"
-											: ""
-									}
-								>
-									{option.label}
-								</DropdownMenuItem>
-							))}
-						</DropdownMenuContent>
-					</DropdownMenu>
+							<ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5" />
+						</Button>
 
-					<Button variant="ghost" size="icon" onClick={goToNextMonth}>
-						<ChevronRight className="h-5 w-5" />
-					</Button>
+						<DropdownMenu>
+							<DropdownMenuTrigger className="flex items-center gap-1 px-2 py-1 font-medium text-sm hover:bg-accent hover:text-accent-foreground sm:gap-2 sm:px-3 sm:py-2 sm:text-base">
+								<span className="max-w-[100px] truncate sm:max-w-none">
+									{monthName}
+								</span>
+								<ChevronDown className="h-3 w-3 sm:h-4 sm:w-4" />
+							</DropdownMenuTrigger>
+							<DropdownMenuContent
+								align="center"
+								className="max-h-80 overflow-y-auto"
+							>
+								{monthOptions.map((option) => (
+									<DropdownMenuItem
+										key={`${option.year}-${option.month}`}
+										onClick={() => changeMonth(option.year, option.month)}
+										className={
+											option.year === selectedMonth.year &&
+											option.month === selectedMonth.month
+												? "bg-accent"
+												: ""
+										}
+									>
+										{option.label}
+									</DropdownMenuItem>
+								))}
+							</DropdownMenuContent>
+						</DropdownMenu>
+
+						<Button
+							variant="ghost"
+							size="icon"
+							className="h-8 w-8 sm:h-9 sm:w-9"
+							onClick={goToNextMonth}
+						>
+							<ChevronRight className="h-4 w-4 sm:h-5 sm:w-5" />
+						</Button>
+					</div>
 				</div>
 			</div>
 		</div>
