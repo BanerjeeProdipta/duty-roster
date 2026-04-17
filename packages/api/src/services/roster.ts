@@ -188,46 +188,15 @@ export async function generateRoster(params: GenerateRosterParams) {
 		const isFri = isFridayFn(day);
 		const coverage = isFri ? FRIDAY_COVERAGE : WEEKDAY_COVERAGE;
 		const weekKey = getWeekKey(day);
+		// Always create UTC noon dates for scheduling
 		const dayDate = new Date(Date.UTC(year, month - 1, day, 12, 0, 0, 0));
-
-		// 1. Identify available nurses and their utility scores
-		const candidates = nurses
-			.map((nurse) => {
-				const nWeeks = nurseWorkDaysPerWeek.get(nurse.id);
-				if (!nWeeks) return null;
-				const currentWeekWork = nWeeks.get(weekKey) ?? 0;
-				const currentNights = nurseNightCount.get(nurse.id) ?? 0;
-				const totalWork = nurseTotalWorkCount.get(nurse.id) ?? 0;
-				const prefs = prefMap.get(nurse.id);
-				const targets = nurseShiftTargets.get(nurse.id);
-				const assigned = nurseShiftAssigned.get(nurse.id);
-
-				// Basic constraints
-				const canWorkAny = currentWeekWork < 6; // Max 6 days a week
-				const canWorkNight = canWorkAny && currentNights < MAX_NIGHTS_PER_NURSE;
-
-				return {
-					nurse,
-					canWorkAny,
-					canWorkNight,
-					totalWork,
-					prefs,
-					targets,
-					assigned,
-				};
-			})
-			.filter((c): c is NonNullable<typeof c> => c !== null)
-			.filter((c) => c.canWorkAny);
-
-		// Priority sort: nurses by preference count (those with more remaining quota first?)
-		// Actually, let's keep the user's priority sort inside assignShift
 
 		const assignedToday = new Set<string>();
 
 		const assignShift = (
 			type: ShiftType,
 			count: number,
-			condition: (c: (typeof candidates)[0]) => boolean,
+			condition: (nurse: (typeof nurses)[0], state: any) => boolean,
 		) => {
 			let assignedCount = 0;
 			const shiftKey = type.replace("shift_", "") as
@@ -235,30 +204,75 @@ export async function generateRoster(params: GenerateRosterParams) {
 				| "evening"
 				| "night";
 
-			const shiftCandidates = candidates
+			const getCandidateState = (nurse: (typeof nurses)[0]) => {
+				const nWeeks = nurseWorkDaysPerWeek.get(nurse.id);
+				const currentWeekWork = nWeeks?.get(weekKey) ?? 0;
+				const currentNights = nurseNightCount.get(nurse.id) ?? 0;
+				const totalWork = nurseTotalWorkCount.get(nurse.id) ?? 0;
+				const targets = nurseShiftTargets.get(nurse.id);
+				const assigned = nurseShiftAssigned.get(nurse.id);
+				const prefs = prefMap.get(nurse.id);
+
+				return {
+					nurse,
+					currentWeekWork,
+					canWorkAny: currentWeekWork < 6,
+					canWorkNight:
+						currentWeekWork < 6 && currentNights < MAX_NIGHTS_PER_NURSE,
+					totalWork,
+					targets,
+					assigned,
+					prefs,
+					currentCount: assigned?.[shiftKey] ?? 0,
+					targetCount: targets?.[shiftKey] ?? 0,
+					weight: prefs?.[shiftKey] ?? 0,
+				};
+			};
+
+			// Phase 1: Under-target candidates
+			const phase1Candidates = nurses
+				.map(getCandidateState)
 				.filter((c) => {
 					if (assignedToday.has(c.nurse.id)) return false;
-					if (!condition(c)) return false;
-
-					// ENFORCE SHIFT QUOTA
-					const currentCount = c.assigned?.[shiftKey] ?? 0;
-					const targetCount = c.targets?.[shiftKey] ?? 0;
-					return currentCount < targetCount;
+					if (!c.canWorkAny) return false;
+					if (!condition(c.nurse, c)) return false;
+					return c.currentCount < c.targetCount;
 				})
 				.sort((a, b) => {
-					const weightA = a.prefs?.[shiftKey] ?? 0;
-					const weightB = b.prefs?.[shiftKey] ?? 0;
-
-					// Most priority: Preference Weight
-					if (weightA !== weightB) return weightB - weightA;
-
-					// Tie-breaker: Fairness (less total work first)
+					if (a.weight !== b.weight) return b.weight - a.weight;
 					return a.totalWork - b.totalWork;
 				});
 
-			for (const c of shiftCandidates) {
+			for (const c of phase1Candidates) {
 				if (assignedCount >= count) break;
+				doAssign(c);
+			}
 
+			// Phase 2: Overflow (fill remaining slots for coverage if needed)
+			if (assignedCount < count) {
+				const phase2Candidates = nurses
+					.map(getCandidateState)
+					.filter((c) => {
+						if (assignedToday.has(c.nurse.id)) return false;
+						if (!c.canWorkAny) return false;
+						if (!condition(c.nurse, c)) return false;
+						return true; // Already checked Phase 1, these might be over-target
+					})
+					.sort((a, b) => {
+						// Fairness first: pick those least over their target or least total work
+						const overA = a.currentCount - a.targetCount;
+						const overB = b.currentCount - b.targetCount;
+						if (overA !== overB) return overA - overB;
+						return a.totalWork - b.totalWork;
+					});
+
+				for (const c of phase2Candidates) {
+					if (assignedCount >= count) break;
+					doAssign(c);
+				}
+			}
+
+			function doAssign(c: ReturnType<typeof getCandidateState>) {
 				finalSchedules.push({
 					nurseId: c.nurse.id,
 					shiftId: type,
@@ -269,20 +283,15 @@ export async function generateRoster(params: GenerateRosterParams) {
 				assignedCount++;
 
 				// Update counters
-				nurseTotalWorkCount.set(
-					c.nurse.id,
-					(nurseTotalWorkCount.get(c.nurse.id) ?? 0) + 1,
-				);
+				nurseTotalWorkCount.set(c.nurse.id, c.totalWork + 1);
 				const nWeeks = nurseWorkDaysPerWeek.get(c.nurse.id);
 				if (nWeeks) {
-					nWeeks.set(weekKey, (nWeeks.get(weekKey) ?? 0) + 1);
+					nWeeks.set(weekKey, c.currentWeekWork + 1);
 				}
-
-				// Update specific shift count
-				if (c.assigned && c.assigned[shiftKey] !== undefined) {
-					c.assigned[shiftKey]++;
+				if (c.assigned) {
+					const cur = c.assigned[shiftKey] ?? 0;
+					c.assigned[shiftKey] = cur + 1;
 				}
-
 				if (type === "shift_night") {
 					nurseNightCount.set(
 						c.nurse.id,
@@ -293,16 +302,16 @@ export async function generateRoster(params: GenerateRosterParams) {
 		};
 
 		// Assign harder shifts first (Night, then Evening, then Morning)
-		assignShift("shift_night", coverage.night, (c) => c.canWorkNight);
+		assignShift("shift_night", coverage.night, (_n, c) => c.canWorkNight);
 		assignShift("shift_evening", coverage.evening, () => true);
 		assignShift("shift_morning", coverage.morning, () => true);
 
-		// 2. Add explicit "OFF" days for the rest (Leaves)
+		// Add "OFF" entries for non-assigned nurses
 		for (const nurse of nurses) {
 			if (!assignedToday.has(nurse.id)) {
 				finalSchedules.push({
 					nurseId: nurse.id,
-					shiftId: null, // Leaf / Off
+					shiftId: null,
 					date: dayDate,
 				});
 			}

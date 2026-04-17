@@ -1,5 +1,5 @@
 "use client";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { toast } from "sonner";
 import Loader from "@/components/loader";
@@ -24,6 +24,7 @@ export function RosterMatrix({
 		setEditable(editable);
 	}, [editable, setEditable]);
 
+	const queryClient = useQueryClient();
 	const generateMutation = useMutation({
 		mutationFn: async () =>
 			trpcClient.roster.generateRoster.mutate({
@@ -31,7 +32,8 @@ export function RosterMatrix({
 				month: selectedMonth.month,
 			}),
 		onSuccess: async (result) => {
-			await refetch();
+			await queryClient.invalidateQueries();
+			refetch();
 			toast.success(`Generated ${result.schedulesCreated} schedules`);
 		},
 	});

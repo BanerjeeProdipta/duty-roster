@@ -1,12 +1,10 @@
 import { cn } from "@Duty-Roster/ui/lib/utils";
 import { AllocationItem } from "./allocation-item";
-import { LAYOUT } from "./constants";
 
 export function NurseIdentityCell({
 	nurse,
 	counts,
 	pref,
-	_totalDays,
 }: {
 	nurse: { id: string; name: string };
 	counts: { morning: number; evening: number; night: number } | undefined;
@@ -22,7 +20,7 @@ export function NurseIdentityCell({
 	const isPerfect = totalAssigned === targetWorkedDays;
 
 	return (
-		<div className="h-full w-full select-none border-b bg-muted/10 px-3 py-3">
+		<div className="h-full w-full border-b bg-muted/10 px-3 py-3">
 			<div className="flex h-full flex-col justify-center gap-2">
 				<div className="flex items-center justify-between gap-1 overflow-hidden">
 					<span
@@ -42,7 +40,7 @@ export function NurseIdentityCell({
 						)}
 						title={`Total assigned: ${totalAssigned} / Goal: ${targetWorkedDays}`}
 					>
-						{totalAssigned}D
+						{totalAssigned}/{targetWorkedDays}
 					</div>
 				</div>
 
