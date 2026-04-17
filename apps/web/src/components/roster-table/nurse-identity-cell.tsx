@@ -22,10 +22,7 @@ export function NurseIdentityCell({
 	const isPerfect = totalAssigned === targetWorkedDays;
 
 	return (
-		<td
-			className="select-none border-r border-b bg-muted/10 px-3 py-3"
-			style={{ height: LAYOUT.cellHeight }}
-		>
+		<div className="h-full w-full select-none border-b bg-muted/10 px-3 py-3">
 			<div className="flex h-full flex-col justify-center gap-2">
 				<div className="flex items-center justify-between gap-1 overflow-hidden">
 					<span
@@ -70,6 +67,6 @@ export function NurseIdentityCell({
 					/>
 				</div>
 			</div>
-		</td>
+		</div>
 	);
 }

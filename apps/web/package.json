@@ -14,6 +14,7 @@
 		"@Duty-Roster/ui": "workspace:*",
 		"@tanstack/react-form": "catalog:",
 		"@tanstack/react-query": "catalog:",
+		"@tanstack/react-virtual": "^3.13.24",
 		"@trpc/client": "catalog:",
 		"@trpc/server": "catalog:",
 		"@trpc/tanstack-react-query": "catalog:",

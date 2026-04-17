@@ -9,14 +9,15 @@ export function DayHeaderCell({
 	counts: { morning: number; evening: number; night: number } | undefined;
 }) {
 	return (
-		<th
+		<div
 			className={cn(
-				"whitespace-nowrap border-r border-b text-center font-semibold text-xs uppercase tracking-wide transition-colors",
+				"flex flex-col items-center justify-center whitespace-nowrap border-r border-b text-center font-semibold text-xs uppercase tracking-wide transition-colors",
 				date.isToday ? "bg-primary/5" : "bg-white",
 			)}
 			style={{
 				height: LAYOUT.headerHeight,
-				minWidth: "120px",
+				flex: `0 0 ${LAYOUT.cellWidth}`,
+				width: LAYOUT.cellWidth,
 				padding: "10px",
 			}}
 		>
@@ -50,6 +51,6 @@ export function DayHeaderCell({
 					<span>{counts?.night || 0}</span>
 				</div>
 			</div>
-		</th>
+		</div>
 	);
 }

@@ -1,5 +1,5 @@
-"use client";
-import { useMemo } from "react";
+import { useVirtualizer } from "@tanstack/react-virtual";
+import { useMemo, useRef } from "react";
 import { useRosterDates, useRosterStore } from "../../store/use-roster-store";
 import { buildShiftKey } from "../roster-matrix.utils";
 import { LAYOUT } from "./constants";
@@ -10,6 +10,7 @@ import { NurseRow } from "./nurse-row";
 export function RosterTable() {
 	const { nurses, shifts, preferences } = useRosterStore();
 	const monthDates = useRosterDates();
+	const parentRef = useRef<HTMLDivElement>(null);
 
 	const weekDates = useMemo(
 		() => monthDates.map((d) => new Date(`${d}T12:00:00Z`)),
@@ -82,47 +83,45 @@ export function RosterTable() {
 		});
 	}, [nurses, weekDates, shiftMap]);
 
-	return (
-		<div className="flex flex-1 overflow-hidden rounded-xl border bg-white shadow-sm">
-			{/* LEFT NAME COLUMN */}
-			<div
-				className="z-10 flex shrink-0"
-				style={{ width: LAYOUT.nameColWidth }}
-			>
-				<table className="w-full table-fixed border-collapse">
-					<thead>
-						<tr>
-							<th
-								className="border-r border-b bg-slate-50 py-3 text-center font-black text-[10px] text-slate-400 uppercase tracking-[0.2em]"
-								style={{ height: LAYOUT.headerHeight }}
-							>
-								Nurses
-							</th>
-						</tr>
-					</thead>
-					<tbody>
-						{nurses.map((nurse) => (
-							<tr key={nurse.id}>
-								<NurseIdentityCell
-									nurse={nurse}
-									counts={nurseShiftCounts.get(nurse.id)}
-									pref={preferences[nurse.id]}
-									totalDays={normalizedDates.length}
-								/>
-							</tr>
-						))}
-					</tbody>
-				</table>
-			</div>
+	const rowVirtualizer = useVirtualizer({
+		count: nurses.length,
+		getScrollElement: () => parentRef.current,
+		estimateSize: () => LAYOUT.rowHeight,
+		overscan: 10,
+	});
 
-			{/* RIGHT GRID - Scrollable */}
-			<div className="flex-1 overflow-x-auto">
-				<table
-					className="table-fixed border-collapse"
-					style={{ minWidth: `${normalizedDates.length * 120}px` }}
+	const totalGridWidth =
+		normalizedDates.length * Number.parseInt(LAYOUT.cellWidth);
+
+	return (
+		<div
+			className="relative flex flex-1 flex-col overflow-hidden rounded-xl border bg-white shadow-sm"
+			style={{ height: "calc(100vh - 280px)", minHeight: "500px" }}
+		>
+			<div ref={parentRef} className="flex-1 overflow-auto">
+				<div
+					className="relative"
+					style={{
+						height: `${rowVirtualizer.getTotalSize() + Number.parseInt(LAYOUT.headerHeight)}px`,
+						minWidth: `calc(${LAYOUT.nameColWidth} + ${totalGridWidth}px)`,
+					}}
 				>
-					<thead>
-						<tr>
+					{/* STICKY HEADER ROW */}
+					<div
+						className="sticky top-0 z-30 flex bg-white shadow-sm"
+						style={{ height: LAYOUT.headerHeight }}
+					>
+						<div
+							className="sticky left-0 z-40 flex items-center justify-center border-r border-b bg-slate-50 px-3 py-3 font-black text-[10px] text-slate-400 uppercase tracking-[0.2em]"
+							style={{
+								flex: `0 0 ${LAYOUT.nameColWidth}`,
+								width: LAYOUT.nameColWidth,
+								height: LAYOUT.headerHeight,
+							}}
+						>
+							Nurses
+						</div>
+						<div className="flex">
 							{normalizedDates.map((d, index) => (
 								<DayHeaderCell
 									key={d.key}
@@ -130,15 +129,51 @@ export function RosterTable() {
 									counts={dayShiftCounts[index]}
 								/>
 							))}
-						</tr>
-					</thead>
+						</div>
+					</div>
 
-					<tbody>
-						{nurses.map((nurse) => (
-							<NurseRow key={nurse.id} nurse={nurse} dates={normalizedDates} />
-						))}
-					</tbody>
-				</table>
+					{/* VIRTUALIZED BODY */}
+					<div
+						className="relative"
+						style={{ height: `${rowVirtualizer.getTotalSize()}px` }}
+					>
+						{rowVirtualizer.getVirtualItems().map((virtualRow) => {
+							const nurse = nurses[virtualRow.index];
+							return (
+								<div
+									key={nurse.id}
+									style={{
+										position: "absolute",
+										top: 0,
+										left: 0,
+										width: "100%",
+										height: `${virtualRow.size}px`,
+										transform: `translateY(${virtualRow.start}px)`,
+										display: "flex",
+									}}
+								>
+									<div
+										className="sticky left-0 z-20 shrink-0 border-r bg-white shadow-[2px_0_5px_rgba(0,0,0,0.02)]"
+										style={{
+											flex: `0 0 ${LAYOUT.nameColWidth}`,
+											width: LAYOUT.nameColWidth,
+										}}
+									>
+										<NurseIdentityCell
+											nurse={nurse}
+											counts={nurseShiftCounts.get(nurse.id)}
+											pref={preferences[nurse.id]}
+											totalDays={normalizedDates.length}
+										/>
+									</div>
+									<div className="flex">
+										<NurseRow nurse={nurse} dates={normalizedDates} />
+									</div>
+								</div>
+							);
+						})}
+					</div>
+				</div>
 			</div>
 		</div>
 	);

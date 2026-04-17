@@ -41,19 +41,19 @@ export const NurseRow = React.memo(function NurseRow({
 	);
 
 	return (
-		<tr>
+		<div className="flex h-full w-full">
 			{dates.map((d) => {
 				const dateKey = d.date.toISOString().split("T")[0];
 				const shift = shiftMapByDate.get(dateKey);
 
 				return (
-					<td
+					<div
 						key={d.key}
 						className={cn(
-							"border-r border-b px-2 text-center transition-colors",
+							"flex items-center justify-center border-r border-b px-2 text-center transition-colors",
 							d.isToday ? "bg-primary/[0.02]" : "hover:bg-slate-50/50",
 						)}
-						style={{ height: LAYOUT.cellHeight, minWidth: "120px" }}
+						style={{ flex: `0 0 ${LAYOUT.cellWidth}`, width: LAYOUT.cellWidth }}
 					>
 						{shift && (
 							<ShiftBadge
@@ -63,9 +63,9 @@ export const NurseRow = React.memo(function NurseRow({
 								onChange={editable ? handleChange(d.date) : undefined}
 							/>
 						)}
-					</td>
+					</div>
 				);
 			})}
-		</tr>
+		</div>
 	);
 });
