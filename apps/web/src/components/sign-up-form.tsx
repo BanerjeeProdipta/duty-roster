@@ -153,14 +153,15 @@ export default function SignUpForm({
 				</form.Subscribe>
 			</form>
 
-			<div className="mt-4 text-center">
-				<Button
-					variant="link"
+			<div className="mt-6 text-center text-muted-foreground text-sm">
+				Already have an account?{" "}
+				<button
+					type="button"
 					onClick={onSwitchToSignIn}
-					className="text-indigo-600 hover:text-indigo-800"
+					className="font-semibold text-primary transition-colors hover:text-primary/80"
 				>
-					Already have an account? Sign In
-				</Button>
+					Sign In
+				</button>
 			</div>
 		</div>
 	);

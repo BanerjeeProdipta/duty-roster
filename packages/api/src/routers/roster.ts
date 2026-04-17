@@ -1,6 +1,6 @@
 import { z } from "zod";
 import * as rosterService from "../services/roster";
-import { publicProcedure, router } from "../trpc";
+import { protectedProcedure, publicProcedure, router } from "../trpc";
 
 const scheduleRowSchema = z.object({
 	id: z.string(),
@@ -43,7 +43,7 @@ const schedulesResponseSchema = z.object({
 });
 
 export const rosterRouter = router({
-	getNurses: publicProcedure.query(async () => {
+	getNurses: protectedProcedure.query(async () => {
 		return rosterService.getNurses();
 	}),
 
@@ -61,7 +61,7 @@ export const rosterRouter = router({
 			return rosterService.getSchedulesByDateRange(startDate, endDate);
 		}),
 
-	generateRoster: publicProcedure
+	generateRoster: protectedProcedure
 		.input(
 			z.object({
 				year: z.number(),
@@ -95,11 +95,11 @@ export const rosterRouter = router({
 			return rosterService.generateRoster(input);
 		}),
 
-	getNurseShiftPreferences: publicProcedure.query(async () => {
+	getNurseShiftPreferences: protectedProcedure.query(async () => {
 		return rosterService.listNurseShiftPreferenceWeights();
 	}),
 
-	updateNurseShiftPreferences: publicProcedure
+	updateNurseShiftPreferences: protectedProcedure
 		.input(
 			z.array(
 				z.object({
@@ -112,7 +112,8 @@ export const rosterRouter = router({
 		.mutation(async ({ input }) => {
 			return rosterService.updateNurseShiftPreferenceWeights(input);
 		}),
-	updateShift: publicProcedure
+
+	updateShift: protectedProcedure
 		.input(
 			z.object({
 				id: z.string(),

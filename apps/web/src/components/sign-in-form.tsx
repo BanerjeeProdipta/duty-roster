@@ -11,7 +11,7 @@ import { authClient } from "@/lib/auth-client";
 import Loader from "./loader";
 
 export default function SignInForm({
-	_onSwitchToSignUp,
+	onSwitchToSignUp,
 }: {
 	onSwitchToSignUp?: () => void;
 }) {
@@ -142,6 +142,17 @@ export default function SignInForm({
 					)}
 				</form.Subscribe>
 			</form>
+
+			<div className="mt-6 text-center text-muted-foreground text-sm">
+				Don&apos;t have an account?{" "}
+				<button
+					type="button"
+					onClick={onSwitchToSignUp}
+					className="font-semibold text-primary transition-colors hover:text-primary/80"
+				>
+					Sign Up
+				</button>
+			</div>
 		</div>
 	);
 }

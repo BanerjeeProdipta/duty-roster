@@ -6,12 +6,15 @@ export async function middleware(request: NextRequest) {
 	const { pathname } = request.nextUrl;
 
 	// Authenticated users trying to access auth → redirect to dashboard
-	if (sessionCookie && ["/auth"].includes(pathname)) {
+	if (sessionCookie && pathname.startsWith("/auth")) {
 		return NextResponse.redirect(new URL("/dashboard", request.url));
 	}
 
-	// Unauthenticated users trying to access dashboard → redirect to auth
-	if (!sessionCookie && pathname.startsWith("/dashboard")) {
+	// Unauthenticated users trying to access protected paths → redirect to auth
+	const protectedPaths = ["/dashboard", "/shift-preference"];
+	const isProtected = protectedPaths.some((path) => pathname.startsWith(path));
+
+	if (!sessionCookie && isProtected) {
 		return NextResponse.redirect(new URL("/auth", request.url));
 	}
 
@@ -19,5 +22,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-	matcher: ["/dashboard/:path*", "/auth"],
+	matcher: ["/dashboard/:path*", "/shift-preference/:path*", "/auth/:path*"],
 };
