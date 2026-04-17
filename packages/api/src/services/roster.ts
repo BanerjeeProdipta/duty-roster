@@ -380,3 +380,8 @@ export async function updateNurseShiftPreferenceWeights(
 ) {
 	return rosterDb.upsertNurseShiftPreferences(preferences);
 }
+export async function updateSchedule(id: string, shiftId: string | null) {
+	// If shiftId is "off", we treat it as null shift
+	const normalizedShiftId = shiftId === "off" ? null : shiftId;
+	return rosterDb.updateScheduleShift(id, normalizedShiftId);
+}

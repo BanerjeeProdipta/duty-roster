@@ -112,4 +112,14 @@ export const rosterRouter = router({
 		.mutation(async ({ input }) => {
 			return rosterService.updateNurseShiftPreferenceWeights(input);
 		}),
+	updateShift: publicProcedure
+		.input(
+			z.object({
+				id: z.string(),
+				shiftId: z.string().nullable(),
+			}),
+		)
+		.mutation(async ({ input }) => {
+			return rosterService.updateSchedule(input.id, input.shiftId);
+		}),
 });

@@ -1,5 +1,8 @@
 import { cn } from "@Duty-Roster/ui/lib/utils";
+import { useMutation } from "@tanstack/react-query";
 import React, { useCallback, useMemo } from "react";
+import { toast } from "sonner";
+import { trpcClient } from "@/utils/trpc";
 import { useRosterStore } from "../../store/use-roster-store";
 import type { ShiftType } from "../roster-matrix.types";
 import { ShiftBadge } from "../shift-dropdown";
@@ -24,8 +27,8 @@ export const NurseRow = React.memo(function NurseRow({
 	const { editable, updateShift, shifts } = useRosterStore();
 
 	const nurseShifts = useMemo(
-		() => shifts.filter((sh) => sh.employeeName === nurse.name),
-		[shifts, nurse.name],
+		() => shifts.filter((sh) => sh.employeeId === nurse.id),
+		[shifts, nurse.id],
 	);
 
 	const shiftMapByDate = useMemo(
@@ -33,11 +36,53 @@ export const NurseRow = React.memo(function NurseRow({
 		[nurseShifts],
 	);
 
-	const handleChange = useCallback(
-		(date: Date) => (newType: ShiftType) => {
-			updateShift(nurse.name, date.toISOString().split("T")[0], newType);
+	const updateMutation = useMutation({
+		mutationFn: async ({
+			id,
+			dateStr,
+			newType,
+		}: {
+			id: string;
+			dateStr: string;
+			newType: ShiftType;
+		}) => {
+			return trpcClient.roster.updateShift.mutate({
+				id,
+				shiftId: newType === "off" ? null : `shift_${newType}`,
+			});
 		},
-		[nurse.name, updateShift],
+		onSuccess: (_, variables) => {
+			toast.success(
+				`Shift updated for ${nurse.name} on ${variables.dateStr} to ${variables.newType}`,
+			);
+		},
+		onError: (err, variables) => {
+			console.error("Failed to update shift:", err);
+			toast.error(`Failed to update ${nurse.name}'s shift`);
+		},
+	});
+
+	const handleChange = useCallback(
+		(date: Date, scheduleId?: string) => (newType: ShiftType) => {
+			const dateStr = date.toISOString().split("T")[0];
+
+			if (!scheduleId) {
+				console.error("Cannot update shift: scheduleId is missing", {
+					nurseId: nurse.id,
+					date: dateStr,
+					newType,
+				});
+				toast.error("Internal Error: Missing schedule ID. Please refresh.");
+				return;
+			}
+
+			// Optimistically update store
+			updateShift(nurse.name, dateStr, newType);
+
+			// Trigger API call
+			updateMutation.mutate({ id: scheduleId, dateStr, newType });
+		},
+		[nurse.id, nurse.name, updateShift, updateMutation],
 	);
 
 	return (
@@ -60,7 +105,7 @@ export const NurseRow = React.memo(function NurseRow({
 								type={shift.shiftType}
 								nurseName={nurse.name}
 								date={d.shortLabel}
-								onChange={editable ? handleChange(d.date) : undefined}
+								onChange={editable ? handleChange(d.date, shift.id) : undefined}
 							/>
 						)}
 					</div>
