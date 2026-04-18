@@ -60,12 +60,13 @@ export async function createSchedules(
 
 	const firstSchedule = schedules.at(0);
 	if (!firstSchedule) return;
-	const year = firstSchedule.date.getFullYear();
-	const month = firstSchedule.date.getMonth() + 1;
 
-	// Use date strings for deletion to avoid timezone issues
+	// Get month/year from first date in UTC to be safe
+	const year = firstSchedule.date.getUTCFullYear();
+	const month = firstSchedule.date.getUTCMonth() + 1;
+
 	const startStr = `${year}-${String(month).padStart(2, "0")}-01`;
-	const lastDay = new Date(year, month, 0).getDate();
+	const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
 	const endStr = `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
 
 	await db

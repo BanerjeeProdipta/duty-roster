@@ -5,12 +5,19 @@ import { getTRPCServer } from "@/utils/trpc-server";
 
 export const revalidate = 0;
 
-export default async function Home() {
+export default async function Home(props: {
+	searchParams: Promise<{ year?: string; month?: string }>;
+}) {
+	const searchParams = await props.searchParams;
 	const today = new Date();
-	const { startDate, endDate } = getMonthDateRange(
-		today.getFullYear(),
-		today.getMonth() + 1,
-	);
+	const year = searchParams.year
+		? Number.parseInt(searchParams.year, 10)
+		: today.getFullYear();
+	const month = searchParams.month
+		? Number.parseInt(searchParams.month, 10)
+		: today.getMonth() + 1;
+
+	const { startDate, endDate } = getMonthDateRange(year, month);
 	const trpcServer = await getTRPCServer();
 	const initialSchedules = await trpcServer.roster.getSchedules({
 		startDate,

@@ -6,10 +6,11 @@ export function DayHeaderCell({
 	date,
 	counts,
 }: {
-	date: { label: string; formatted: string; isToday: boolean };
+	date: { label: string; formatted: string; isToday: boolean; date: Date };
 	counts: { morning: number; evening: number; night: number } | undefined;
 }) {
-	const isFriday = new Date().getDay() === 5;
+	const isFriday = date.date.getDay() === 5;
+
 	return (
 		<div
 			className={cn(

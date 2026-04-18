@@ -2,7 +2,7 @@
 
 import { useMutation } from "@tanstack/react-query";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useMemo, useRef } from "react";
 import { toast } from "sonner";
 import { getMonthDates } from "@/utils";
@@ -29,8 +29,16 @@ export function RosterTable({
 }: RosterTableProps) {
 	const { nurseRows, dailyShiftCounts } = initialSchedules;
 	const router = useRouter();
+	const searchParams = useSearchParams();
 
-	const monthDates = useMemo(() => getMonthDates(), []);
+	const monthDates = useMemo(() => {
+		const y = searchParams.get("year");
+		const m = searchParams.get("month");
+		return getMonthDates(
+			y ? Number.parseInt(y, 10) : undefined,
+			m ? Number.parseInt(m, 10) : undefined,
+		);
+	}, [searchParams]);
 	const parentRef = useRef<HTMLDivElement>(null);
 
 	const rowVirtualizer = useVirtualizer({

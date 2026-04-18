@@ -1,67 +1,57 @@
-import { useCallback, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useCallback, useMemo } from "react";
 import { getMonthDates, getMonthName } from "@/utils";
-import type {
-	Shift,
-	ShiftType,
-} from "../components/roster-table/roster-matrix.types";
-
-type MonthState = {
-	year: number;
-	month: number;
-};
 
 export const useRosterHeader = () => {
-	const [selectedMonth, setSelectedMonth] = useState<MonthState>({
-		year: new Date().getFullYear(),
-		month: new Date().getMonth() + 1,
-	});
+	const router = useRouter();
+	const searchParams = useSearchParams();
 
-	const [nurses, setNurses] = useState<{ id: string; name: string }[]>([]);
-	const [shifts, setShifts] = useState<Shift[]>([]);
-	const [preferences, setPreferences] = useState<
-		Record<string, { morning: number; evening: number; night: number }>
-	>({});
-	const [editable, setEditable] = useState(false);
+	const selectedMonth = useMemo(() => {
+		const now = new Date();
+		const yearParam = searchParams.get("year");
+		const monthParam = searchParams.get("month");
 
-	const updateShift = useCallback(
-		(nurseName: string, dateStr: string, newType: ShiftType) => {
-			setShifts((prev) =>
-				prev.map((s) =>
-					s.employeeName === nurseName && s.date === dateStr
-						? { ...s, shiftType: newType }
-						: s,
-				),
-			);
+		return {
+			year: yearParam ? Number.parseInt(yearParam, 10) : now.getFullYear(),
+			month: monthParam ? Number.parseInt(monthParam, 10) : now.getMonth() + 1,
+		};
+	}, [searchParams]);
+
+	const updateUrl = useCallback(
+		(year: number, month: number) => {
+			const params = new URLSearchParams(searchParams.toString());
+			params.set("year", year.toString());
+			params.set("month", month.toString());
+			router.push(`?${params.toString()}`);
 		},
-		[],
+		[router, searchParams],
 	);
 
 	const goToPreviousMonth = useCallback(() => {
-		setSelectedMonth((state) =>
-			state.month === 1
-				? { year: state.year - 1, month: 12 }
-				: { year: state.year, month: state.month - 1 },
-		);
-	}, []);
+		const newMonth = selectedMonth.month === 1 ? 12 : selectedMonth.month - 1;
+		const newYear =
+			selectedMonth.month === 1 ? selectedMonth.year - 1 : selectedMonth.year;
+		updateUrl(newYear, newMonth);
+	}, [selectedMonth, updateUrl]);
 
 	const goToNextMonth = useCallback(() => {
-		setSelectedMonth((state) =>
-			state.month === 12
-				? { year: state.year + 1, month: 1 }
-				: { year: state.year, month: state.month + 1 },
-		);
-	}, []);
+		const newMonth = selectedMonth.month === 12 ? 1 : selectedMonth.month + 1;
+		const newYear =
+			selectedMonth.month === 12 ? selectedMonth.year + 1 : selectedMonth.year;
+		updateUrl(newYear, newMonth);
+	}, [selectedMonth, updateUrl]);
 
 	const goToCurrentMonth = useCallback(() => {
-		setSelectedMonth({
-			year: new Date().getFullYear(),
-			month: new Date().getMonth() + 1,
-		});
-	}, []);
+		const now = new Date();
+		updateUrl(now.getFullYear(), now.getMonth() + 1);
+	}, [updateUrl]);
 
-	const changeMonth = useCallback((year: number, month: number) => {
-		setSelectedMonth({ year, month });
-	}, []);
+	const changeMonth = useCallback(
+		(year: number, month: number) => {
+			updateUrl(year, month);
+		},
+		[updateUrl],
+	);
 
 	const monthName = useMemo(
 		() => getMonthName(selectedMonth.year, selectedMonth.month),
@@ -73,35 +63,26 @@ export const useRosterHeader = () => {
 		[selectedMonth],
 	);
 
-	const monthOptions = useMemo(
-		() =>
-			Array.from({ length: 12 }, (_, i) => ({
-				month: i + 1,
-				year: selectedMonth.year,
-				label: getMonthName(selectedMonth.year, i + 1),
-			})),
-		[selectedMonth.year],
-	);
+	const monthOptions = useMemo(() => {
+		// Show 6 months before and after the current selection
+		const options = [];
+		const start = new Date(selectedMonth.year, selectedMonth.month - 1);
+		for (let i = -6; i <= 6; i++) {
+			const d = new Date(start.getFullYear(), start.getMonth() + i, 1);
+			options.push({
+				month: d.getMonth() + 1,
+				year: d.getFullYear(),
+				label: getMonthName(d.getFullYear(), d.getMonth() + 1),
+			});
+		}
+		return options;
+	}, [selectedMonth]);
 
 	return {
-		// state
 		selectedMonth,
-		nurses,
-		shifts,
-		preferences,
-		editable,
-
-		// derived
 		monthName,
 		monthDates,
 		monthOptions,
-
-		// actions
-		setNurses,
-		setShifts,
-		setPreferences,
-		setEditable,
-		updateShift,
 		goToPreviousMonth,
 		goToNextMonth,
 		goToCurrentMonth,
