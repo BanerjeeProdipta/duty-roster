@@ -14,7 +14,7 @@ export function DayHeaderCell({
 		<div
 			className={cn(
 				"flex flex-col items-center justify-center whitespace-nowrap border-r border-b text-center font-semibold text-xs uppercase tracking-wide transition-colors",
-				date.isToday ? "bg-primary/5" : "bg-white",
+				date.isToday ? "bg-slate-50" : "bg-white",
 			)}
 			style={{
 				height: LAYOUT.headerHeight,

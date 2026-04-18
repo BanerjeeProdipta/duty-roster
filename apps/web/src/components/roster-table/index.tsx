@@ -89,7 +89,7 @@ export function RosterTable() {
 	}, [nurses, weekDates, shiftMap]);
 
 	return (
-		<div className="relative flex h-screen flex-col overflow-hidden rounded-xl border bg-white shadow-sm">
+		<div className="relative flex h-[calc(100vh-120px)] flex-col overflow-hidden rounded-xl border bg-white shadow-sm">
 			{/* Scroll container */}
 			<div
 				ref={parentRef}
@@ -100,7 +100,7 @@ export function RosterTable() {
 						<tr>
 							{/* Sticky first column header */}
 							<th
-								className="sticky top-0 left-0 z-[30] bg-[#f2f2f2] px-3 py-3 text-center"
+								className="sticky top-0 left-0 z-[30] bg-slate-50 px-3 py-3 text-center"
 								style={{
 									width: LAYOUT.nameColWidth,
 									height: LAYOUT.headerHeight,

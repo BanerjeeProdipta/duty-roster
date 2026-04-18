@@ -70,7 +70,7 @@ export function ShiftBadge({
 							className={`my-2 flex cursor-pointer items-center gap-4 rounded-md py-4 pr-6 pl-4 text-lg transition-all ${
 								type === item.value
 									? "bg-primary/10 ring-2 ring-primary"
-									: "hover:bg-slate-100 dark:hover:bg-slate-800"
+									: "hover:bg-slate-50 dark:hover:bg-slate-800"
 							}`}
 						>
 							<div

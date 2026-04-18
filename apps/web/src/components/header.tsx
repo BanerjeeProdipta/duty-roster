@@ -59,7 +59,7 @@ export default function Header() {
 								className={cn(
 									"rounded-md px-3 py-1.5 font-medium text-sm transition-all duration-200",
 									isActive
-										? "bg-slate-100 text-slate-900 shadow-sm"
+										? "bg-slate-50 text-slate-900 shadow-sm"
 										: "text-slate-500 hover:bg-slate-50 hover:text-slate-900",
 								)}
 							>
@@ -107,7 +107,7 @@ export default function Header() {
 									className={cn(
 										"rounded-lg px-4 py-3 font-medium transition-colors",
 										isActive
-											? "bg-slate-100 text-slate-900"
+											? "bg-slate-50 text-slate-900"
 											: "text-slate-600 hover:bg-slate-50",
 									)}
 								>
