@@ -8,7 +8,6 @@ export function NurseCard({
 	nurse,
 	totalDays,
 	onFieldChange,
-	errors,
 }: {
 	nurse: NurseState;
 	totalDays: number;

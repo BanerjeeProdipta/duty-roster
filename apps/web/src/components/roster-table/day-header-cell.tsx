@@ -19,7 +19,7 @@ export function DayHeaderCell({
 			)}
 			style={{
 				height: LAYOUT.headerHeight,
-				flex: `0 0 ${LAYOUT.cellWidth}`,
+				flex: `0 0 ${LAYOUT.cellWidth}px`,
 				width: LAYOUT.cellWidth,
 				padding: "10px",
 			}}
@@ -37,18 +37,21 @@ export function DayHeaderCell({
 					target={isFriday ? 3 : 20}
 					color="bg-[#FDE68A]"
 					label="M"
+					min={isFriday ? 3 : 20}
 				/>
 				<AllocationItem
 					current={counts?.evening || 0}
 					target={3}
 					color="bg-[#BFDBFE]"
 					label="E"
+					min={3}
 				/>
 				<AllocationItem
 					current={counts?.night || 0}
 					target={2}
 					color="bg-[#C4B5FD]"
 					label="N"
+					min={2}
 				/>
 			</div>
 		</div>

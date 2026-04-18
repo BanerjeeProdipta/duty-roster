@@ -47,7 +47,7 @@ export function NurseIdentityCell({
 					</div>
 				</div>
 
-				<div className="flex flex-wrap items-center gap-1">
+				<div className="flex items-center justify-between gap-1">
 					<AllocationItem
 						current={counts?.morning || 0}
 						target={targetMorning}

@@ -48,7 +48,7 @@ export function RosterHeader({ editable = false }: RosterHeaderProps) {
 					{editable && (
 						<Button
 							size="sm"
-							className="flex-1 whitespace-nowrap text-sm sm:flex-initial sm:text-base"
+							className="flex-1 whitespace-nowrap border border-slate-100 text-sm shadow sm:flex-initial"
 							variant="secondary"
 							onClick={() =>
 								generateMutation.mutate({

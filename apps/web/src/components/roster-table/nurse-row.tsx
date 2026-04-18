@@ -29,7 +29,7 @@ export const NurseRow = React.memo(function NurseRow({
 						key={dateKey}
 						className="flex items-center justify-center border-r border-b bg-white"
 						style={{
-							flex: `0 0 ${LAYOUT.cellWidth}`,
+							flex: `0 0 ${LAYOUT.cellWidth}px`,
 							width: LAYOUT.cellWidth,
 							height: LAYOUT.rowHeight,
 						}}
