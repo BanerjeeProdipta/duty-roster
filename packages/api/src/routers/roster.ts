@@ -45,10 +45,15 @@ export const rosterRouter = router({
 
 	getSchedules: publicProcedure
 		.input(
-			z.object({
-				startDate: z.string(),
-				endDate: z.string(),
-			}),
+			z
+				.object({
+					startDate: z.string(),
+					endDate: z.string(),
+				})
+				.refine((data) => new Date(data.startDate) <= new Date(data.endDate), {
+					message: "startDate must be before or equal to endDate",
+					path: ["endDate"],
+				}),
 		)
 		.output(schedulesResponseSchema)
 		.query(async ({ input }) => {
@@ -60,8 +65,8 @@ export const rosterRouter = router({
 	generateRoster: protectedProcedure
 		.input(
 			z.object({
-				year: z.number(),
-				month: z.number(), // 1-12
+				year: z.number().int().min(2000).max(2100),
+				month: z.number().int().min(1).max(12),
 			}),
 		)
 		.output(

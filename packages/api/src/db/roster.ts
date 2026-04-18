@@ -3,6 +3,8 @@ import { and, desc, eq, sql } from "drizzle-orm";
 
 const { nurse, nurseSchedule, shift, nurseShiftPreference } = schema;
 
+import { createUTCDate, getMonthDateRange } from "../utils/roster";
+
 export async function findAllNurses() {
 	return db.select().from(nurse).orderBy(desc(nurse.createdAt));
 }
@@ -12,18 +14,11 @@ export async function findAllShifts() {
 }
 
 export async function findSchedulesByDateRange(startDate: Date, endDate: Date) {
-	// Extract date parts to avoid timezone issues
-	const startYear = startDate.getFullYear();
-	const startMonth = startDate.getMonth() + 1;
-	const startDay = startDate.getDate();
-
-	const endYear = endDate.getFullYear();
-	const endMonth = endDate.getMonth() + 1;
-	const endDay = endDate.getDate();
-
-	// Use local date string for comparison (YYYY-MM-DD format)
-	const startStr = `${startYear}-${String(startMonth).padStart(2, "0")}-${String(startDay).padStart(2, "0")}`;
-	const endStr = `${endYear}-${String(endMonth).padStart(2, "0")}-${String(endDay).padStart(2, "0")}`;
+	// Ensure we are comparing dates without time components or normalized time
+	const start = new Date(startDate);
+	start.setUTCHours(0, 0, 0, 0);
+	const end = new Date(endDate);
+	end.setUTCHours(23, 59, 59, 999);
 
 	return db
 		.select({
@@ -42,8 +37,8 @@ export async function findSchedulesByDateRange(startDate: Date, endDate: Date) {
 		.leftJoin(shift, eq(shift.id, nurseSchedule.shiftId))
 		.where(
 			and(
-				sql`to_char(${nurseSchedule.date}::date, 'YYYY-MM-DD') >= ${startStr}`,
-				sql`to_char(${nurseSchedule.date}::date, 'YYYY-MM-DD') <= ${endStr}`,
+				sql`${nurseSchedule.date} >= ${start}`,
+				sql`${nurseSchedule.date} <= ${end}`,
 			),
 		)
 		.orderBy(nurseSchedule.date);
@@ -61,26 +56,25 @@ export async function createSchedules(
 	const firstSchedule = schedules.at(0);
 	if (!firstSchedule) return;
 
-	// Get month/year from first date in UTC to be safe
 	const year = firstSchedule.date.getUTCFullYear();
-	const month = firstSchedule.date.getUTCMonth() + 1;
+	const month = firstSchedule.date.getUTCMonth() + 1; // getMonthDateRange expects 1-12
 
-	const startStr = `${year}-${String(month).padStart(2, "0")}-01`;
-	const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
-	const endStr = `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+	const { startDate, endDate } = getMonthDateRange(year, month);
 
-	await db
-		.delete(nurseSchedule)
-		.where(
-			and(
-				sql`to_char(${nurseSchedule.date}::date, 'YYYY-MM-DD') >= ${startStr}`,
-				sql`to_char(${nurseSchedule.date}::date, 'YYYY-MM-DD') <= ${endStr}`,
-			),
-		);
+	await db.transaction(async (tx) => {
+		// Delete existing schedules for the month
+		await tx
+			.delete(nurseSchedule)
+			.where(
+				and(
+					sql`${nurseSchedule.date} >= ${startDate}`,
+					sql`${nurseSchedule.date} <= ${endDate}`,
+				),
+			);
 
-	try {
-		await db.insert(nurseSchedule).values(
-			schedules.map((s, _i) => {
+		// Insert new schedules
+		await tx.insert(nurseSchedule).values(
+			schedules.map((s) => {
 				const y = s.date.getUTCFullYear();
 				const m = s.date.getUTCMonth();
 				const d = s.date.getUTCDate();
@@ -88,15 +82,11 @@ export async function createSchedules(
 					id: `schedule_${y}${m + 1}${d}_${s.nurseId}`,
 					nurseId: s.nurseId,
 					shiftId: s.shiftId,
-					// Store as UTC noon to avoid timezone date shifting
-					date: new Date(Date.UTC(y, m, d, 12, 0, 0, 0)),
+					date: createUTCDate(y, m + 1, d),
 				};
 			}),
 		);
-	} catch (e) {
-		console.error("DB Error:", e);
-		throw e;
-	}
+	});
 }
 
 export async function findAllPreferredShiftsByNurse() {

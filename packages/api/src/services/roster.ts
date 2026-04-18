@@ -1,14 +1,14 @@
 import * as rosterDb from "../db/roster";
+import {
+	createUTCDate,
+	formatDateKey,
+	normalizeShiftId,
+} from "../utils/roster";
 
 type GenerateRosterParams = {
 	year: number;
 	month: number;
 };
-
-function getDateKey(date: Date | string) {
-	if (typeof date === "string") return date;
-	return date.toISOString().split("T")[0] ?? "";
-}
 
 // ───────────── SUMMARY ─────────────
 
@@ -65,7 +65,7 @@ export function buildScheduleSummary(
 	for (const schedule of schedules) {
 		const dateKey = schedule.date;
 		const shiftId = schedule.shift?.id;
-		const normalizedShiftId = shiftId?.replace("shift_", "");
+		const normalizedShiftId = normalizeShiftId(shiftId);
 
 		const dailyCounts = dailyShiftCountsMap.get(dateKey) ?? {
 			morning: 0,
@@ -117,9 +117,13 @@ export function buildScheduleSummary(
 		nurseShiftCountsMap.set(schedule.nurse.id, nurseCounts);
 	}
 
+	const prefMap = new Map(
+		options?.preferences?.map((p) => [p.nurseId, p]) || [],
+	);
+
 	const nurseRows = Array.from(nurseShiftCountsMap.values())
 		.map((n) => {
-			const pref = options?.preferences?.find((p) => p.nurseId === n.nurse.id);
+			const pref = prefMap.get(n.nurse.id);
 			return {
 				...n,
 				assignments: nurseAssignmentsMap.get(n.nurse.id) || {},
@@ -154,10 +158,10 @@ export async function getSchedulesByDateRange(startDate: Date, endDate: Date) {
 		listNurseShiftPreferenceWeights(),
 	]);
 
-	// Transform dates to ISO strings first
+	// Transform dates to strings first
 	const transformedSchedules = schedules.map((s) => ({
 		...s,
-		date: getDateKey(s.date),
+		date: formatDateKey(s.date),
 	}));
 
 	// Build summary using transformed schedules (dates as strings)
@@ -168,14 +172,18 @@ export async function getSchedulesByDateRange(startDate: Date, endDate: Date) {
 	return summary;
 }
 
-// ───────────── MAIN GENERATOR ─────────────
+export const ROSTER_CONFIG = {
+	COVERAGE: {
+		WEEKDAY: { morning: 20, evening: 3, night: 2 },
+		FRIDAY: { morning: 3, evening: 3, night: 2 },
+	},
+	CONSTRAINTS: {
+		MAX_NIGHTS_PER_NURSE: 3,
+		MIN_DAYS_OFF_PER_WEEK: 1,
+	},
+} as const;
 
 type ShiftType = "shift_morning" | "shift_evening" | "shift_night";
-
-const WEEKDAY_COVERAGE = { morning: 20, evening: 3, night: 2 };
-const FRIDAY_COVERAGE = { morning: 3, evening: 3, night: 2 };
-const MAX_NIGHTS_PER_NURSE = 3;
-const MIN_DAYS_OFF_PER_WEEK = 1;
 
 function isFriday(year: number, month: number, day: number): boolean {
 	const dayOfWeek = new Date(year, month - 1, day).getDay();
@@ -235,10 +243,12 @@ export async function generateRoster(params: GenerateRosterParams) {
 		const isFridayFn = (d: number) => isFriday(year, month, d);
 
 		const isFri = isFridayFn(day);
-		const coverage = isFri ? FRIDAY_COVERAGE : WEEKDAY_COVERAGE;
+		const coverage = isFri
+			? ROSTER_CONFIG.COVERAGE.FRIDAY
+			: ROSTER_CONFIG.COVERAGE.WEEKDAY;
 		const weekKey = getWeekKey(day);
 		// Always create UTC noon dates for scheduling
-		const dayDate = new Date(Date.UTC(year, month - 1, day, 12, 0, 0, 0));
+		const dayDate = createUTCDate(year, month, day);
 
 		const assignedToday = new Set<string>();
 
@@ -270,7 +280,8 @@ export async function generateRoster(params: GenerateRosterParams) {
 					currentWeekWork,
 					canWorkAny: currentWeekWork < 6,
 					canWorkNight:
-						currentWeekWork < 6 && currentNights < MAX_NIGHTS_PER_NURSE,
+						currentWeekWork < 6 &&
+						currentNights < ROSTER_CONFIG.CONSTRAINTS.MAX_NIGHTS_PER_NURSE,
 					totalWork,
 					targets,
 					assigned,
@@ -376,14 +387,8 @@ export async function generateRoster(params: GenerateRosterParams) {
 		year,
 		month,
 		schedulesCreated: finalSchedules.length,
-		coverage: {
-			weekday: WEEKDAY_COVERAGE,
-			friday: FRIDAY_COVERAGE,
-		},
-		constraints: {
-			maxNightsPerNurse: MAX_NIGHTS_PER_NURSE,
-			minDaysOffPerWeek: MIN_DAYS_OFF_PER_WEEK,
-		},
+		coverage: ROSTER_CONFIG.COVERAGE,
+		constraints: ROSTER_CONFIG.CONSTRAINTS,
 	};
 }
 export async function listNurseShiftPreferenceWeights() {
@@ -401,7 +406,7 @@ export async function listNurseShiftPreferenceWeights() {
 			}
 
 			// Convert "shift_night" -> "night"
-			const shiftKey = row.shiftId.replace("shift_", "");
+			const shiftKey = normalizeShiftId(row.shiftId);
 
 			(acc[nurseId] as Record<string, unknown>)[shiftKey] = row.weight;
 
