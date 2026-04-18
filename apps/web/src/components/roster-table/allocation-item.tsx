@@ -17,7 +17,7 @@ export function AllocationItem({
 	return (
 		<div
 			className={cn(
-				"flex items-center gap-1.5 whitespace-nowrap rounded px-1.5 py-0.5 transition-colors",
+				"flex items-center gap-1 whitespace-nowrap rounded p-0.5 transition-colors",
 				isOver ? "bg-red-50" : isCorrect ? "bg-green-50" : "bg-slate-50",
 			)}
 			title={`${label} Shift: ${current} assigned / ${target} targeted`}
@@ -27,7 +27,7 @@ export function AllocationItem({
 			/>
 			<span
 				className={cn(
-					"font-bold text-[10px]",
+					"font-medium text-[10px]",
 					isOver
 						? "text-red-700"
 						: isCorrect

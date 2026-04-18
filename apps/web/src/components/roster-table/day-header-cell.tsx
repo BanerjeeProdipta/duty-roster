@@ -1,4 +1,5 @@
 import { cn } from "@Duty-Roster/ui/lib/utils";
+import { AllocationItem } from "./allocation-item";
 import { LAYOUT } from "./constants";
 
 export function DayHeaderCell({
@@ -8,6 +9,7 @@ export function DayHeaderCell({
 	date: { label: string; formatted: string; isToday: boolean };
 	counts: { morning: number; evening: number; night: number } | undefined;
 }) {
+	const isFriday = new Date().getDay() === 5;
 	return (
 		<div
 			className={cn(
@@ -29,27 +31,24 @@ export function DayHeaderCell({
 			</span>
 
 			<div className="mt-1 flex items-center justify-center gap-1.5 border-slate-100 border-t pt-1.5">
-				<div
-					className="flex items-center gap-1 whitespace-nowrap rounded bg-slate-50 px-1.5 py-0.5 font-black text-[10px] text-slate-500"
-					title="Morning total"
-				>
-					<div className="h-2 w-2 rounded-full bg-[#FDE68A]" />
-					<span>{counts?.morning || 0}</span>
-				</div>
-				<div
-					className="flex items-center gap-1 whitespace-nowrap rounded bg-slate-50 px-1.5 py-0.5 font-black text-[10px] text-slate-500"
-					title="Evening total"
-				>
-					<div className="h-2 w-2 rounded-full bg-[#BFDBFE]" />
-					<span>{counts?.evening || 0}</span>
-				</div>
-				<div
-					className="flex items-center gap-1 whitespace-nowrap rounded bg-slate-50 px-1.5 py-0.5 font-black text-[10px] text-slate-500"
-					title="Night total"
-				>
-					<div className="h-2 w-2 rounded-full bg-[#C4B5FD]" />
-					<span>{counts?.night || 0}</span>
-				</div>
+				<AllocationItem
+					current={counts?.morning || 0}
+					target={isFriday ? 3 : 20}
+					color="bg-[#FDE68A]"
+					label="M"
+				/>
+				<AllocationItem
+					current={counts?.evening || 0}
+					target={3}
+					color="bg-[#BFDBFE]"
+					label="E"
+				/>
+				<AllocationItem
+					current={counts?.night || 0}
+					target={2}
+					color="bg-[#C4B5FD]"
+					label="N"
+				/>
 			</div>
 		</div>
 	);

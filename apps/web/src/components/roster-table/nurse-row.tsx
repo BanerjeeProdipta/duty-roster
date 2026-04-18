@@ -95,10 +95,14 @@ export const NurseRow = React.memo(function NurseRow({
 					<div
 						key={d.key}
 						className={cn(
-							"flex items-center justify-center border-r border-b px-2 text-center transition-colors",
+							"flex items-center justify-center px-2 text-center transition-colors",
 							d.isToday ? "bg-primary/[0.02]" : "hover:bg-slate-50/50",
 						)}
-						style={{ flex: `0 0 ${LAYOUT.cellWidth}`, width: LAYOUT.cellWidth }}
+						style={{
+							flex: `0 0 ${LAYOUT.cellWidth}`,
+							width: LAYOUT.cellWidth,
+							height: LAYOUT.cellHeight,
+						}}
 					>
 						{shift && (
 							<ShiftBadge
