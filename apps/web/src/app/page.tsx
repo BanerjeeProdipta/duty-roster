@@ -3,7 +3,7 @@ import { RosterHeader } from "@/components/roster-table/roster-header";
 import { getMonthDateRange } from "@/utils";
 import { getTRPCServer } from "@/utils/trpc-server";
 
-export const revalidate = 60;
+export const revalidate = 0;
 
 export default async function Home() {
 	const today = new Date();

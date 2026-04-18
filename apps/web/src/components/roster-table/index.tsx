@@ -1,8 +1,12 @@
 "use client";
 
+import { useMutation } from "@tanstack/react-query";
 import { useVirtualizer } from "@tanstack/react-virtual";
+import { useRouter } from "next/navigation";
 import { useMemo, useRef } from "react";
+import { toast } from "sonner";
 import { getMonthDates } from "@/utils";
+import { trpcClient } from "@/utils/trpc";
 import { LAYOUT } from "./constants";
 import { DayHeaderCell } from "./day-header-cell";
 import { NurseIdentityCell } from "./nurse-identity-cell";
@@ -24,9 +28,9 @@ export function RosterTable({
 	nurseShiftPreferences = [],
 }: RosterTableProps) {
 	const { nurseRows, dailyShiftCounts } = initialSchedules;
-	console.log(initialSchedules);
-	const monthDates = useMemo(() => getMonthDates(), []);
+	const router = useRouter();
 
+	const monthDates = useMemo(() => getMonthDates(), []);
 	const parentRef = useRef<HTMLDivElement>(null);
 
 	const rowVirtualizer = useVirtualizer({
@@ -67,15 +71,25 @@ export function RosterTable({
 		});
 	}, [weekDates, todayStr]);
 
+	const updateMutation = useMutation({
+		mutationFn: (variables: { id: string; shiftId: string | null }) =>
+			trpcClient.roster.updateShift.mutate(variables),
+		onSuccess: () => {
+			toast.success("Shift updated successfully");
+			router.refresh();
+		},
+		onError: (error) => {
+			toast.error(`Update failed: ${error.message}`);
+		},
+	});
+
 	return (
 		<div className="relative flex h-[calc(100vh-120px)] flex-col overflow-hidden rounded-xl border bg-white shadow-sm">
-			{/* Scroll container */}
 			<div
 				ref={parentRef}
 				className="scrollbar-hide min-h-0 flex-1 overflow-auto"
 			>
 				<table className="w-full table-fixed border-separate border-spacing-0">
-					{/* HEADER */}
 					<thead>
 						<tr>
 							<th
@@ -88,8 +102,10 @@ export function RosterTable({
 								Nurses
 							</th>
 
-							{normalizedDates.map((date, index) => {
-								const counts = dailyShiftCounts[index]?.shifts;
+							{normalizedDates.map((date) => {
+								const counts = dailyShiftCounts.find(
+									(c) => c.date === date.date.toISOString().split("T")[0],
+								)?.shifts;
 
 								return (
 									<th
@@ -107,7 +123,6 @@ export function RosterTable({
 						</tr>
 					</thead>
 
-					{/* BODY */}
 					<tbody>
 						<tr>
 							<td colSpan={weekDates.length + 1} className="p-0 align-top">
@@ -135,7 +150,6 @@ export function RosterTable({
 													transform: `translateY(${row.start}px)`,
 												}}
 											>
-												{/* Nurse identity column - pinned */}
 												<div
 													className="sticky left-0 z-20 bg-white"
 													style={{
@@ -151,13 +165,15 @@ export function RosterTable({
 													/>
 												</div>
 
-												{/* Day cells - scrolling */}
 												<div className="flex flex-1">
 													<NurseRow
 														nurse={nurse}
 														dates={weekDates}
 														assignments={assignments}
 														editable={editable}
+														onUpdateShift={(id, shiftId) =>
+															updateMutation.mutate({ id, shiftId })
+														}
 													/>
 												</div>
 											</div>

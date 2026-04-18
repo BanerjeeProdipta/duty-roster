@@ -8,6 +8,7 @@ interface NurseRowProps {
 	dates: Date[];
 	assignments: Record<string, { id: string; shiftType: ShiftType } | null>;
 	editable?: boolean;
+	onUpdateShift?: (id: string, shiftId: string | null) => void;
 }
 
 export const NurseRow = React.memo(function NurseRow({
@@ -15,6 +16,7 @@ export const NurseRow = React.memo(function NurseRow({
 	dates,
 	assignments,
 	editable = false,
+	onUpdateShift,
 }: NurseRowProps) {
 	return (
 		<div className="flex h-full">
@@ -37,9 +39,11 @@ export const NurseRow = React.memo(function NurseRow({
 							nurseName={nurse?.name || "Nurse"}
 							date={dateKey}
 							onChange={
-								editable
+								editable && shift?.id
 									? (newType) => {
-											console.log("Shift update:", nurse.id, dateKey, newType);
+											const shiftId =
+												newType === "off" ? null : `shift_${newType}`;
+											onUpdateShift?.(shift.id, shiftId);
 										}
 									: undefined
 							}

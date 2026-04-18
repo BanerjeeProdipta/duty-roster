@@ -16,6 +16,8 @@ export function createAuth() {
 		}),
 		trustedOrigins: [
 			env.CORS_ORIGIN,
+			"http://localhost:3000",
+			"http://localhost:3001",
 			"Duty-Roster://",
 			...(env.NODE_ENV === "development"
 				? [

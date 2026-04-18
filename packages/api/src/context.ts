@@ -17,10 +17,12 @@ export async function createContextFromHeaders(
 		const session = await auth.api.getSession({ headers });
 
 		if (!session) {
-			console.error(
-				"tRPC Context: No session found for headers:",
-				JSON.stringify(Object.fromEntries(headers.entries())),
+			const hasCookie = headers.has("cookie");
+			console.warn(
+				`tRPC Context: No session found. (Cookie present: ${hasCookie})`,
 			);
+		} else {
+			console.log(`tRPC Context: Active session for user ${session.user.id}`);
 		}
 
 		return {

@@ -74,12 +74,14 @@ export function buildScheduleSummary(schedules: ScheduleRowInput[]) {
 		}
 		const nurseMap = nurseAssignmentsMap.get(schedule.nurse.id);
 		if (nurseMap) {
-			nurseMap[dateKey] = schedule.shift
-				? {
-						...schedule.shift,
-						shiftType: normalizedShiftId as "morning" | "evening" | "night",
-					}
-				: null;
+			nurseMap[dateKey] = {
+				id: schedule.id,
+				shiftType: (normalizedShiftId || "off") as
+					| "morning"
+					| "evening"
+					| "night"
+					| "off",
+			};
 		}
 
 		if (

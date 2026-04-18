@@ -1,9 +1,11 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { trpcClient } from "@/utils/trpc";
 
 export const useGenerateRoster = () => {
 	const queryClient = useQueryClient();
+	const router = useRouter();
 
 	return useMutation({
 		mutationFn: async ({ year, month }: { year: number; month: number }) =>
@@ -12,12 +14,9 @@ export const useGenerateRoster = () => {
 				month,
 			}),
 
-		onSuccess: async (result, variables) => {
-			await queryClient.invalidateQueries({
-				queryKey: ["roster", variables.year, variables.month],
-			});
-
+		onSuccess: async (result, _variables) => {
 			toast.success(`Generated ${result.schedulesCreated} schedules`);
+			router.refresh();
 		},
 
 		onError: () => {

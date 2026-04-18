@@ -15,8 +15,9 @@ app.use(
 	cors({
 		origin: env.CORS_ORIGIN,
 		allowMethods: ["GET", "POST", "OPTIONS"],
-		allowHeaders: ["Content-Type", "Authorization"],
+		allowHeaders: ["Content-Type", "Authorization", "Cookie", "x-trpc-source"],
 		credentials: true,
+		maxAge: 86400,
 	}),
 );
 
