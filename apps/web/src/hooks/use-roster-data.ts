@@ -1,8 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo } from "react";
 import { trpc } from "@/utils/trpc";
-import { NURSES } from "../components/roster-matrix.constants";
-import type { Shift, ShiftType } from "../components/roster-matrix.types";
+import type {
+	Nurse,
+	Shift,
+	ShiftType,
+} from "../components/roster-matrix.types";
 import type { SchedulesResponse } from "../components/roster-matrix.utils";
 import {
 	buildShiftKey,
@@ -57,13 +60,10 @@ export function useRosterData(initialSchedules?: SchedulesResponse) {
 		}),
 	);
 
-	const initialNurses = useMemo(() => {
+	const initialNurses = useMemo((): Nurse[] => {
 		const rows = schedulesQuery.data?.schedules ?? [];
 		if (!rows.length) {
-			return NURSES.map((name, index) => ({
-				id: `fallback-${index}`,
-				name,
-			}));
+			return [];
 		}
 		return getNursesFromScheduleRows(rows);
 	}, [schedulesQuery.data]);

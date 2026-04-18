@@ -1,39 +1,6 @@
 import { Coffee, Moon, Sun, Sunset } from "lucide-react";
 import type { ShiftType } from "./roster-matrix.types";
 
-export const NURSES = [
-	"Emma Wilson",
-	"Liam Johnson",
-	"Olivia Brown",
-	"Noah Davis",
-	"Ava Miller",
-	"Oliver Garcia",
-	"Elijah Martinez",
-	"Sophia Anderson",
-	"Lucas Thomas",
-	"Isabella Jackson",
-	"Mason White",
-	"Mia Harris",
-	"Ethan Martin",
-	"Charlotte Thompson",
-	"Alexander Moore",
-	"Amelia Taylor",
-	"James Clark",
-	"Harper Lewis",
-	"Benjamin Walker",
-	"Evelyn Hall",
-	"Henry Young",
-	"Abigail King",
-	"Sebastian Wright",
-	"Emily Scott",
-	"Jack Green",
-	"Elizabeth Baker",
-	"Daniel Adams",
-	"Sofia Nelson",
-	"Matthew Hill",
-	"Avery Campbell",
-];
-
 export const SHIFT_STYLES: Record<ShiftType, string> = {
 	morning:
 		"bg-gradient-to-br from-[#FDE68A] to-[#FCD34D] text-amber-900 border-amber-300 shadow-sm shadow-amber-200/50",
@@ -75,19 +42,19 @@ export const SHIFT_OPTIONS: {
 		value: "morning",
 		label: SHIFT_LABELS.morning,
 		icon: <Sun className="h-7 w-7" />,
-		time: "8AM - 4PM",
+		time: SHIFT_TIMES.morning,
 	},
 	{
 		value: "evening",
 		label: SHIFT_LABELS.evening,
 		icon: <Sunset className="h-7 w-7" />,
-		time: "4PM - 12AM",
+		time: SHIFT_TIMES.evening,
 	},
 	{
 		value: "night",
 		label: SHIFT_LABELS.night,
 		icon: <Moon className="h-7 w-7" />,
-		time: "12AM - 8AM",
+		time: SHIFT_TIMES.night,
 	},
 	{
 		value: "off",
