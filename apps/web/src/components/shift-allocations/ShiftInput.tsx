@@ -29,7 +29,7 @@ export function ShiftInput({
 					min={0}
 					max={max}
 					value={localValue}
-					className="h-8 w-10 rounded border border-slate-200 bg-slate-50/50 text-center font-bold text-sm [appearance:textfield] focus:border-primary focus:ring-1 focus:ring-primary/20 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+					className="h-9 w-12 rounded-md border border-slate-200 bg-slate-50/30 text-center font-extrabold text-sm transition-all [appearance:textfield] focus:border-primary/50 focus:ring-4 focus:ring-primary/5 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
 					onChange={(e) => {
 						const valStr = e.target.value;
 						setLocalValue(valStr);

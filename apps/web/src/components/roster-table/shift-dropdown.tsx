@@ -34,7 +34,7 @@ export function ShiftBadge({
 
 	const badge = (
 		<div
-			className={`inline-flex h-16 w-16 items-center justify-center rounded-md border-2 font-bold text-xl shadow-lg transition-all hover:scale-105 hover:shadow-xl ${onChange ? "cursor-pointer ring-2 ring-transparent hover:ring-primary/50" : ""} ${SHIFT_STYLES[type]}`}
+			className={`inline-flex h-14 w-14 items-center justify-center rounded-xl border-0 font-bold text-xl shadow-[0_4px_12px_rgb(0,0,0,0.08)] transition-all duration-300 hover:scale-110 hover:shadow-[0_8px_20px_rgb(0,0,0,0.12)] ${onChange ? "cursor-pointer" : ""} ${SHIFT_STYLES[type]}`}
 			title={`${nurseName} - ${date}: ${SHIFT_LABELS[type]} (${SHIFT_TIMES[type]})`}
 		>
 			{SHIFT_ICONS[type]}
@@ -50,17 +50,21 @@ export function ShiftBadge({
 
 	return (
 		<DropdownMenu open={open} onOpenChange={setOpen}>
-			<DropdownMenuTrigger className="cursor-pointer rounded-md transition-all hover:bg-black/5 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1">
+			<DropdownMenuTrigger className="cursor-pointer rounded-xl transition-all focus:outline-none focus:ring-2 focus:ring-primary/20">
 				{badge}
 			</DropdownMenuTrigger>
 			<DropdownMenuContent
-				className="w-80 rounded-md border-2 p-3 shadow-2xl"
+				className="w-80 animate-fade-in rounded-2xl border-0 bg-white/95 p-4 shadow-[0_20px_50px_rgba(0,0,0,0.15)] backdrop-blur-xl"
 				align="center"
-				sideOffset={8}
+				sideOffset={12}
 			>
-				<div className="mb-3 border-b pb-3">
-					<p className="font-bold text-lg">{nurseName}</p>
-					<p className="text-base text-muted-foreground">{date}</p>
+				<div className="mb-4 space-y-1 border-slate-100 border-b px-1 pb-3 text-center">
+					<p className="font-extrabold text-slate-900 text-xl tracking-tight">
+						{nurseName}
+					</p>
+					<p className="font-semibold text-slate-400 text-sm uppercase tracking-wider">
+						{date}
+					</p>
 				</div>
 				<DropdownMenuRadioGroup value={type} onValueChange={handleChange}>
 					{SHIFT_OPTIONS.map((item) => (

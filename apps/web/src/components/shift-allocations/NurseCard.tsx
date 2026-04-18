@@ -22,8 +22,8 @@ export function NurseCard({
 	return (
 		<div
 			className={cn(
-				"rounded-md border bg-white p-4 transition-all",
-				isInvalid ? "border-red-200 bg-red-50/10" : "border-slate-200",
+				"animate-slide-up rounded-xl border bg-white p-5 transition-all duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)]",
+				isInvalid ? "border-red-200 bg-red-50/20" : "border-slate-100/80",
 			)}
 		>
 			<div className="mb-4 flex items-start justify-between gap-4">

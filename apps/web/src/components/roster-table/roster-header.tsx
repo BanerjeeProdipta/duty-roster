@@ -29,14 +29,15 @@ export function RosterHeader({ editable = false }: RosterHeaderProps) {
 	const generateMutation = useGenerateRoster();
 
 	return (
-		<div className="mb-8 flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+		<div className="mb-8 flex animate-fade-in flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
 			{/* Title */}
-			<div className="flex flex-col gap-1">
-				<h1 className="font-bold text-2xl text-slate-900 tracking-tight sm:text-3xl">
+			<div className="flex animate-slide-up flex-col gap-1">
+				<h1 className="font-bold text-3xl text-slate-900 tracking-tight sm:text-4xl">
 					Nurse Duty Roster
 				</h1>
-				<p className="text-slate-500 text-sm sm:text-base">
-					Manage and view the master schedule for the nursing staff.
+				<p className="max-w-md text-slate-500 text-sm leading-relaxed sm:text-base">
+					Professional scheduling management with real-time coverage analytics
+					and nurse preference alignment.
 				</p>
 			</div>
 
@@ -63,7 +64,7 @@ export function RosterHeader({ editable = false }: RosterHeaderProps) {
 					)}
 
 					{/* Navigation */}
-					<div className="flex w-full items-center justify-between gap-2 md:w-auto">
+					<div className="flex w-full items-center justify-between gap-4 md:w-auto">
 						<Button variant="ghost" size="sm" onClick={goToCurrentMonth}>
 							Today
 						</Button>

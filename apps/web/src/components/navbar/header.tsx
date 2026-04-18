@@ -30,7 +30,7 @@ export default function Header() {
 	};
 
 	return (
-		<header className="sticky top-0 z-100 w-full border-b bg-white/80 backdrop-blur-md">
+		<header className="sticky top-0 z-[100] w-full animate-fade-in border-slate-200/50 border-b bg-white/70 backdrop-blur-xl transition-all duration-300">
 			<div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
 				<Link href="/" className="group flex items-center gap-2 transition-all">
 					<div className="rounded-lg border border-red-100 bg-red-50 p-1.5 transition-colors group-hover:bg-red-100">

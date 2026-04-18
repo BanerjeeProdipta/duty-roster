@@ -92,7 +92,7 @@ export function RosterTable({
 	});
 
 	return (
-		<div className="relative flex h-[calc(100vh-120px)] flex-col overflow-hidden rounded-xl border bg-white shadow-sm">
+		<div className="relative flex h-[calc(100vh-140px)] animate-fade-in flex-col overflow-hidden rounded-2xl border border-slate-200/60 bg-white/80 shadow-[0_8px_30px_rgb(0,0,0,0.04)] backdrop-blur-sm">
 			<div
 				ref={parentRef}
 				className="scrollbar-hide min-h-0 flex-1 overflow-auto"

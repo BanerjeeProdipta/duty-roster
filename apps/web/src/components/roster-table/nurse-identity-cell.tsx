@@ -23,7 +23,7 @@ export function NurseIdentityCell({
 	const isPerfect = totalAssigned === targetWorkedDays;
 
 	return (
-		<div className="h-full w-full border-r border-b bg-muted/10 px-3 py-3">
+		<div className="h-full w-full border-r border-b bg-white px-3 py-3 transition-colors duration-200 hover:bg-slate-50/80">
 			<div className="flex h-full flex-col justify-center gap-2">
 				<div className="flex items-center justify-between gap-1 overflow-hidden">
 					<span
