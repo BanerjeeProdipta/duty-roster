@@ -66,21 +66,25 @@ export function ShiftBadge({
 			</DropdownMenuTrigger>
 
 			<DropdownMenuContent
-				className="w-72 rounded-xl border-0 bg-white/95 p-3 shadow-xl backdrop-blur transition-all duration-200"
+				className="w-72 rounded-xl border-0 bg-white/95 p-2 shadow-xl backdrop-blur transition-all duration-200"
 				align="center"
 				sideOffset={10}
 			>
-				<div className="mb-3 flex items-center justify-between border-b pb-2 text-center transition-all duration-200">
+				<div className="mb-3 flex items-center justify-between border-b px-1 pb-2 text-center transition-all duration-200">
 					<p className="font-semibold">{nurseName}</p>
 					<p className="text-muted-foreground text-xs">{date}</p>
 				</div>
 
-				<DropdownMenuRadioGroup value={type} onValueChange={handleChange}>
+				<DropdownMenuRadioGroup
+					value={type}
+					onValueChange={handleChange}
+					className="-mt-1"
+				>
 					{SHIFT_OPTIONS.map((item) => (
 						<DropdownMenuRadioItem
 							key={item.value}
 							value={item.value}
-							className={`mb-2 flex cursor-pointer items-center gap-3 rounded-md p-2 transition-all duration-200 ease-out ${
+							className={`mb-2 flex cursor-pointer items-center gap-3 rounded-md px-2 py-1 transition-all duration-200 ease-out ${
 								type === item.value
 									? "bg-primary/10 ring-1 ring-primary"
 									: "hover:bg-slate-50"
