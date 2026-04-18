@@ -93,6 +93,7 @@ export function buildScheduleSummary(schedules: ScheduleRowInput[]) {
 		),
 	};
 }
+
 export async function getNurses() {
 	return rosterDb.findAllNurses();
 }

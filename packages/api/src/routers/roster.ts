@@ -95,7 +95,7 @@ export const rosterRouter = router({
 			return rosterService.generateRoster(input);
 		}),
 
-	getNurseShiftPreferences: protectedProcedure.query(async () => {
+	getNurseShiftPreferences: publicProcedure.query(async () => {
 		return rosterService.listNurseShiftPreferenceWeights();
 	}),
 

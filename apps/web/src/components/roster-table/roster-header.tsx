@@ -10,7 +10,10 @@ import {
 import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { useMemo } from "react";
 
-import { useRosterMonthName, useRosterStore } from "../store/use-roster-store";
+import {
+	useRosterMonthName,
+	useRosterStore,
+} from "../../store/use-roster-store";
 
 interface RosterHeaderProps {
 	onGenerate?: () => void;

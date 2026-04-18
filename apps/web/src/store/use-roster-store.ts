@@ -1,6 +1,12 @@
 import { create } from "zustand";
-import type { Shift, ShiftType } from "../components/roster-matrix.types";
-import { getMonthDates, getMonthName } from "../components/roster-matrix.utils";
+import type {
+	Shift,
+	ShiftType,
+} from "../components/roster-table/roster-matrix.types";
+import {
+	getMonthDates,
+	getMonthName,
+} from "../components/roster-table/roster-matrix.utils";
 
 type MonthState = {
 	year: number;

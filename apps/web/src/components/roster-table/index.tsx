@@ -1,10 +1,11 @@
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { useMemo, useRef } from "react";
 import { useRosterDates, useRosterStore } from "../../store/use-roster-store";
-import { buildShiftKey } from "../roster-matrix.utils";
 import { LAYOUT } from "./constants";
 import { DayHeaderCell } from "./day-header-cell";
 import { NurseIdentityCell } from "./nurse-identity-cell";
 import { NurseRow } from "./nurse-row";
+import { buildShiftKey } from "./roster-matrix.utils";
 
 export function RosterTable() {
 	const { nurses, shifts, preferences } = useRosterStore();
@@ -88,6 +89,18 @@ export function RosterTable() {
 		});
 	}, [nurses, weekDates, shiftMap]);
 
+	// Virtualizer for nurse rows
+	const rowVirtualizer = useVirtualizer({
+		count: nurses.length,
+		getScrollElement: () => parentRef.current,
+		estimateSize: () => LAYOUT.rowHeight,
+		overscan: 5,
+		scrollMargin: 0,
+	});
+
+	// Sync scroll position
+	const scrollRef = parentRef.current;
+
 	return (
 		<div className="relative flex h-[calc(100vh-120px)] flex-col overflow-hidden rounded-xl border bg-white shadow-sm">
 			{/* Scroll container */}
@@ -104,7 +117,7 @@ export function RosterTable() {
 								style={{
 									width: LAYOUT.nameColWidth,
 									height: LAYOUT.headerHeight,
-									boxShadow: "inset -1px -1px 0 #e2e8f0", // Simulated bottom and right border
+									boxShadow: "inset -1px -1px 0 #e2e8f0",
 								}}
 							>
 								<span className="font-black text-[10px] text-slate-400 uppercase tracking-[0.2em]">
@@ -119,7 +132,7 @@ export function RosterTable() {
 									style={{
 										width: LAYOUT.cellWidth,
 										height: LAYOUT.headerHeight,
-										boxShadow: "inset -1px -1px 0 #e2e8f0", // Simulated bottom and right border
+										boxShadow: "inset -1px -1px 0 #e2e8f0",
 									}}
 								>
 									<DayHeaderCell date={d} counts={dayShiftCounts[index]} />
@@ -129,41 +142,68 @@ export function RosterTable() {
 					</thead>
 
 					<tbody>
-						{nurses.map((nurse) => (
-							<tr key={nurse.id}>
-								{/* Sticky first column */}
-								<td
-									className="sticky left-0 z-[20] bg-white text-center"
+						<tr>
+							<td
+								colSpan={normalizedDates.length + 1}
+								className="p-0 align-top"
+							>
+								<div
+									className="relative w-full"
 									style={{
-										width: LAYOUT.nameColWidth,
-										height: LAYOUT.cellHeight,
-										boxShadow: "inset -1px -1px 0 #e2e8f0", // Simulated bottom and right border
+										height: `${rowVirtualizer.getTotalSize()}px`,
 									}}
 								>
-									<NurseIdentityCell
-										nurse={nurse}
-										counts={nurseShiftCounts.get(nurse.id)}
-										pref={preferences[nurse.id]}
-										totalDays={normalizedDates.length}
-									/>
-								</td>
+									{rowVirtualizer.getVirtualItems().map((virtualRow) => {
+										const nurse = nurses[virtualRow.index];
+										const top = virtualRow.start;
+										const style: React.CSSProperties = {
+											position: "absolute",
+											top: 0,
+											left: 0,
+											width: "100%",
+											height: `${virtualRow.size}px`,
+											transform: `translateY(${top}px)`,
+										};
 
-								{/* Day cells */}
-								{normalizedDates.map((d) => (
-									<td
-										key={`${nurse.id}-${d.key}`}
-										className="bg-white"
-										style={{
-											width: LAYOUT.cellWidth,
-											height: LAYOUT.cellHeight,
-											boxShadow: "inset -1px -1px 0 #e2e8f0", // Simulated bottom and right border
-										}}
-									>
-										<NurseRow nurse={nurse} dates={[d]} />
-									</td>
-								))}
-							</tr>
-						))}
+										return (
+											<div key={nurse.id} style={style} className="flex">
+												{/* Sticky first column */}
+												<div
+													className="sticky left-0 z-[20] bg-white text-center"
+													style={{
+														width: LAYOUT.nameColWidth,
+														height: "100%",
+														boxShadow: "inset -1px -1px 0 #e2e8f0",
+													}}
+												>
+													<NurseIdentityCell
+														nurse={nurse}
+														counts={nurseShiftCounts.get(nurse.id)}
+														pref={preferences[nurse.id]}
+														totalDays={normalizedDates.length}
+													/>
+												</div>
+
+												{/* Day cells */}
+												{normalizedDates.map((d) => (
+													<div
+														key={`${nurse.id}-${d.key}`}
+														className="bg-white"
+														style={{
+															width: LAYOUT.cellWidth,
+															height: "100%",
+															boxShadow: "inset -1px -1px 0 #e2e8f0",
+														}}
+													>
+														<NurseRow nurse={nurse} dates={[d]} />
+													</div>
+												))}
+											</div>
+										);
+									})}
+								</div>
+							</td>
+						</tr>
 					</tbody>
 				</table>
 			</div>

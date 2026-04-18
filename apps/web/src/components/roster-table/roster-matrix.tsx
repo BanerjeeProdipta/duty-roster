@@ -4,11 +4,11 @@ import { useEffect } from "react";
 import { toast } from "sonner";
 import Loader from "@/components/loader";
 import { trpcClient } from "@/utils/trpc";
-import { useRosterData } from "../hooks/use-roster-data";
-import { useRosterStore } from "../store/use-roster-store";
+import { useRosterData } from "../../hooks/use-roster-data";
+import { useRosterStore } from "../../store/use-roster-store";
+import { RosterTable } from ".";
 import { RosterHeader } from "./roster-header";
 import type { SchedulesResponse } from "./roster-matrix.utils";
-import { RosterTable } from "./roster-table";
 
 export function RosterMatrix({
 	editable = false,
@@ -18,7 +18,7 @@ export function RosterMatrix({
 	initialSchedules?: SchedulesResponse;
 }) {
 	const { selectedMonth, setEditable } = useRosterStore();
-	const { isLoading, summary, refetch } = useRosterData(initialSchedules);
+	const { isLoading, refetch } = useRosterData(initialSchedules);
 
 	useEffect(() => {
 		setEditable(editable);

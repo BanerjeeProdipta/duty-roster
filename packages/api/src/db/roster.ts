@@ -137,6 +137,7 @@ export async function upsertNurseShiftPreferences(
 			},
 		});
 }
+
 export async function updateScheduleShift(id: string, shiftId: string | null) {
 	return db
 		.update(nurseSchedule)

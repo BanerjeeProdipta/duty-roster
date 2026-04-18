@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState, useTransition } from "react";
-import type { Shift, ShiftType } from "./roster-matrix.types";
+import type { Shift, ShiftType } from "./roster-table/roster-matrix.types";
 import {
 	buildShiftKey,
 	getMonthDates,
 	getMonthName,
-} from "./roster-matrix.utils";
+} from "./roster-table/roster-matrix.utils";
 
 type NurseOption = {
 	id: string;

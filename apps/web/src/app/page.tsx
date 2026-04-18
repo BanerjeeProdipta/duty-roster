@@ -1,5 +1,5 @@
-import { RosterMatrix } from "@/components/roster-matrix";
-import { getMonthDateRange } from "@/components/roster-matrix.utils";
+import { RosterMatrix } from "@/components/roster-table/roster-matrix";
+import { getMonthDateRange } from "@/components/roster-table/roster-matrix.utils";
 import { getTRPCServer } from "@/utils/trpc-server";
 
 export const revalidate = 60;

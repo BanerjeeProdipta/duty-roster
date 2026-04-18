@@ -4,9 +4,9 @@ import React, { useCallback, useMemo } from "react";
 import { toast } from "sonner";
 import { trpcClient } from "@/utils/trpc";
 import { useRosterStore } from "../../store/use-roster-store";
-import type { ShiftType } from "../roster-matrix.types";
-import { ShiftBadge } from "../shift-dropdown";
 import { LAYOUT } from "./constants";
+import type { ShiftType } from "./roster-matrix.types";
+import { ShiftBadge } from "./shift-dropdown";
 
 interface NurseRowProps {
 	nurse: { id: string; name: string };

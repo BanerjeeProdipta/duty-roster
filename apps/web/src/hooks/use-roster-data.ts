@@ -3,23 +3,14 @@ import { useEffect, useMemo } from "react";
 import { trpc } from "@/utils/trpc";
 import type {
 	Nurse,
-	Shift,
 	ShiftType,
-} from "../components/roster-matrix.types";
-import type { SchedulesResponse } from "../components/roster-matrix.utils";
+} from "../components/roster-table/roster-matrix.types";
+import type { SchedulesResponse } from "../components/roster-table/roster-matrix.utils";
 import {
-	buildShiftKey,
 	getNursesFromScheduleRows,
 	scheduleRowsToShifts,
-} from "../components/roster-matrix.utils";
+} from "../components/roster-table/roster-matrix.utils";
 import { useRosterStore } from "../store/use-roster-store";
-
-interface NursePreference {
-	nurseId: string;
-	morning: number;
-	evening: number;
-	night: number;
-}
 
 export function useRosterData(initialSchedules?: SchedulesResponse) {
 	const { selectedMonth, setShifts, setNurses, setPreferences } =
@@ -129,15 +120,6 @@ export function useRosterData(initialSchedules?: SchedulesResponse) {
 		setNurses,
 		setPreferences,
 	]);
-
-	const shifts = useRosterStore((s) => s.shifts);
-	const shiftMap = useMemo(() => {
-		const map = new Map<string, Shift>();
-		shifts.forEach((shift) => {
-			map.set(buildShiftKey(shift.employeeName, shift.date), shift);
-		});
-		return map;
-	}, [shifts]);
 
 	return {
 		isLoading: schedulesQuery.isLoading || preferencesQuery.isLoading,
