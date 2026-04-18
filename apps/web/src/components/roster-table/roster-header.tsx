@@ -49,6 +49,7 @@ export function RosterHeader({ editable = false }: RosterHeaderProps) {
 						<Button
 							size="sm"
 							className="flex-1 whitespace-nowrap text-sm sm:flex-initial sm:text-base"
+							variant="secondary"
 							onClick={() =>
 								generateMutation.mutate({
 									year: selectedMonth.year,
