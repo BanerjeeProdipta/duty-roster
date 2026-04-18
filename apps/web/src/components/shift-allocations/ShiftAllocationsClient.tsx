@@ -4,8 +4,8 @@ import { Button } from "@Duty-Roster/ui/components/button";
 import { cn } from "@Duty-Roster/ui/lib/utils";
 import { useForm } from "@tanstack/react-form";
 import { useMutation } from "@tanstack/react-query";
-import { AlertCircle, ArrowLeft, ArrowRight, CheckCircle2 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { AlertCircle, ArrowLeft, ArrowRight } from "lucide-react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import z from "zod";
 import { trpcClient } from "@/utils/trpc";
@@ -151,24 +151,18 @@ export default function ShiftAllocationsClient({
 		},
 	});
 
-	// Sync form when totalDays changes (due to month change) OR initialData refresh
 	useEffect(() => {
-		// Only perform the reset if we aren't currently waiting for a refresh
-		// to complete, to prevent the "snap back to old data" flicker.
 		if (!isSaving) {
 			form.reset({
 				nurses: normalize(initialData, totalDays),
 			});
 		} else {
-			// If we were saving, we stop the "optimistic" mode once the
-			// server data finally matches what we sent.
 			setIsSaving(false);
 		}
-	}, [totalDays, initialData, form]);
+	}, [totalDays, initialData, form, isSaving]);
 
 	return (
 		<div className="flex flex-col gap-6">
-			{/* HEADER & NAV */}
 			<div className="flex items-center justify-between rounded-md border bg-white p-3">
 				<Button
 					variant="ghost"
@@ -197,7 +191,6 @@ export default function ShiftAllocationsClient({
 				}}
 				className="flex flex-col gap-6"
 			>
-				{/* ACTION BAR */}
 				<form.Subscribe
 					selector={(state) => ({
 						canSubmit: state.canSubmit,
@@ -221,7 +214,6 @@ export default function ShiftAllocationsClient({
 					}
 				</form.Subscribe>
 
-				{/* NURSE GRID */}
 				<div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
 					<form.Subscribe selector={(state) => state.values.nurses}>
 						{(nurses) => (
@@ -233,10 +225,11 @@ export default function ShiftAllocationsClient({
 										totalDays={totalDays}
 										onFieldChange={(subField, val) => {
 											form.setFieldValue(
-												`nurses[${i}].${subField}` as any,
+												`nurses[${i}].${subField}` as "nurses[0].morning",
 												val,
 											);
 										}}
+										errors={[]}
 										index={i}
 									/>
 								))}
@@ -253,8 +246,8 @@ function NurseCard({
 	nurse,
 	totalDays,
 	onFieldChange,
-	_errors,
-	_index,
+	errors,
+	index,
 }: {
 	nurse: NurseState;
 	totalDays: number;

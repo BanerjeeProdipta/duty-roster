@@ -42,6 +42,11 @@ export function buildScheduleSummary(schedules: ScheduleRowInput[]) {
 		}
 	>();
 
+	const nurseAssignmentsMap = new Map<
+		string,
+		Record<string, { id: string } | null>
+	>();
+
 	for (const schedule of schedules) {
 		const dateKey = schedule.date;
 		const shiftId = schedule.shift?.id;
@@ -64,6 +69,19 @@ export function buildScheduleSummary(schedules: ScheduleRowInput[]) {
 			},
 		};
 
+		if (!nurseAssignmentsMap.has(schedule.nurse.id)) {
+			nurseAssignmentsMap.set(schedule.nurse.id, {});
+		}
+		const nurseMap = nurseAssignmentsMap.get(schedule.nurse.id);
+		if (nurseMap) {
+			nurseMap[dateKey] = schedule.shift
+				? {
+						...schedule.shift,
+						shiftType: normalizedShiftId as "morning" | "evening" | "night",
+					}
+				: null;
+		}
+
 		if (
 			normalizedShiftId === "morning" ||
 			normalizedShiftId === "evening" ||
@@ -82,15 +100,18 @@ export function buildScheduleSummary(schedules: ScheduleRowInput[]) {
 		nurseShiftCountsMap.set(schedule.nurse.id, nurseCounts);
 	}
 
+	const nurseRows = Array.from(nurseShiftCountsMap.values())
+		.map((n) => ({
+			...n,
+			assignments: nurseAssignmentsMap.get(n.nurse.id) || {},
+		}))
+		.sort((a, b) => a.nurse.name.localeCompare(b.nurse.name));
+
 	return {
-		schedules,
+		nurseRows,
 		dailyShiftCounts: Array.from(dailyShiftCountsMap.entries())
 			.sort(([a], [b]) => a.localeCompare(b))
 			.map(([date, shifts]) => ({ date, shifts })),
-
-		nurseShiftCounts: Array.from(nurseShiftCountsMap.values()).sort((a, b) =>
-			a.nurse.name.localeCompare(b.nurse.name),
-		),
 	};
 }
 
@@ -114,10 +135,7 @@ export async function getSchedulesByDateRange(startDate: Date, endDate: Date) {
 	// Build summary using transformed schedules (dates as strings)
 	const summary = buildScheduleSummary(transformedSchedules);
 
-	return {
-		...summary,
-		schedules: transformedSchedules,
-	};
+	return summary;
 }
 
 // ───────────── MAIN GENERATOR ─────────────
@@ -197,7 +215,10 @@ export async function generateRoster(params: GenerateRosterParams) {
 		const assignShift = (
 			type: ShiftType,
 			count: number,
-			condition: (nurse: (typeof nurses)[0], state: any) => boolean,
+			condition: (
+				nurse: (typeof nurses)[0],
+				state: Record<string, unknown>,
+			) => boolean,
 		) => {
 			let assignedCount = 0;
 			const shiftKey = type.replace("shift_", "") as

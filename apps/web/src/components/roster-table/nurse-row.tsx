@@ -1,117 +1,49 @@
-import { cn } from "@Duty-Roster/ui/lib/utils";
-import { useMutation } from "@tanstack/react-query";
-import React, { useCallback, useMemo } from "react";
-import { toast } from "sonner";
-import { trpcClient } from "@/utils/trpc";
-import { useRosterStore } from "../../store/use-roster-store";
+import React from "react";
 import { LAYOUT } from "./constants";
 import type { ShiftType } from "./roster-matrix.types";
 import { ShiftBadge } from "./shift-dropdown";
 
 interface NurseRowProps {
 	nurse: { id: string; name: string };
-	dates: {
-		date: Date;
-		key: number;
-		isToday: boolean;
-		shortLabel: string;
-		formatted: string;
-		label: string;
-	}[];
+	dates: Date[];
+	assignments: Record<string, { id: string; shiftType: ShiftType } | null>;
+	editable?: boolean;
 }
 
 export const NurseRow = React.memo(function NurseRow({
 	nurse,
 	dates,
+	assignments,
+	editable = false,
 }: NurseRowProps) {
-	const { editable, updateShift, shifts } = useRosterStore();
-
-	const nurseShifts = useMemo(
-		() => shifts.filter((sh) => sh.employeeId === nurse.id),
-		[shifts, nurse.id],
-	);
-
-	const shiftMapByDate = useMemo(
-		() => new Map(nurseShifts.map((sh) => [sh.date, sh])),
-		[nurseShifts],
-	);
-
-	const updateMutation = useMutation({
-		mutationFn: async ({
-			id,
-			dateStr,
-			newType,
-		}: {
-			id: string;
-			dateStr: string;
-			newType: ShiftType;
-		}) => {
-			return trpcClient.roster.updateShift.mutate({
-				id,
-				shiftId: newType === "off" ? null : `shift_${newType}`,
-			});
-		},
-		onSuccess: (_, variables) => {
-			toast.success(
-				`Shift updated for ${nurse.name} on ${variables.dateStr} to ${variables.newType}`,
-			);
-		},
-		onError: (err, variables) => {
-			console.error("Failed to update shift:", err);
-			toast.error(`Failed to update ${nurse.name}'s shift`);
-		},
-	});
-
-	const handleChange = useCallback(
-		(date: Date, scheduleId?: string) => (newType: ShiftType) => {
-			const dateStr = date.toISOString().split("T")[0];
-
-			if (!scheduleId) {
-				console.error("Cannot update shift: scheduleId is missing", {
-					nurseId: nurse.id,
-					date: dateStr,
-					newType,
-				});
-				toast.error("Internal Error: Missing schedule ID. Please refresh.");
-				return;
-			}
-
-			// Optimistically update store
-			updateShift(nurse.name, dateStr, newType);
-
-			// Trigger API call
-			updateMutation.mutate({ id: scheduleId, dateStr, newType });
-		},
-		[nurse.id, nurse.name, updateShift, updateMutation],
-	);
-
 	return (
-		<div className="flex h-full w-full">
-			{dates.map((d) => {
-				const dateKey = d.date.toISOString().split("T")[0];
-				const shift = shiftMapByDate.get(dateKey);
+		<div className="flex h-full">
+			{dates.map((date) => {
+				const dateKey = date.toISOString().split("T")[0];
+				const shift = assignments[dateKey];
 
 				return (
 					<div
-						key={d.key}
-						className={cn(
-							"flex items-center justify-center border-b px-2 text-center transition-colors",
-							d.isToday ? "bg-slate-50" : "hover:bg-slate-50/50",
-						)}
+						key={dateKey}
+						className="flex items-center justify-center border-r border-b bg-white"
 						style={{
 							flex: `0 0 ${LAYOUT.cellWidth}`,
 							width: LAYOUT.cellWidth,
-							height: LAYOUT.cellHeight,
+							height: LAYOUT.rowHeight,
 						}}
 					>
-						{shift && (
-							<ShiftBadge
-								type={shift.shiftType}
-								nurseName={nurse.name}
-								date={d.shortLabel}
-								onChange={editable ? handleChange(d.date, shift.id) : undefined}
-							/>
-						)}
+						<ShiftBadge
+							type={shift?.shiftType || "off"}
+							nurseName={nurse?.name || "Nurse"}
+							date={dateKey}
+							onChange={
+								editable
+									? (newType) => {
+											console.log("Shift update:", nurse.id, dateKey, newType);
+										}
+									: undefined
+							}
+						/>
 					</div>
 				);
 			})}

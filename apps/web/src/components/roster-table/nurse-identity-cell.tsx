@@ -5,29 +5,32 @@ export function NurseIdentityCell({
 	nurse,
 	counts,
 	pref,
+	totalDays,
 }: {
 	nurse: { id: string; name: string };
 	counts: { morning: number; evening: number; night: number } | undefined;
-	pref: { morning: number; evening: number; night: number } | undefined;
+	pref?: { morning?: number; evening?: number; night?: number } | undefined;
 	totalDays: number;
 }) {
 	const totalAssigned =
 		(counts?.morning || 0) + (counts?.evening || 0) + (counts?.night || 0);
-	const targetWorkedDays =
-		(pref?.morning || 0) + (pref?.evening || 0) + (pref?.night || 0);
+	const targetMorning = Math.round(((pref?.morning || 0) / 100) * totalDays);
+	const targetEvening = Math.round(((pref?.evening || 0) / 100) * totalDays);
+	const targetNight = Math.round(((pref?.night || 0) / 100) * totalDays);
+	const targetWorkedDays = targetMorning + targetEvening + targetNight;
 
 	const isOverWorked = totalAssigned > targetWorkedDays;
 	const isPerfect = totalAssigned === targetWorkedDays;
 
 	return (
-		<div className="h-full w-full bg-muted/10 px-3 py-3">
+		<div className="h-full w-full border-r border-b bg-muted/10 px-3 py-3">
 			<div className="flex h-full flex-col justify-center gap-2">
 				<div className="flex items-center justify-between gap-1 overflow-hidden">
 					<span
 						className="truncate font-extrabold text-slate-900 text-sm"
 						title={nurse.name}
 					>
-						{nurse.name}
+						{nurse?.name || "Nurse"}
 					</span>
 					<div
 						className={cn(
@@ -47,19 +50,19 @@ export function NurseIdentityCell({
 				<div className="flex flex-wrap items-center gap-1">
 					<AllocationItem
 						current={counts?.morning || 0}
-						target={pref?.morning || 0}
+						target={targetMorning}
 						color="bg-[#FDE68A]"
 						label="M"
 					/>
 					<AllocationItem
 						current={counts?.evening || 0}
-						target={pref?.evening || 0}
+						target={targetEvening}
 						color="bg-[#BFDBFE]"
 						label="E"
 					/>
 					<AllocationItem
 						current={counts?.night || 0}
-						target={pref?.night || 0}
+						target={targetNight}
 						color="bg-[#C4B5FD]"
 						label="N"
 					/>

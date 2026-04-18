@@ -8,54 +8,29 @@ import {
 	DropdownMenuTrigger,
 } from "@Duty-Roster/ui/components/dropdown-menu";
 import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
-import { useMemo } from "react";
+import { useGenerateRoster } from "@/hooks/useGenerateRoster";
+import { useRosterHeader } from "@/hooks/useRosterHeader";
 
-import {
-	useRosterMonthName,
-	useRosterStore,
-} from "../../store/use-roster-store";
+type RosterHeaderProps = {
+	editable?: boolean;
+};
 
-interface RosterHeaderProps {
-	onGenerate?: () => void;
-	isGenerating?: boolean;
-}
-
-function getMonthOptions(): { year: number; month: number; label: string }[] {
-	const options: { year: number; month: number; label: string }[] = [];
-	const today = new Date();
-
-	// Generate 12 months back and 12 months forward
-	for (let offset = -12; offset <= 12; offset++) {
-		const date = new Date(today.getFullYear(), today.getMonth() + offset, 1);
-		options.push({
-			year: date.getFullYear(),
-			month: date.getMonth() + 1,
-			label: date.toLocaleDateString("en-US", {
-				month: "long",
-				year: "numeric",
-			}),
-		});
-	}
-
-	return options;
-}
-
-export function RosterHeader({
-	onGenerate,
-	isGenerating = false,
-}: RosterHeaderProps) {
-	const monthOptions = useMemo(() => getMonthOptions(), []);
+export function RosterHeader({ editable = false }: RosterHeaderProps) {
 	const {
 		selectedMonth,
+		monthName,
+		monthOptions,
 		goToPreviousMonth,
 		goToNextMonth,
 		goToCurrentMonth,
 		changeMonth,
-	} = useRosterStore();
-	const monthName = useRosterMonthName();
+	} = useRosterHeader();
+
+	const generateMutation = useGenerateRoster();
 
 	return (
 		<div className="mb-8 flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+			{/* Title */}
 			<div className="flex flex-col gap-1">
 				<h1 className="font-bold text-2xl text-slate-900 tracking-tight sm:text-3xl">
 					Nurse Duty Roster
@@ -65,47 +40,47 @@ export function RosterHeader({
 				</p>
 			</div>
 
+			{/* Controls */}
 			<div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
-				<div className="flex w-full flex-row flex-wrap items-center justify-between gap-2 sm:w-full sm:gap-4 lg:justify-end">
-					{onGenerate ? (
+				<div className="flex w-full flex-row flex-wrap items-center justify-between gap-2 sm:gap-4 lg:justify-end">
+					{/* Generate Button */}
+					{editable && (
 						<Button
 							size="sm"
 							className="flex-1 whitespace-nowrap text-sm sm:flex-initial sm:text-base"
-							onClick={onGenerate}
-							disabled={isGenerating}
+							onClick={() =>
+								generateMutation.mutate({
+									year: selectedMonth.year,
+									month: selectedMonth.month,
+								})
+							}
+							disabled={generateMutation.isPending}
 						>
-							{isGenerating ? "Generating..." : "Generate Schedule"}
+							{generateMutation.isPending
+								? "Generating..."
+								: "Generate Schedule"}
 						</Button>
-					) : null}
+					)}
 
+					{/* Navigation */}
 					<div className="flex w-full items-center justify-between gap-2 md:w-auto">
-						<Button
-							variant="ghost"
-							size="sm"
-							className="text-sm sm:text-base"
-							onClick={goToCurrentMonth}
-						>
+						<Button variant="ghost" size="sm" onClick={goToCurrentMonth}>
 							Today
 						</Button>
 
-						{/* Month Navigation with Dropdown */}
 						<div className="flex items-center gap-1 rounded-md border bg-white shadow-sm">
-							<Button
-								variant="ghost"
-								size="icon"
-								className="h-8 w-8 sm:h-9 sm:w-9"
-								onClick={goToPreviousMonth}
-							>
-								<ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5" />
+							{/* Previous */}
+							<Button variant="ghost" size="icon" onClick={goToPreviousMonth}>
+								<ChevronLeft className="h-4 w-4" />
 							</Button>
 
+							{/* Month Dropdown */}
 							<DropdownMenu>
-								<DropdownMenuTrigger className="flex items-center gap-1 px-2 py-1 font-medium text-sm hover:bg-accent hover:text-accent-foreground sm:gap-2 sm:px-3 sm:py-2 sm:text-base">
-									<span className="max-w-[100px] truncate sm:max-w-none">
-										{monthName}
-									</span>
-									<ChevronDown className="h-3 w-3 sm:h-4 sm:w-4" />
+								<DropdownMenuTrigger className="flex items-center gap-2 px-3 py-2 font-medium text-sm">
+									{monthName}
+									<ChevronDown className="h-4 w-4" />
 								</DropdownMenuTrigger>
+
 								<DropdownMenuContent
 									align="center"
 									className="max-h-80 overflow-y-auto"
@@ -127,13 +102,9 @@ export function RosterHeader({
 								</DropdownMenuContent>
 							</DropdownMenu>
 
-							<Button
-								variant="ghost"
-								size="icon"
-								className="h-8 w-8 sm:h-9 sm:w-9"
-								onClick={goToNextMonth}
-							>
-								<ChevronRight className="h-4 w-4 sm:h-5 sm:w-5" />
+							{/* Next */}
+							<Button variant="ghost" size="icon" onClick={goToNextMonth}>
+								<ChevronRight className="h-4 w-4" />
 							</Button>
 						</div>
 					</div>

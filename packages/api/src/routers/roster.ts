@@ -2,20 +2,6 @@ import { z } from "zod";
 import * as rosterService from "../services/roster";
 import { protectedProcedure, publicProcedure, router } from "../trpc";
 
-const scheduleRowSchema = z.object({
-	id: z.string(),
-	date: z.string(),
-	nurse: z.object({
-		id: z.string(),
-		name: z.string(),
-	}),
-	shift: z
-		.object({
-			id: z.string(),
-		})
-		.nullable(),
-});
-
 const shiftCountsSchema = z.object({
 	morning: z.number(),
 	evening: z.number(),
@@ -24,19 +10,27 @@ const shiftCountsSchema = z.object({
 });
 
 const schedulesResponseSchema = z.object({
-	schedules: z.array(scheduleRowSchema),
-	dailyShiftCounts: z.array(
-		z.object({
-			date: z.string(),
-			shifts: shiftCountsSchema,
-		}),
-	),
-	nurseShiftCounts: z.array(
+	nurseRows: z.array(
 		z.object({
 			nurse: z.object({
 				id: z.string(),
 				name: z.string(),
 			}),
+			shifts: shiftCountsSchema,
+			assignments: z.record(
+				z.string(),
+				z
+					.object({
+						id: z.string(),
+						shiftType: z.enum(["morning", "evening", "night", "off"]),
+					})
+					.nullable(),
+			),
+		}),
+	),
+	dailyShiftCounts: z.array(
+		z.object({
+			date: z.string(),
 			shifts: shiftCountsSchema,
 		}),
 	),

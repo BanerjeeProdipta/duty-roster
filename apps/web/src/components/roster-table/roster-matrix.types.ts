@@ -12,3 +12,33 @@ export interface Shift {
 	date: string;
 	shiftType: ShiftType;
 }
+
+export type ShiftCounts = {
+	morning: number;
+	evening: number;
+	night: number;
+	totalAssigned: number;
+};
+
+export type SchedulesResponse = {
+	nurseRows: {
+		nurse: {
+			id: string;
+			name: string;
+		};
+		shifts: ShiftCounts;
+		assignments: Record<string, { id: string; shiftType: string } | null>;
+	}[];
+	dailyShiftCounts: {
+		date: string;
+		shifts: ShiftCounts;
+	}[];
+};
+
+export type ShiftPreferences = {
+	nurseId: string;
+	name: string;
+	morning?: number | undefined;
+	evening?: number | undefined;
+	night?: number | undefined;
+};

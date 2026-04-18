@@ -1,5 +1,6 @@
-import { RosterMatrix } from "@/components/roster-table/roster-matrix";
-import { getMonthDateRange } from "@/components/roster-table/roster-matrix.utils";
+import { RosterTable } from "@/components/roster-table";
+import { RosterHeader } from "@/components/roster-table/roster-header";
+import { getMonthDateRange } from "@/utils";
 import { getAuthedTRPCServer } from "@/utils/trpc-server";
 
 export const revalidate = 60;
@@ -16,5 +17,20 @@ export default async function DashboardPage() {
 		endDate,
 	});
 
-	return <RosterMatrix initialSchedules={initialSchedules} editable />;
+	const nurseShiftPreferences =
+		await trpcServer.roster.getNurseShiftPreferences();
+
+	return (
+		<div className="flex flex-col">
+			<RosterHeader editable />
+
+			<div className="flex flex-col rounded-2xl border">
+				<RosterTable
+					editable
+					initialSchedules={initialSchedules}
+					nurseShiftPreferences={nurseShiftPreferences}
+				/>
+			</div>
+		</div>
+	);
 }
