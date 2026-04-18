@@ -30,26 +30,24 @@ export default function Header() {
 	};
 
 	return (
-		<header className="sticky top-0 z-[100] w-full animate-fade-in border-slate-200/50 border-b bg-white/70 backdrop-blur-xl transition-all duration-300">
-			<div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
-				<Link href="/" className="group flex items-center gap-2 transition-all">
-					<div className="rounded-lg border border-red-100 bg-red-50 p-1.5 transition-colors group-hover:bg-red-100">
-						<Image
-							src="/logo.jpg"
-							alt="logo"
-							height={24}
-							width={36}
-							className="rounded"
-						/>
-					</div>
-					<p className="flex items-center font-bold text-xl tracking-tight sm:text-2xl">
-						<span className="text-slate-900">simple</span>
-						<span className="text-red-800">roster</span>
+		<header className="sticky top-0 z-[100] w-full border-border/50 border-b bg-white backdrop-blur-md dark:bg-slate-950/80">
+			<div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6">
+				<Link href="/" className="flex items-center gap-2">
+					<Image
+						src="/logo.jpg"
+						alt="logo"
+						height={22}
+						width={32}
+						className="rounded-sm"
+					/>
+					<p className="font-semibold text-lg tracking-tight">
+						<span className="text-slate-900 dark:text-slate-100">simple</span>
+						<span className="text-slate-500 dark:text-slate-400">roster</span>
 					</p>
 				</Link>
 
 				{/* Desktop Navigation */}
-				<nav className="hidden items-center gap-2 md:flex">
+				<nav className="hidden items-center gap-1 md:flex">
 					{links.map(({ to, label }) => {
 						const isActive = pathname === to;
 						return (
@@ -57,10 +55,10 @@ export default function Header() {
 								key={to}
 								href={to}
 								className={cn(
-									"rounded-md px-3 py-1.5 font-medium text-sm transition-all duration-200",
+									"px-3 py-1.5 font-medium text-sm transition-colors",
 									isActive
-										? "bg-slate-50 text-slate-900 shadow-sm"
-										: "text-slate-500 hover:bg-slate-50 hover:text-slate-900",
+										? "text-foreground"
+										: "text-muted-foreground hover:text-foreground",
 								)}
 							>
 								{label}
@@ -69,10 +67,10 @@ export default function Header() {
 					})}
 					{!isPending && session?.user && (
 						<Button
-							variant="outline"
+							variant="ghost"
 							size="sm"
 							onClick={handleSignOut}
-							className="ml-2"
+							className="ml-1"
 						>
 							Sign Out
 						</Button>
@@ -82,21 +80,21 @@ export default function Header() {
 				{/* Mobile Menu Button */}
 				<button
 					type="button"
-					className="flex h-10 w-10 items-center justify-center rounded-lg border bg-white text-slate-900 transition-colors md:hidden"
+					className="flex h-8 w-8 items-center justify-center text-foreground md:hidden"
 					onClick={() => setIsMenuOpen(!isMenuOpen)}
 				>
 					{isMenuOpen ? (
-						<X className="h-5 w-5" />
+						<X className="h-4 w-4" />
 					) : (
-						<Menu className="h-5 w-5" />
+						<Menu className="h-4 w-4" />
 					)}
 				</button>
 			</div>
 
 			{/* Mobile Navigation */}
 			{isMenuOpen && (
-				<div className="slide-in-from-top-4 animate-in border-t bg-white p-4 transition-all md:hidden">
-					<div className="flex flex-col gap-2">
+				<div className="border-border/50 border-t bg-background p-4 md:hidden">
+					<div className="flex flex-col gap-1">
 						{links.map(({ to, label }) => {
 							const isActive = pathname === to;
 							return (
@@ -105,10 +103,8 @@ export default function Header() {
 									href={to}
 									onClick={() => setIsMenuOpen(false)}
 									className={cn(
-										"rounded-lg px-4 py-3 font-medium transition-colors",
-										isActive
-											? "bg-slate-50 text-slate-900"
-											: "text-slate-600 hover:bg-slate-50",
+										"px-3 py-2 font-medium text-sm transition-colors",
+										isActive ? "text-foreground" : "text-muted-foreground",
 									)}
 								>
 									{label}
@@ -117,8 +113,8 @@ export default function Header() {
 						})}
 						{!isPending && session?.user && (
 							<Button
-								variant="outline"
-								className="mt-2 w-full justify-start py-6"
+								variant="ghost"
+								className="mt-2 w-full justify-start"
 								onClick={() => {
 									handleSignOut();
 									setIsMenuOpen(false);

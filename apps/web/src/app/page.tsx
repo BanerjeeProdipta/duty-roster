@@ -27,7 +27,7 @@ export default async function Home(props: {
 	return (
 		<div className="flex flex-col">
 			<RosterHeader />
-			<div className="flex flex-col rounded-2xl border">
+			<div className="flex flex-col rounded-md border">
 				<RosterTable initialSchedules={initialSchedules} />
 			</div>
 		</div>

@@ -1,18 +1,14 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Poppins } from "next/font/google";
 
 import "../index.css";
 import Header from "@/components/navbar/header";
 import Providers from "@/components/provider";
 
-const geistSans = Geist({
-	variable: "--font-geist-sans",
+const poppins = Poppins({
+	variable: "--font-poppins",
 	subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-	variable: "--font-geist-mono",
-	subsets: ["latin"],
+	weight: ["400", "500", "600"],
 });
 
 export const metadata: Metadata = {
@@ -27,18 +23,11 @@ export default function RootLayout({
 }>) {
 	return (
 		<html lang="en" suppressHydrationWarning>
-			<body
-				className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-			>
+			<body className={`${poppins.variable} font-sans antialiased`}>
 				<Providers>
-					<div className="relative flex min-h-svh flex-col bg-white">
-						{/* Premium Background Accent */}
-						<div className="fixed inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-50 via-white to-white" />
-
+					<div className="flex min-h-svh flex-col bg-slate-50 dark:bg-slate-950">
 						<Header />
-						<main className="flex-1 animate-fade-in p-4 lg:px-20 lg:py-10">
-							{children}
-						</main>
+						<main className="flex-1 p-4 lg:px-20 lg:py-6">{children}</main>
 					</div>
 				</Providers>
 			</body>
