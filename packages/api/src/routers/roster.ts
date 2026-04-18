@@ -26,14 +26,16 @@ const schedulesResponseSchema = z.object({
 					})
 					.nullable(),
 			),
+			preference: z
+				.object({
+					morning: z.number().optional(),
+					evening: z.number().optional(),
+					night: z.number().optional(),
+				})
+				.optional(),
 		}),
 	),
-	dailyShiftCounts: z.array(
-		z.object({
-			date: z.string(),
-			shifts: shiftCountsSchema,
-		}),
-	),
+	dailyShiftCounts: z.record(z.string(), shiftCountsSchema),
 });
 
 export const rosterRouter = router({

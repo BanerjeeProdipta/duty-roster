@@ -28,11 +28,13 @@ export type SchedulesResponse = {
 		};
 		shifts: ShiftCounts;
 		assignments: Record<string, { id: string; shiftType: string } | null>;
+		preference?: {
+			morning?: number;
+			evening?: number;
+			night?: number;
+		};
 	}[];
-	dailyShiftCounts: {
-		date: string;
-		shifts: ShiftCounts;
-	}[];
+	dailyShiftCounts: Record<string, ShiftCounts>;
 };
 
 export type ShiftPreferences = {

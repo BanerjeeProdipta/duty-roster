@@ -24,7 +24,17 @@ type ScheduleRowInput = {
 	} | null;
 };
 
-export function buildScheduleSummary(schedules: ScheduleRowInput[]) {
+export function buildScheduleSummary(
+	schedules: ScheduleRowInput[],
+	options?: {
+		preferences?: {
+			nurseId: string;
+			morning?: number;
+			evening?: number;
+			night?: number;
+		}[];
+	},
+) {
 	const dailyShiftCountsMap = new Map<
 		string,
 		{ morning: number; evening: number; night: number; totalAssigned: number }
@@ -38,6 +48,11 @@ export function buildScheduleSummary(schedules: ScheduleRowInput[]) {
 				evening: number;
 				night: number;
 				totalAssigned: number;
+			};
+			preference?: {
+				morning?: number;
+				evening?: number;
+				night?: number;
 			};
 		}
 	>();
@@ -103,17 +118,25 @@ export function buildScheduleSummary(schedules: ScheduleRowInput[]) {
 	}
 
 	const nurseRows = Array.from(nurseShiftCountsMap.values())
-		.map((n) => ({
-			...n,
-			assignments: nurseAssignmentsMap.get(n.nurse.id) || {},
-		}))
+		.map((n) => {
+			const pref = options?.preferences?.find((p) => p.nurseId === n.nurse.id);
+			return {
+				...n,
+				assignments: nurseAssignmentsMap.get(n.nurse.id) || {},
+				preference: pref
+					? {
+							morning: pref.morning,
+							evening: pref.evening,
+							night: pref.night,
+						}
+					: undefined,
+			};
+		})
 		.sort((a, b) => a.nurse.name.localeCompare(b.nurse.name));
 
 	return {
 		nurseRows,
-		dailyShiftCounts: Array.from(dailyShiftCountsMap.entries())
-			.sort(([a], [b]) => a.localeCompare(b))
-			.map(([date, shifts]) => ({ date, shifts })),
+		dailyShiftCounts: Object.fromEntries(dailyShiftCountsMap),
 	};
 }
 
@@ -126,7 +149,10 @@ export async function getShifts() {
 }
 
 export async function getSchedulesByDateRange(startDate: Date, endDate: Date) {
-	const schedules = await rosterDb.findSchedulesByDateRange(startDate, endDate);
+	const [schedules, preferences] = await Promise.all([
+		rosterDb.findSchedulesByDateRange(startDate, endDate),
+		listNurseShiftPreferenceWeights(),
+	]);
 
 	// Transform dates to ISO strings first
 	const transformedSchedules = schedules.map((s) => ({
@@ -135,7 +161,9 @@ export async function getSchedulesByDateRange(startDate: Date, endDate: Date) {
 	}));
 
 	// Build summary using transformed schedules (dates as strings)
-	const summary = buildScheduleSummary(transformedSchedules);
+	const summary = buildScheduleSummary(transformedSchedules, {
+		preferences,
+	});
 
 	return summary;
 }

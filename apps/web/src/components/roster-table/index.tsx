@@ -11,21 +11,16 @@ import { LAYOUT } from "./constants";
 import { DayHeaderCell } from "./day-header-cell";
 import { NurseIdentityCell } from "./nurse-identity-cell";
 import { NurseRow } from "./nurse-row";
-import type {
-	SchedulesResponse,
-	ShiftPreferences,
-} from "./roster-matrix.types";
+import type { SchedulesResponse } from "./roster-matrix.types";
 
 type RosterTableProps = {
 	editable?: boolean;
 	initialSchedules: SchedulesResponse;
-	nurseShiftPreferences?: ShiftPreferences[];
 };
 
 export function RosterTable({
 	editable = false,
 	initialSchedules,
-	nurseShiftPreferences = [],
 }: RosterTableProps) {
 	const { nurseRows, dailyShiftCounts } = initialSchedules;
 	const router = useRouter();
@@ -59,9 +54,11 @@ export function RosterTable({
 		return weekDates.map((date) => {
 			const isToday = date.toDateString() === todayStr;
 			const dayOfWeek = date.toLocaleDateString("en-US", { weekday: "short" });
+			const dateStr = date.toISOString().split("T")[0];
 
 			return {
 				date,
+				dateStr,
 				time: date.getTime(),
 				isToday,
 				label: dayOfWeek,
@@ -111,9 +108,7 @@ export function RosterTable({
 							</th>
 
 							{normalizedDates.map((date) => {
-								const counts = dailyShiftCounts.find(
-									(c) => c.date === date.date.toISOString().split("T")[0],
-								)?.shifts;
+								const counts = dailyShiftCounts[date.dateStr];
 
 								return (
 									<th
@@ -144,10 +139,12 @@ export function RosterTable({
 										const nurseRowData = nurseRows[row.index];
 										if (!nurseRowData) return null;
 
-										const { nurse, shifts: counts, assignments } = nurseRowData;
-										const pref = nurseShiftPreferences.find(
-											(p) => p.nurseId === nurse.id,
-										);
+										const {
+											nurse,
+											shifts: counts,
+											assignments,
+											preference,
+										} = nurseRowData;
 
 										return (
 											<div
@@ -168,7 +165,7 @@ export function RosterTable({
 													<NurseIdentityCell
 														nurse={nurse}
 														counts={counts}
-														pref={pref}
+														pref={preference}
 														totalDays={normalizedDates.length}
 													/>
 												</div>

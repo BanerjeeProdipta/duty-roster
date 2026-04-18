@@ -24,17 +24,11 @@ export default async function Home(props: {
 		endDate,
 	});
 
-	const nurseShiftPreferences =
-		await trpcServer.roster.getNurseShiftPreferences();
-
 	return (
 		<div className="flex flex-col">
 			<RosterHeader />
 			<div className="flex flex-col rounded-2xl border">
-				<RosterTable
-					initialSchedules={initialSchedules}
-					nurseShiftPreferences={nurseShiftPreferences}
-				/>
+				<RosterTable initialSchedules={initialSchedules} />
 			</div>
 		</div>
 	);

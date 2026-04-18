@@ -24,19 +24,12 @@ export default async function DashboardPage(props: {
 		endDate,
 	});
 
-	const nurseShiftPreferences =
-		await trpcServer.roster.getNurseShiftPreferences();
-
 	return (
 		<div className="flex flex-col">
 			<RosterHeader editable />
 
 			<div className="flex flex-col rounded-2xl border">
-				<RosterTable
-					editable
-					initialSchedules={initialSchedules}
-					nurseShiftPreferences={nurseShiftPreferences}
-				/>
+				<RosterTable editable initialSchedules={initialSchedules} />
 			</div>
 		</div>
 	);
