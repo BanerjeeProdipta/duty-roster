@@ -6,7 +6,7 @@ const { nurse, nurseSchedule, shift, nurseShiftPreference } = schema;
 import { createUTCDate, getMonthDateRange } from "../utils/roster";
 
 export async function findAllNurses() {
-	return db.select().from(nurse).orderBy(desc(nurse.createdAt));
+	return db.select().from(nurse).orderBy(nurse.name);
 }
 
 export async function findAllShifts() {

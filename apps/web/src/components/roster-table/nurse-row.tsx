@@ -1,10 +1,11 @@
+import { cn } from "@Duty-Roster/ui/lib/utils";
 import React from "react";
 import { LAYOUT } from "./constants";
 import type { ShiftType } from "./roster-matrix.types";
 import { ShiftBadge } from "./shift-dropdown";
 
 interface NurseRowProps {
-	nurse: { id: string; name: string };
+	nurse: { id: string; name: string; active?: boolean };
 	dates: Date[];
 	assignments: Record<string, { id: string; shiftType: ShiftType } | null>;
 	editable?: boolean;
@@ -19,7 +20,12 @@ export const NurseRow = React.memo(function NurseRow({
 	onUpdateShift,
 }: NurseRowProps) {
 	return (
-		<div className="flex h-full">
+		<div
+			className={cn(
+				"flex h-full",
+				nurse.active === false && "opacity-60 grayscale",
+			)}
+		>
 			{dates.map((date) => {
 				const dateKey = date.toISOString().split("T")[0];
 				const shift = assignments[dateKey];

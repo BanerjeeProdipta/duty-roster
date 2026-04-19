@@ -9,7 +9,7 @@ export function NurseIdentityCell({
 	totalDays,
 	editable,
 }: {
-	nurse: { id: string; name: string };
+	nurse: { id: string; name: string; active?: boolean };
 	counts: { morning: number; evening: number; night: number } | undefined;
 	pref?: { morning?: number; evening?: number; night?: number } | undefined;
 	totalDays: number;
@@ -26,7 +26,12 @@ export function NurseIdentityCell({
 	const isPerfect = totalAssigned === targetWorkedDays;
 
 	return (
-		<div className="h-full w-full border-r border-b bg-white px-3 py-3 transition-colors duration-200 hover:bg-slate-50/80">
+		<div
+			className={cn(
+				"h-full w-full border-r border-b bg-white px-3 py-3 transition-colors duration-200 hover:bg-slate-50/80",
+				nurse.active === false && "opacity-60 grayscale",
+			)}
+		>
 			<div className="flex h-full flex-col justify-center gap-2">
 				<div className="flex items-center justify-between gap-1 overflow-hidden">
 					<Link href={`/shift-preference?q=${nurse.name}`}>

@@ -2,9 +2,11 @@
 
 import { useMutation } from "@tanstack/react-query";
 import { useVirtualizer } from "@tanstack/react-virtual";
+import { Search, X } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useMemo, useRef } from "react";
 import { toast } from "sonner";
+import { useSearchFilter } from "@/hooks/useSearchFilter";
 import { getMonthDates } from "@/utils";
 import { trpcClient } from "@/utils/trpc";
 import { LAYOUT } from "./constants";
@@ -26,6 +28,12 @@ export function RosterTable({
 	const router = useRouter();
 	const searchParams = useSearchParams();
 
+	const {
+		searchQuery,
+		setSearchQuery: handleSearch,
+		filteredData: filteredNurseRows,
+	} = useSearchFilter(nurseRows, (row) => [row.nurse.name]);
+
 	const monthDates = useMemo(() => {
 		const y = searchParams.get("year");
 		const m = searchParams.get("month");
@@ -34,10 +42,11 @@ export function RosterTable({
 			m ? Number.parseInt(m, 10) : undefined,
 		);
 	}, [searchParams]);
+
 	const parentRef = useRef<HTMLDivElement>(null);
 
 	const rowVirtualizer = useVirtualizer({
-		count: nurseRows.length,
+		count: filteredNurseRows.length,
 		getScrollElement: () => parentRef.current,
 		estimateSize: () => LAYOUT.rowHeight,
 		overscan: 10,
@@ -89,107 +98,129 @@ export function RosterTable({
 	});
 
 	return (
-		<div className="relative flex h-[calc(100vh-140px)] animate-fade-in flex-col overflow-hidden rounded-2xl border border-slate-200/60 bg-white/80 shadow-[0_8px_30px_rgb(0,0,0,0.04)] backdrop-blur-sm">
-			<div
-				ref={parentRef}
-				className="scrollbar-hide min-h-0 flex-1 overflow-auto"
-			>
-				<table className="w-full table-fixed border-separate border-spacing-0">
-					<thead>
-						<tr>
-							<th
-								className="sticky top-0 left-0 z-[30] border-r border-b bg-slate-50 px-3 py-3 text-center"
-								style={{
-									width: LAYOUT.nameColWidth,
-									height: LAYOUT.headerHeight,
-								}}
-							>
-								Nurses
-							</th>
+		<div className="flex flex-col gap-4">
+			<div className="flex items-center gap-2 rounded-xl border border-slate-200/60 bg-white/50 px-3 py-2 shadow-sm backdrop-blur-sm transition-all focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-100">
+				<Search className="h-4 w-4 text-slate-400" />
+				<input
+					type="text"
+					placeholder="Search nurses..."
+					value={searchQuery}
+					onChange={(e) => handleSearch(e.target.value)}
+					className="flex-1 bg-transparent text-sm outline-none placeholder:text-slate-400"
+				/>
+				{searchQuery && (
+					<button
+						type="button"
+						onClick={() => handleSearch("")}
+						className="rounded-full p-1 hover:bg-slate-100"
+					>
+						<X className="h-3 w-3 text-slate-400" />
+					</button>
+				)}
+			</div>
 
-							{normalizedDates.map((date) => {
-								const counts = dailyShiftCounts[date.dateStr];
-
-								return (
-									<th
-										key={date.key}
-										className="sticky top-0 z-[10] bg-[#f2f2f2]"
-										style={{
-											width: LAYOUT.cellWidth,
-											height: LAYOUT.headerHeight,
-										}}
-									>
-										<DayHeaderCell date={date} counts={counts} />
-									</th>
-								);
-							})}
-						</tr>
-					</thead>
-
-					<tbody>
-						<tr>
-							<td colSpan={weekDates.length + 1} className="p-0 align-top">
-								<div
-									className="relative w-full"
+			<div className="relative flex h-[calc(100vh-200px)] animate-fade-in flex-col overflow-hidden rounded-2xl border border-slate-200/60 bg-white/80 shadow-[0_8px_30px_rgb(0,0,0,0.04)] backdrop-blur-sm">
+				<div
+					ref={parentRef}
+					className="scrollbar-hide min-h-0 flex-1 overflow-auto"
+				>
+					<table className="w-full table-fixed border-separate border-spacing-0">
+						<thead>
+							<tr>
+								<th
+									className="sticky top-0 left-0 z-[30] border-r border-b bg-slate-50 px-3 py-3 text-center"
 									style={{
-										height: rowVirtualizer.getTotalSize(),
+										width: LAYOUT.nameColWidth,
+										height: LAYOUT.headerHeight,
 									}}
 								>
-									{rowVirtualizer.getVirtualItems().map((row) => {
-										const nurseRowData = nurseRows[row.index];
-										if (!nurseRowData) return null;
+									Nurses
+								</th>
 
-										const {
-											nurse,
-											shifts: counts,
-											assignments,
-											preference,
-										} = nurseRowData;
+								{normalizedDates.map((date) => {
+									const counts = dailyShiftCounts[date.dateStr];
 
-										return (
-											<div
-												key={nurse.id}
-												className="absolute top-0 left-0 flex w-full"
-												style={{
-													height: row.size,
-													transform: `translateY(${row.start}px)`,
-												}}
-											>
+									return (
+										<th
+											key={date.key}
+											className="sticky top-0 z-[10] bg-[#f2f2f2]"
+											style={{
+												width: LAYOUT.cellWidth,
+												height: LAYOUT.headerHeight,
+											}}
+										>
+											<DayHeaderCell date={date} counts={counts} />
+										</th>
+									);
+								})}
+							</tr>
+						</thead>
+
+						<tbody>
+							<tr>
+								<td colSpan={weekDates.length + 1} className="p-0 align-top">
+									<div
+										className="relative w-full"
+										style={{
+											height: rowVirtualizer.getTotalSize(),
+										}}
+									>
+										{rowVirtualizer.getVirtualItems().map((row) => {
+											const nurseRowData = filteredNurseRows[row.index];
+											if (!nurseRowData) return null;
+
+											const {
+												nurse,
+												shifts: counts,
+												assignments,
+												preference,
+											} = nurseRowData;
+
+											return (
 												<div
-													className="sticky left-0 z-20 bg-white"
+													key={nurse.id}
+													className="absolute top-0 left-0 flex w-full"
 													style={{
-														width: LAYOUT.nameColWidth,
-														minWidth: LAYOUT.nameColWidth,
+														height: row.size,
+														transform: `translateY(${row.start}px)`,
 													}}
 												>
-													<NurseIdentityCell
-														nurse={nurse}
-														counts={counts}
-														pref={preference}
-														totalDays={normalizedDates.length}
-														editable={editable}
-													/>
-												</div>
+													<div
+														className="sticky left-0 z-20 bg-white"
+														style={{
+															width: LAYOUT.nameColWidth,
+															minWidth: LAYOUT.nameColWidth,
+														}}
+													>
+														<NurseIdentityCell
+															nurse={nurse}
+															counts={counts}
+															pref={preference}
+															totalDays={normalizedDates.length}
+															editable={editable}
+														/>
+													</div>
 
-												<div className="flex flex-1">
-													<NurseRow
-														nurse={nurse}
-														dates={weekDates}
-														assignments={assignments}
-														editable={editable}
-														onUpdateShift={(id, shiftId) =>
-															updateMutation.mutate({ id, shiftId })
-														}
-													/>
+													<div className="flex flex-1">
+														<NurseRow
+															nurse={nurse}
+															dates={weekDates}
+															assignments={assignments}
+															editable={editable}
+															onUpdateShift={(id, shiftId) =>
+																updateMutation.mutate({ id, shiftId })
+															}
+														/>
+													</div>
 												</div>
-											</div>
-										);
-									})}
-								</div>
-							</td>
-						</tr>
-					</tbody>
-				</table>
+											);
+										})}
+									</div>
+								</td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
 			</div>
 		</div>
 	);

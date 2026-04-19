@@ -1,4 +1,5 @@
 import * as rosterDb from "../db/roster";
+import type { NurseShiftPreference } from "../schemas/roster";
 import {
 	createUTCDate,
 	formatDateKey,
@@ -27,12 +28,7 @@ type ScheduleRowInput = {
 export function buildScheduleSummary(
 	schedules: ScheduleRowInput[],
 	options?: {
-		preferences?: {
-			nurseId: string;
-			morning?: number;
-			evening?: number;
-			night?: number;
-		}[];
+		preferences?: NurseShiftPreference[];
 	},
 ) {
 	const dailyShiftCountsMap = new Map<
@@ -49,17 +45,16 @@ export function buildScheduleSummary(
 				night: number;
 				totalAssigned: number;
 			};
-			preference?: {
-				morning?: number;
-				evening?: number;
-				night?: number;
-			};
+			preference?: NurseShiftPreference;
 		}
 	>();
 
 	const nurseAssignmentsMap = new Map<
 		string,
-		Record<string, { id: string } | null>
+		Record<
+			string,
+			{ id: string; shiftType: "morning" | "evening" | "night" | "off" } | null
+		>
 	>();
 
 	for (const schedule of schedules) {
@@ -126,6 +121,10 @@ export function buildScheduleSummary(
 			const pref = prefMap.get(n.nurse.id);
 			return {
 				...n,
+				nurse: {
+					...n.nurse,
+					active: pref?.active ?? true,
+				},
 				assignments: nurseAssignmentsMap.get(n.nurse.id) || {},
 				preference: pref
 					? {
@@ -136,7 +135,14 @@ export function buildScheduleSummary(
 					: undefined,
 			};
 		})
-		.sort((a, b) => a.nurse.name.localeCompare(b.nurse.name));
+		.sort((a, b) => {
+			// Sort inactive nurses to the bottom
+			if (a.nurse.active !== b.nurse.active) {
+				return a.nurse.active ? -1 : 1;
+			}
+			// Then sort by name
+			return a.nurse.name.localeCompare(b.nurse.name);
+		});
 
 	return {
 		nurseRows,

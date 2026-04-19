@@ -30,7 +30,7 @@ export default async function DashboardPage(props: {
 			<RosterHeader editable />
 			<ShiftCounts />
 
-			<div className="flex flex-col rounded-2xl border">
+			<div className="flex flex-col rounded-2xl">
 				<RosterTable editable initialSchedules={initialSchedules} />
 			</div>
 		</div>

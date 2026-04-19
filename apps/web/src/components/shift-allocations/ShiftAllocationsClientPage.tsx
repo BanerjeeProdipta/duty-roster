@@ -1,8 +1,7 @@
 "use client";
 
 import { Search, X } from "lucide-react";
-import { useSearchParams } from "next/navigation";
-import { useMemo } from "react";
+import { useSearchFilter } from "@/hooks/useSearchFilter";
 import ShiftAllocationsClient from "./ShiftAllocationsClient";
 import type { NurseData } from "./types";
 
@@ -11,29 +10,11 @@ export default function ShiftAllocationsClientPage({
 }: {
 	initialData: NurseData[];
 }) {
-	const searchParams = useSearchParams();
-	const q = searchParams?.get("q") ?? "";
-
-	const filteredData = useMemo(() => {
-		if (!q) return initialData;
-		return initialData.filter((n) =>
-			n.name.toLowerCase().includes(q.toLowerCase()),
-		);
-	}, [initialData, q]);
-
-	const handleSearch = (value: string) => {
-		const params = new URLSearchParams(window.location.search);
-		if (value) {
-			params.set("q", value);
-		} else {
-			params.delete("q");
-		}
-		window.history.pushState(
-			null,
-			"",
-			params.toString() ? `?${params.toString()}` : "/shift-preference",
-		);
-	};
+	const {
+		searchQuery: q,
+		setSearchQuery: handleSearch,
+		filteredData,
+	} = useSearchFilter(initialData, (n) => [n.name]);
 
 	return (
 		<div className="flex flex-col gap-4">
@@ -42,7 +23,7 @@ export default function ShiftAllocationsClientPage({
 				<input
 					type="text"
 					placeholder="Search by name..."
-					defaultValue={q}
+					value={q}
 					onChange={(e) => handleSearch(e.target.value)}
 					className="flex-1 bg-transparent text-sm outline-none placeholder:text-slate-400"
 				/>

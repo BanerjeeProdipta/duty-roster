@@ -35,6 +35,7 @@ export const schedulesResponseSchema = z.object({
 			nurse: z.object({
 				id: z.string(),
 				name: z.string(),
+				active: z.boolean().optional(),
 			}),
 			shifts: shiftCountsSchema,
 			assignments: z.record(

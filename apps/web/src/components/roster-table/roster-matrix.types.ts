@@ -3,6 +3,7 @@ export type ShiftType = "morning" | "evening" | "night" | "off";
 export interface Nurse {
 	id: string;
 	name: string;
+	active?: boolean;
 }
 
 export interface Shift {
@@ -25,6 +26,7 @@ export type SchedulesResponse = {
 		nurse: {
 			id: string;
 			name: string;
+			active?: boolean;
 		};
 		shifts: ShiftCounts;
 		assignments: Record<string, { id: string; shiftType: ShiftType } | null>;
