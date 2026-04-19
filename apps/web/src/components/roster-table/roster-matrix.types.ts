@@ -46,3 +46,11 @@ export type ShiftPreferences = {
 	evening?: number | undefined;
 	night?: number | undefined;
 };
+
+export type ShiftDefinition = {
+	id: string;
+	name: "morning" | "evening" | "night";
+	startTime: string;
+	endTime: string;
+	crossesMidnight: boolean;
+};

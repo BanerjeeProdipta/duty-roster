@@ -7,14 +7,9 @@ import {
 	DropdownMenuRadioItem,
 	DropdownMenuTrigger,
 } from "@Duty-Roster/ui/components/dropdown-menu";
-import { useState } from "react";
-import {
-	SHIFT_ICONS,
-	SHIFT_LABELS,
-	SHIFT_OPTIONS,
-	SHIFT_STYLES,
-	SHIFT_TIMES,
-} from "./roster-matrix.constants";
+import { useContext, useState } from "react";
+import { ShiftDefinitionContext } from ".";
+import { SHIFT_ICONS, SHIFT_STYLES } from "./roster-matrix.constants";
 import type { ShiftType } from "./roster-matrix.types";
 
 interface ShiftBadgeProps {
@@ -33,6 +28,13 @@ const shiftIconBg = (value: ShiftType) =>
 				? "bg-violet-200 text-violet-900"
 				: "bg-slate-200 text-slate-500";
 
+const defaultLabel: Record<ShiftType, string> = {
+	morning: "Morning",
+	evening: "Evening",
+	night: "Night",
+	off: "Day Off",
+};
+
 export function ShiftBadge({
 	type,
 	nurseName,
@@ -40,13 +42,21 @@ export function ShiftBadge({
 	onChange,
 }: ShiftBadgeProps) {
 	const [open, setOpen] = useState(false);
+	const shifts = useContext(ShiftDefinitionContext);
+
+	const shiftDef = shifts.find((s) => s.name === type);
+	const label = shiftDef ? defaultLabel[type] : defaultLabel[type];
+	const timeRange =
+		type !== "off" && shiftDef
+			? `${shiftDef.startTime.slice(0, 5)} - ${shiftDef.endTime.slice(0, 5)}`
+			: "No shift";
 
 	const badge = (
 		<div
 			className={`flex h-12 w-12 items-center justify-center rounded-lg font-bold text-lg shadow-sm transition-all duration-200 hover:translate-y-[1px] hover:scale-105 ${
 				onChange ? "cursor-pointer" : ""
 			} ${SHIFT_STYLES[type]}`}
-			title={`${nurseName} - ${date}: ${SHIFT_LABELS[type]} (${SHIFT_TIMES[type]})`}
+			title={`${nurseName} - ${date}: ${label} (${timeRange})`}
 		>
 			{SHIFT_ICONS[type]}
 		</div>
@@ -58,6 +68,15 @@ export function ShiftBadge({
 		onChange(value);
 		setOpen(false);
 	};
+
+	const shiftOptions = [
+		...shifts.map((s) => ({
+			value: s.name,
+			label: defaultLabel[s.name],
+			time: `${s.startTime.slice(0, 5)} - ${s.endTime.slice(0, 5)}`,
+		})),
+		{ value: "off" as const, label: "Day Off", time: "No shift" },
+	];
 
 	return (
 		<DropdownMenu open={open} onOpenChange={setOpen}>
@@ -80,7 +99,7 @@ export function ShiftBadge({
 					onValueChange={handleChange}
 					className="-mt-1"
 				>
-					{SHIFT_OPTIONS.map((item) => (
+					{shiftOptions.map((item) => (
 						<DropdownMenuRadioItem
 							key={item.value}
 							value={item.value}
@@ -95,7 +114,7 @@ export function ShiftBadge({
 									item.value,
 								)} text-lg`}
 							>
-								{item.icon}
+								{SHIFT_ICONS[item.value]}
 							</div>
 
 							<div className="flex flex-col">

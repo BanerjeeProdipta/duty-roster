@@ -2,6 +2,7 @@ import { z } from "zod";
 import {
 	nurseShiftPreferenceSchema,
 	schedulesResponseSchema,
+	shiftSchema,
 	updateNurseShiftPreferenceSchema,
 } from "../schemas/roster";
 import * as rosterService from "../services/roster";
@@ -10,6 +11,10 @@ import { protectedProcedure, publicProcedure, router } from "../trpc";
 export const rosterRouter = router({
 	getNurses: protectedProcedure.query(async () => {
 		return rosterService.getNurses();
+	}),
+
+	getShifts: publicProcedure.output(z.array(shiftSchema)).query(async () => {
+		return rosterService.getShifts();
 	}),
 
 	getSchedules: publicProcedure

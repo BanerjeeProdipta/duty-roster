@@ -1,5 +1,15 @@
 import { z } from "zod";
 
+export const shiftSchema = z.object({
+	id: z.string(),
+	name: z.enum(["morning", "evening", "night"]),
+	startTime: z.string(),
+	endTime: z.string(),
+	crossesMidnight: z.boolean(),
+});
+
+export type Shift = z.infer<typeof shiftSchema>;
+
 export const nurseShiftPreferenceSchema = z.object({
 	nurseId: z.string(),
 	name: z.string(),
