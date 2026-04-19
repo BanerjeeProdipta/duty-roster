@@ -1,3 +1,4 @@
+import { ShiftCounts } from "@/components/analytics/ShiftCounts";
 import { RosterTable } from "@/components/roster-table";
 import { RosterHeader } from "@/components/roster-table/roster-header";
 import { getMonthDateRange } from "@/utils";
@@ -27,6 +28,7 @@ export default async function Home(props: {
 	return (
 		<div className="flex flex-col">
 			<RosterHeader />
+			<ShiftCounts />
 			<div className="flex flex-col rounded-md border">
 				<RosterTable initialSchedules={initialSchedules} />
 			</div>

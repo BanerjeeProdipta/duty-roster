@@ -1,3 +1,4 @@
+import { ShiftCounts } from "@/components/analytics/ShiftCounts";
 import { RosterTable } from "@/components/roster-table";
 import { RosterHeader } from "@/components/roster-table/roster-header";
 import { getMonthDateRange } from "@/utils";
@@ -25,8 +26,9 @@ export default async function DashboardPage(props: {
 	});
 
 	return (
-		<div className="flex flex-col">
+		<div className="flex flex-col gap-6">
 			<RosterHeader editable />
+			<ShiftCounts />
 
 			<div className="flex flex-col rounded-2xl border">
 				<RosterTable editable initialSchedules={initialSchedules} />

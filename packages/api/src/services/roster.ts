@@ -442,3 +442,108 @@ export async function updateSchedule(id: string, shiftId: string | null) {
 	const normalizedShiftId = shiftId === "off" ? null : shiftId;
 	return rosterDb.updateScheduleShift(id, normalizedShiftId);
 }
+
+export async function getMonthlyShiftRequirements(year: number, month: number) {
+	const daysInMonth = getDaysInMonth(year, month);
+
+	const dayOfWeekCounts = {
+		monday: 0,
+		tuesday: 0,
+		wednesday: 0,
+		thursday: 0,
+		friday: 0,
+		saturday: 0,
+		sunday: 0,
+	};
+
+	const dayLabels = [
+		"sunday",
+		"monday",
+		"tuesday",
+		"wednesday",
+		"thursday",
+		"friday",
+		"saturday",
+	];
+
+	for (let day = 1; day <= daysInMonth; day++) {
+		const dayOfWeek = new Date(year, month - 1, day).getDay();
+		const dayKey = dayLabels[dayOfWeek] as keyof typeof dayOfWeekCounts;
+		dayOfWeekCounts[dayKey]++;
+	}
+
+	const assignedShiftCounts = {
+		morning: 0,
+		evening: 0,
+		night: 0,
+		total: 0,
+	};
+
+	const assignedSchedules = await rosterDb.findShiftCountsByMonth(year, month);
+
+	for (const schedule of assignedSchedules) {
+		const shiftId = schedule.shiftId;
+		if (shiftId === "shift_morning") {
+			assignedShiftCounts.morning++;
+		} else if (shiftId === "shift_evening") {
+			assignedShiftCounts.evening++;
+		} else if (shiftId === "shift_night") {
+			assignedShiftCounts.night++;
+		}
+	}
+	assignedShiftCounts.total =
+		assignedShiftCounts.morning +
+		assignedShiftCounts.evening +
+		assignedShiftCounts.night;
+
+	const result = {
+		year,
+		month,
+		daysInMonth,
+		dayOfWeekCounts,
+		shiftRequirements: {
+			morning: 0,
+			evening: 0,
+			night: 0,
+			total: 0,
+		},
+		assignedShiftCounts,
+	};
+
+	const MON_THU =
+		dayOfWeekCounts.monday +
+		dayOfWeekCounts.tuesday +
+		dayOfWeekCounts.wednesday +
+		dayOfWeekCounts.thursday;
+	const FRI = dayOfWeekCounts.friday;
+	const SAT = dayOfWeekCounts.saturday;
+	const SUN = dayOfWeekCounts.sunday;
+
+	const WEEKDAY_COVERAGE = ROSTER_CONFIG.COVERAGE.WEEKDAY;
+	const FRIDAY_COVERAGE = ROSTER_CONFIG.COVERAGE.FRIDAY;
+
+	result.shiftRequirements.morning =
+		MON_THU * WEEKDAY_COVERAGE.morning +
+		FRI * FRIDAY_COVERAGE.morning +
+		SAT * WEEKDAY_COVERAGE.morning +
+		SUN * WEEKDAY_COVERAGE.morning;
+
+	result.shiftRequirements.evening =
+		MON_THU * WEEKDAY_COVERAGE.evening +
+		FRI * FRIDAY_COVERAGE.evening +
+		SAT * WEEKDAY_COVERAGE.evening +
+		SUN * WEEKDAY_COVERAGE.evening;
+
+	result.shiftRequirements.night =
+		MON_THU * WEEKDAY_COVERAGE.night +
+		FRI * FRIDAY_COVERAGE.night +
+		SAT * WEEKDAY_COVERAGE.night +
+		SUN * WEEKDAY_COVERAGE.night;
+
+	result.shiftRequirements.total =
+		result.shiftRequirements.morning +
+		result.shiftRequirements.evening +
+		result.shiftRequirements.night;
+
+	return result;
+}

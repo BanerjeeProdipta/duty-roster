@@ -135,3 +135,26 @@ export async function updateScheduleShift(id: string, shiftId: string | null) {
 		.set({ shiftId })
 		.where(eq(nurseSchedule.id, id));
 }
+
+export async function findShiftCountsByMonth(year: number, month: number) {
+	const { startDate, endDate } = getMonthDateRange(year, month);
+
+	const results = await db
+		.select({
+			date: nurseSchedule.date,
+			shiftId: shift.id,
+		})
+		.from(nurseSchedule)
+		.innerJoin(shift, eq(shift.id, nurseSchedule.shiftId))
+		.where(
+			and(
+				sql`${nurseSchedule.date} >= ${startDate}`,
+				sql`${nurseSchedule.date} <= ${endDate}`,
+			),
+		);
+
+	return results.map((r) => ({
+		date: r.date,
+		shiftId: r.shiftId,
+	}));
+}

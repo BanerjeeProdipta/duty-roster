@@ -29,7 +29,7 @@ export function RosterHeader({ editable = false }: RosterHeaderProps) {
 	const generateMutation = useGenerateRoster();
 
 	return (
-		<div className="mb-8 flex animate-fade-in flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+		<div className="flex animate-fade-in flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
 			{/* Title */}
 			<div className="flex animate-slide-up flex-col gap-1">
 				<h1 className="font-bold text-3xl text-slate-900 tracking-tight sm:text-4xl">
