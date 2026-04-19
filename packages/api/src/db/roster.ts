@@ -13,6 +13,7 @@ export async function findAllShifts() {
 	return db.select().from(shift);
 }
 
+// TODO: respond with nurse names with off schedule for new months
 export async function findSchedulesByDateRange(startDate: Date, endDate: Date) {
 	// Ensure we are comparing dates without time components or normalized time
 	const start = new Date(startDate);

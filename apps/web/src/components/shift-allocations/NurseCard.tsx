@@ -1,6 +1,6 @@
 import { Button } from "@Duty-Roster/ui/components/button";
 import { cn } from "@Duty-Roster/ui/lib/utils";
-import { AlertCircle, Ban, User } from "lucide-react";
+import { AlertCircle, Ban, Save, User } from "lucide-react";
 import { ShiftInput } from "./ShiftInput";
 import { FourWaySlider } from "./Slider";
 import type { NurseState } from "./types";
@@ -10,11 +10,13 @@ export function NurseCard({
 	totalDays,
 	onFieldChange,
 	onActiveChange,
+	onUpdate,
 }: {
 	nurse: NurseState;
 	totalDays: number;
 	onFieldChange: (field: keyof NurseState, val: number) => void;
 	onActiveChange: (active: boolean) => void;
+	onUpdate?: () => void;
 	errors: unknown[];
 	index: number;
 }) {
@@ -27,7 +29,7 @@ export function NurseCard({
 			className={cn(
 				"animate-slide-up rounded-xl border bg-white p-5 transition-all duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)]",
 				isInvalid ? "border-red-200 bg-red-50/20" : "border-slate-100/80",
-				!isActive && "grayscale/10 opacity-50",
+				// !isActive && "grayscale/10 opacity-50",
 			)}
 		>
 			<div className="mb-4 flex items-start justify-between gap-4">
@@ -35,7 +37,9 @@ export function NurseCard({
 					<div className="flex items-center gap-2">
 						<div className="font-bold text-slate-800">{nurse.name}</div>
 						<Button
-							onClick={() => onActiveChange(!isActive)}
+							onClick={() => {
+								onActiveChange(!isActive);
+							}}
 							variant="ghost"
 							size={"xs"}
 						>
@@ -65,6 +69,17 @@ export function NurseCard({
 				</div>
 
 				<div className="flex flex-wrap items-center gap-2">
+					{onUpdate && (
+						<Button
+							onClick={onUpdate}
+							variant="ghost"
+							size={"xs"}
+							disabled={!isActive}
+						>
+							<Save className="h-3 w-3" />
+							Save
+						</Button>
+					)}
 					<ShiftInput
 						label="Day"
 						color="bg-[#FDE68A]"

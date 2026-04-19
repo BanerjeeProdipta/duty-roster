@@ -203,6 +203,30 @@ export default function ShiftAllocationsClient({
 										onActiveChange={(active) => {
 											form.setFieldValue(`nurses[${i}].active`, active);
 										}}
+										onUpdate={() => {
+											const n = nurses[i];
+											const preferences = [
+												{
+													nurseId: n.id,
+													shiftId: "shift_morning",
+													weight: Math.round((n.morning / totalDays) * 100),
+													active: n.active,
+												},
+												{
+													nurseId: n.id,
+													shiftId: "shift_evening",
+													weight: Math.round((n.evening / totalDays) * 100),
+													active: n.active,
+												},
+												{
+													nurseId: n.id,
+													shiftId: "shift_night",
+													weight: Math.round((n.night / totalDays) * 100),
+													active: n.active,
+												},
+											];
+											updateMutation.mutate(preferences);
+										}}
 										errors={[]}
 										index={i}
 									/>

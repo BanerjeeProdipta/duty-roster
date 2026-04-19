@@ -25,6 +25,8 @@ export default async function DashboardPage(props: {
 		endDate,
 	});
 
+	console.log(initialSchedules);
+
 	return (
 		<div className="flex flex-col gap-6">
 			<RosterHeader editable />

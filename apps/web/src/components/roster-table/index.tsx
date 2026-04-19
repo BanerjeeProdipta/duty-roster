@@ -23,29 +23,7 @@ type ShiftDefinition = {
 	crossesMidnight: boolean;
 };
 
-export const ShiftDefinitionContext = createContext<ShiftDefinition[]>([
-	{
-		id: "shift_morning",
-		name: "morning",
-		startTime: "08:00:00",
-		endTime: "14:00:00",
-		crossesMidnight: false,
-	},
-	{
-		id: "shift_evening",
-		name: "evening",
-		startTime: "14:00:00",
-		endTime: "20:00:00",
-		crossesMidnight: false,
-	},
-	{
-		id: "shift_night",
-		name: "night",
-		startTime: "20:00:00",
-		endTime: "08:00:00",
-		crossesMidnight: true,
-	},
-]);
+export const ShiftDefinitionContext = createContext<ShiftDefinition[]>([]);
 
 type RosterTableProps = {
 	editable?: boolean;
@@ -142,29 +120,7 @@ export function RosterTable({
 		}>;
 	};
 
-	const shifts = shiftsData ?? [
-		{
-			id: "shift_morning",
-			name: "morning" as const,
-			startTime: "08:00:00",
-			endTime: "14:00:00",
-			crossesMidnight: false,
-		},
-		{
-			id: "shift_evening",
-			name: "evening" as const,
-			startTime: "14:00:00",
-			endTime: "20:00:00",
-			crossesMidnight: false,
-		},
-		{
-			id: "shift_night",
-			name: "night" as const,
-			startTime: "20:00:00",
-			endTime: "08:00:00",
-			crossesMidnight: true,
-		},
-	];
+	const shifts = shiftsData ?? [];
 
 	const shiftTimeMap = Object.fromEntries(
 		shifts.map((s) => [
