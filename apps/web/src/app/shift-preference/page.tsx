@@ -1,17 +1,20 @@
-import ShiftAllocationsClient from "@/components/shift-allocations/ShiftAllocationsClient";
+import ShiftAllocationsClientPage from "@/components/shift-allocations/ShiftAllocationsClientPage";
+import type { NurseData } from "@/components/shift-allocations/types";
 import { getAuthedTRPCServer } from "@/utils/trpc-server";
 
-const ShiftAllocations = async () => {
+export default async function ShiftAllocations() {
 	const trpcServer = await getAuthedTRPCServer();
 	const nursePreferences = await trpcServer.roster.getNurseShiftPreferences();
 
-	const data = Array.isArray(nursePreferences) ? nursePreferences : [];
-
-	if (data.length === 0) {
-		return <div>No preferences found</div>;
+	if (!nursePreferences?.length) {
+		return (
+			<div className="flex h-[200px] items-center justify-center rounded-lg border border-slate-200 border-dashed text-slate-500 text-sm">
+				No shift preferences found.
+			</div>
+		);
 	}
 
-	return <ShiftAllocationsClient initialData={data} />;
-};
-
-export default ShiftAllocations;
+	return (
+		<ShiftAllocationsClientPage initialData={nursePreferences as NurseData[]} />
+	);
+}

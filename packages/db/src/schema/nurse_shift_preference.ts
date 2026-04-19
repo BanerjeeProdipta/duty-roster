@@ -1,4 +1,10 @@
-import { integer, pgTable, primaryKey, text } from "drizzle-orm/pg-core";
+import {
+	boolean,
+	integer,
+	pgTable,
+	primaryKey,
+	text,
+} from "drizzle-orm/pg-core";
 import { nurse } from "./nurse";
 import { shift } from "./shift";
 
@@ -14,6 +20,8 @@ export const nurseShiftPreference = pgTable(
 			.references(() => shift.id),
 
 		weight: integer("weight").notNull(),
+
+		active: boolean("active").notNull().default(true),
 	},
 	(t) => ({
 		pk: primaryKey(t.nurseId, t.shiftId),

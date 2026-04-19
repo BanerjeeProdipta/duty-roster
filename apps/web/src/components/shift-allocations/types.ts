@@ -1,10 +1,6 @@
-export type NurseData = {
-	nurseId: string;
-	name: string;
-	morning: number;
-	evening: number;
-	night: number;
-};
+import type { NurseShiftPreference } from "@Duty-Roster/api";
+
+export type NurseData = Required<NurseShiftPreference>;
 
 export type NurseState = {
 	id: string;
@@ -13,4 +9,5 @@ export type NurseState = {
 	evening: number;
 	night: number;
 	off: number;
+	active: boolean;
 };

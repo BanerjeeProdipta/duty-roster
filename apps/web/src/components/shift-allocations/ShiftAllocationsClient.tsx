@@ -10,12 +10,13 @@ import { toast } from "sonner";
 import z from "zod";
 import { trpcClient } from "@/utils/trpc";
 import { NurseCard } from "./NurseCard";
+import type { NurseData } from "./types";
 import { addMonths, formatMonth, getDaysInMonth, normalize } from "./utils";
 
 export default function ShiftAllocationsClient({
 	initialData,
 }: {
-	initialData: unknown;
+	initialData: NurseData[];
 }) {
 	const router = useRouter();
 	const [month, setMonth] = useState(() => new Date());
@@ -29,6 +30,7 @@ export default function ShiftAllocationsClient({
 			evening: z.number().min(0),
 			night: z.number().min(0),
 			off: z.number().min(0),
+			active: z.boolean(),
 		})
 		.refine(
 			(data) =>
@@ -43,7 +45,12 @@ export default function ShiftAllocationsClient({
 
 	const updateMutation = useMutation({
 		mutationFn: async (
-			preferences: { nurseId: string; shiftId: string; weight: number }[],
+			preferences: {
+				nurseId: string;
+				shiftId: string;
+				weight: number;
+				active: boolean;
+			}[],
 		) => trpcClient.roster.updateNurseShiftPreferences.mutate(preferences),
 		onMutate: () => {
 			setIsSaving(true);
@@ -72,16 +79,19 @@ export default function ShiftAllocationsClient({
 					nurseId: nurse.id,
 					shiftId: "shift_morning",
 					weight: Math.round((nurse.morning / totalDays) * 100),
+					active: nurse.active,
 				},
 				{
 					nurseId: nurse.id,
 					shiftId: "shift_evening",
 					weight: Math.round((nurse.evening / totalDays) * 100),
+					active: nurse.active,
 				},
 				{
 					nurseId: nurse.id,
 					shiftId: "shift_night",
 					weight: Math.round((nurse.night / totalDays) * 100),
+					active: nurse.active,
 				},
 			]);
 			await updateMutation.mutateAsync(preferences);
@@ -112,7 +122,28 @@ export default function ShiftAllocationsClient({
 					<ArrowLeft className="h-4 w-4" />
 				</Button>
 
-				<div className="font-semibold">{formatMonth(month)}</div>
+				<div className="flex flex-col items-center gap-1">
+					<div className="font-semibold">{formatMonth(month)}</div>
+					<form.Subscribe selector={(state) => state.values.nurses}>
+						{(nurses) => {
+							const activeCount = nurses.filter((n) => n.active).length;
+							const inactiveCount = nurses.length - activeCount;
+							return (
+								<div className="flex gap-2 text-xs">
+									<span className="flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-blue-700">
+										{nurses.length} total
+									</span>
+									<span className="flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-green-700">
+										{activeCount} active
+									</span>
+									<span className="flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-slate-500">
+										{inactiveCount} inactive
+									</span>
+								</div>
+							);
+						}}
+					</form.Subscribe>
+				</div>
 
 				<Button
 					variant="ghost"
@@ -168,6 +199,9 @@ export default function ShiftAllocationsClient({
 												`nurses[${i}].${subField}` as "nurses[0].morning",
 												val,
 											);
+										}}
+										onActiveChange={(active) => {
+											form.setFieldValue(`nurses[${i}].active`, active);
 										}}
 										errors={[]}
 										index={i}

@@ -7,12 +7,14 @@ export function ShiftInput({
 	value,
 	onChange,
 	max,
+	disabled,
 }: {
 	label: string;
 	color: string;
 	value: number;
 	onChange: (v: number) => void;
 	max: number;
+	disabled?: boolean;
 }) {
 	const [localValue, setLocalValue] = useState(value.toString());
 
@@ -29,7 +31,11 @@ export function ShiftInput({
 					min={0}
 					max={max}
 					value={localValue}
-					className="h-9 w-12 rounded-md border border-slate-200 bg-slate-50/30 text-center font-extrabold text-sm transition-all [appearance:textfield] focus:border-primary/50 focus:ring-4 focus:ring-primary/5 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+					disabled={disabled}
+					className={cn(
+						"h-9 w-12 rounded-md border border-slate-200 bg-slate-50/30 text-center font-extrabold text-sm transition-all [appearance:textfield] focus:border-primary/50 focus:ring-4 focus:ring-primary/5 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none",
+						disabled && "cursor-not-allowed bg-slate-100 text-slate-400",
+					)}
 					onChange={(e) => {
 						const valStr = e.target.value;
 						setLocalValue(valStr);

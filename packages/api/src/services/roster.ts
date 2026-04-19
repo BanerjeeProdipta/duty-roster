@@ -402,6 +402,7 @@ export async function listNurseShiftPreferenceWeights() {
 				acc[nurseId] = {
 					nurseId,
 					name: row.nurse.name,
+					active: row.active ?? true,
 				};
 			}
 
@@ -420,6 +421,7 @@ export async function listNurseShiftPreferenceWeights() {
 				morning?: number;
 				evening?: number;
 				night?: number;
+				active: boolean;
 			}
 		>,
 	);
@@ -433,6 +435,7 @@ export async function updateNurseShiftPreferenceWeights(
 		nurseId: string;
 		shiftId: string;
 		weight: number;
+		active: boolean;
 	}[],
 ) {
 	return rosterDb.upsertNurseShiftPreferences(preferences);

@@ -16,6 +16,7 @@ export function normalize(data: unknown, totalDays: number): NurseState[] {
 			evening: e,
 			night: n,
 			off: Math.max(0, totalDays - used),
+			active: item.active ?? true,
 		};
 	});
 }

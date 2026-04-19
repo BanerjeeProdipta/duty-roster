@@ -1,5 +1,6 @@
+import { Button } from "@Duty-Roster/ui/components/button";
 import { cn } from "@Duty-Roster/ui/lib/utils";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Ban, User } from "lucide-react";
 import { ShiftInput } from "./ShiftInput";
 import { FourWaySlider } from "./Slider";
 import type { NurseState } from "./types";
@@ -8,26 +9,49 @@ export function NurseCard({
 	nurse,
 	totalDays,
 	onFieldChange,
+	onActiveChange,
 }: {
 	nurse: NurseState;
 	totalDays: number;
 	onFieldChange: (field: keyof NurseState, val: number) => void;
+	onActiveChange: (active: boolean) => void;
 	errors: unknown[];
 	index: number;
 }) {
 	const sum = nurse.morning + nurse.evening + nurse.night + nurse.off;
 	const isInvalid = sum !== totalDays;
+	const isActive = nurse.active ?? true;
 
 	return (
 		<div
 			className={cn(
 				"animate-slide-up rounded-xl border bg-white p-5 transition-all duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)]",
 				isInvalid ? "border-red-200 bg-red-50/20" : "border-slate-100/80",
+				!isActive && "grayscale/10 opacity-50",
 			)}
 		>
 			<div className="mb-4 flex items-start justify-between gap-4">
-				<div className="flex flex-col gap-1">
-					<div className="font-bold text-slate-800">{nurse.name}</div>
+				<div className="flex flex-wrap items-center gap-3">
+					<div className="flex items-center gap-2">
+						<div className="font-bold text-slate-800">{nurse.name}</div>
+						<Button
+							onClick={() => onActiveChange(!isActive)}
+							variant="ghost"
+							size={"xs"}
+						>
+							{isActive ? (
+								<>
+									<User className="h-3 w-3" />
+									Active
+								</>
+							) : (
+								<>
+									<Ban className="h-3 w-3" />
+									Inactive
+								</>
+							)}
+						</Button>
+					</div>
 					<div
 						className={cn(
 							"w-fit rounded-full px-1.5 py-0.5 font-bold text-[10px] uppercase",
@@ -47,6 +71,7 @@ export function NurseCard({
 						value={nurse.morning}
 						onChange={(v) => onFieldChange("morning", v)}
 						max={totalDays}
+						disabled={!isActive}
 					/>
 					<ShiftInput
 						label="Eve"
@@ -54,6 +79,7 @@ export function NurseCard({
 						value={nurse.evening}
 						onChange={(v) => onFieldChange("evening", v)}
 						max={totalDays}
+						disabled={!isActive}
 					/>
 					<ShiftInput
 						label="Ngt"
@@ -61,6 +87,7 @@ export function NurseCard({
 						value={nurse.night}
 						onChange={(v) => onFieldChange("night", v)}
 						max={totalDays}
+						disabled={!isActive}
 					/>
 					<ShiftInput
 						label="Off"
@@ -68,6 +95,7 @@ export function NurseCard({
 						value={nurse.off}
 						onChange={(v) => onFieldChange("off", v)}
 						max={totalDays}
+						disabled={!isActive}
 					/>
 				</div>
 			</div>
@@ -86,6 +114,7 @@ export function NurseCard({
 					onFieldChange("night", v.night);
 					onFieldChange("off", v.off);
 				}}
+				disabled={!isActive}
 			/>
 
 			{isInvalid && (

@@ -26,7 +26,7 @@ export default async function Home(props: {
 	});
 
 	return (
-		<div className="flex flex-col">
+		<div className="flex flex-col gap-6">
 			<RosterHeader />
 			<ShiftCounts />
 			<div className="flex flex-col rounded-md border">

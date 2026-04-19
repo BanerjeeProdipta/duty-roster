@@ -1,42 +1,11 @@
 import { z } from "zod";
+import {
+	nurseShiftPreferenceSchema,
+	schedulesResponseSchema,
+	updateNurseShiftPreferenceSchema,
+} from "../schemas/roster";
 import * as rosterService from "../services/roster";
 import { protectedProcedure, publicProcedure, router } from "../trpc";
-
-const shiftCountsSchema = z.object({
-	morning: z.number(),
-	evening: z.number(),
-	night: z.number(),
-	totalAssigned: z.number(),
-});
-
-const schedulesResponseSchema = z.object({
-	nurseRows: z.array(
-		z.object({
-			nurse: z.object({
-				id: z.string(),
-				name: z.string(),
-			}),
-			shifts: shiftCountsSchema,
-			assignments: z.record(
-				z.string(),
-				z
-					.object({
-						id: z.string(),
-						shiftType: z.enum(["morning", "evening", "night", "off"]),
-					})
-					.nullable(),
-			),
-			preference: z
-				.object({
-					morning: z.number().optional(),
-					evening: z.number().optional(),
-					night: z.number().optional(),
-				})
-				.optional(),
-		}),
-	),
-	dailyShiftCounts: z.record(z.string(), shiftCountsSchema),
-});
 
 export const rosterRouter = router({
 	getNurses: protectedProcedure.query(async () => {
@@ -96,20 +65,14 @@ export const rosterRouter = router({
 			return rosterService.generateRoster(input);
 		}),
 
-	getNurseShiftPreferences: publicProcedure.query(async () => {
-		return rosterService.listNurseShiftPreferenceWeights();
-	}),
+	getNurseShiftPreferences: publicProcedure
+		.output(z.array(nurseShiftPreferenceSchema))
+		.query(async () => {
+			return rosterService.listNurseShiftPreferenceWeights();
+		}),
 
 	updateNurseShiftPreferences: protectedProcedure
-		.input(
-			z.array(
-				z.object({
-					nurseId: z.string(),
-					shiftId: z.string(),
-					weight: z.number(),
-				}),
-			),
-		)
+		.input(updateNurseShiftPreferenceSchema)
 		.mutation(async ({ input }) => {
 			return rosterService.updateNurseShiftPreferenceWeights(input);
 		}),

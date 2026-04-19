@@ -98,6 +98,7 @@ export async function findAllPreferredShiftsByNurse() {
 			},
 			shiftId: nurseShiftPreference.shiftId,
 			weight: nurseShiftPreference.weight,
+			active: nurseShiftPreference.active,
 		})
 		.from(nurseShiftPreference)
 		.innerJoin(nurse, eq(nurse.id, nurseShiftPreference.nurseId));
@@ -108,6 +109,7 @@ export async function upsertNurseShiftPreferences(
 		nurseId: string;
 		shiftId: string;
 		weight: number;
+		active: boolean;
 	}[],
 ) {
 	if (preferences.length === 0) return;
@@ -119,12 +121,14 @@ export async function upsertNurseShiftPreferences(
 				nurseId: pref.nurseId,
 				shiftId: pref.shiftId,
 				weight: pref.weight,
+				active: pref.active,
 			})),
 		)
 		.onConflictDoUpdate({
 			target: [nurseShiftPreference.nurseId, nurseShiftPreference.shiftId],
 			set: {
 				weight: sql`excluded.weight`,
+				active: sql`excluded.active`,
 			},
 		});
 }

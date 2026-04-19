@@ -1,5 +1,6 @@
 "use client";
 
+import { cn } from "@Duty-Roster/ui/lib/utils";
 import { useRef } from "react";
 
 type Value = {
@@ -15,10 +16,12 @@ export function FourWaySlider({
 	value,
 	total = 100,
 	onChange,
+	disabled,
 }: {
 	value: Value;
 	total?: number;
 	onChange: (v: Value) => void;
+	disabled?: boolean;
 }) {
 	const ref = useRef<HTMLDivElement | null>(null);
 
@@ -31,6 +34,7 @@ export function FourWaySlider({
 	valueRef.current = { A, B, C, total, onChange };
 
 	function startDrag(mode: Active) {
+		if (disabled) return;
 		const move = (e: PointerEvent) => {
 			if (!ref.current) return;
 			const r = ref.current.getBoundingClientRect();
@@ -98,14 +102,22 @@ export function FourWaySlider({
 			/>
 
 			{/* Handles */}
-			<Handle pos={pct(A)} onDown={() => startDrag("a")} />
-			<Handle pos={pct(B)} onDown={() => startDrag("b")} />
-			<Handle pos={pct(C)} onDown={() => startDrag("c")} />
+			<Handle pos={pct(A)} onDown={() => startDrag("a")} disabled={disabled} />
+			<Handle pos={pct(B)} onDown={() => startDrag("b")} disabled={disabled} />
+			<Handle pos={pct(C)} onDown={() => startDrag("c")} disabled={disabled} />
 		</div>
 	);
 }
 
-function Handle({ pos, onDown }: { pos: number; onDown: () => void }) {
+function Handle({
+	pos,
+	onDown,
+	disabled,
+}: {
+	pos: number;
+	onDown: () => void;
+	disabled?: boolean;
+}) {
 	return (
 		<div
 			onPointerDown={(e) => {
@@ -113,7 +125,10 @@ function Handle({ pos, onDown }: { pos: number; onDown: () => void }) {
 				(e.target as HTMLElement).setPointerCapture(e.pointerId);
 				onDown();
 			}}
-			className="absolute top-1/2 z-10 h-4 w-4 -translate-x-1/2 -translate-y-1/2 cursor-grab rounded-full border-2 border-white bg-slate-400"
+			className={cn(
+				"absolute top-1/2 z-10 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-slate-400",
+				disabled ? "cursor-not-allowed bg-slate-300" : "cursor-grab",
+			)}
 			style={{ left: `${pos}%` }}
 		/>
 	);

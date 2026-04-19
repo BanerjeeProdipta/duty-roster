@@ -1,4 +1,5 @@
 import { cn } from "@Duty-Roster/ui/lib/utils";
+import Link from "next/link";
 import { AllocationItem } from "./allocation-item";
 
 export function NurseIdentityCell({
@@ -6,11 +7,13 @@ export function NurseIdentityCell({
 	counts,
 	pref,
 	totalDays,
+	editable,
 }: {
 	nurse: { id: string; name: string };
 	counts: { morning: number; evening: number; night: number } | undefined;
 	pref?: { morning?: number; evening?: number; night?: number } | undefined;
 	totalDays: number;
+	editable?: boolean;
 }) {
 	const totalAssigned =
 		(counts?.morning || 0) + (counts?.evening || 0) + (counts?.night || 0);
@@ -26,12 +29,19 @@ export function NurseIdentityCell({
 		<div className="h-full w-full border-r border-b bg-white px-3 py-3 transition-colors duration-200 hover:bg-slate-50/80">
 			<div className="flex h-full flex-col justify-center gap-2">
 				<div className="flex items-center justify-between gap-1 overflow-hidden">
-					<span
-						className="truncate font-extrabold text-slate-900 text-sm"
-						title={nurse.name}
-					>
-						{nurse?.name || "Nurse"}
-					</span>
+					<Link href={`/shift-preference?q=${nurse.name}`}>
+						<span
+							className={cn(
+								"truncate font-extrabold text-sm",
+								editable &&
+									"cursor-pointer text-blue-900 hover:text-blue-800 hover:underline",
+								!editable && "text-slate-900",
+							)}
+							title={nurse.name}
+						>
+							{nurse?.name || "Nurse"}
+						</span>
+					</Link>
 					<div
 						className={cn(
 							"shrink-0 rounded-md border px-1.5 py-0.5 font-black text-[9px]",

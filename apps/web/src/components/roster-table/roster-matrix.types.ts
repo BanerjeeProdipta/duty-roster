@@ -27,7 +27,7 @@ export type SchedulesResponse = {
 			name: string;
 		};
 		shifts: ShiftCounts;
-		assignments: Record<string, { id: string; shiftType: string } | null>;
+		assignments: Record<string, { id: string; shiftType: ShiftType } | null>;
 		preference?: {
 			morning?: number;
 			evening?: number;

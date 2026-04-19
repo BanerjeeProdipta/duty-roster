@@ -167,6 +167,7 @@ export function RosterTable({
 														counts={counts}
 														pref={preference}
 														totalDays={normalizedDates.length}
+														editable={editable}
 													/>
 												</div>
 
