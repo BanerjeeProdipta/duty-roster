@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { NurseState } from "./types";
+import type { NurseState } from "../components/shift-allocations/types";
 import {
 	convertToPreferences,
 	useUpdateNurseActive,

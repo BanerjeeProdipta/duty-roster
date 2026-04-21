@@ -1,9 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { NurseData } from "./types";
+import { getDaysInMonth } from "@/utils";
+import type { NurseData } from "../components/shift-allocations/types";
 import { useShiftAllocationsForm } from "./useShiftAllocationsForm";
-import { getDaysInMonth } from "./utils";
 
 interface UseShiftAllocationsProps {
 	initialData: NurseData[];

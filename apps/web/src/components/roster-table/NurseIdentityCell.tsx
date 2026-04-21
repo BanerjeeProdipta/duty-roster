@@ -1,6 +1,6 @@
 import { cn } from "@Duty-Roster/ui/lib/utils";
 import Link from "next/link";
-import { AllocationItem } from "./allocation-item";
+import { AllocationItem } from "./AllocationItem";
 
 export function NurseIdentityCell({
 	nurse,
@@ -8,14 +8,12 @@ export function NurseIdentityCell({
 	pref,
 	totalDays,
 	editable,
-	highlight,
 }: {
 	nurse: { id: string; name: string; active?: boolean };
 	counts: { morning: number; evening: number; night: number } | undefined;
 	pref?: { morning?: number; evening?: number; night?: number } | undefined;
 	totalDays: number;
 	editable?: boolean;
-	highlight?: boolean;
 }) {
 	const totalAssigned =
 		(counts?.morning || 0) + (counts?.evening || 0) + (counts?.night || 0);
@@ -32,12 +30,11 @@ export function NurseIdentityCell({
 			className={cn(
 				"h-full w-full border-r border-b bg-white px-3 py-3 transition-colors duration-200 hover:bg-slate-50/80",
 				nurse.active === false && "opacity-60 grayscale",
-				highlight && "bg-yellow-50 ring-2 ring-yellow-400 ring-inset",
 			)}
 		>
 			<div className="flex h-full flex-col justify-center gap-2">
 				<div className="flex items-center justify-between gap-1 overflow-hidden">
-					<Link href={`/shift-preference?n=${nurse.name}`}>
+					<Link href={`/shift-preference?q=${nurse.name}`}>
 						<span
 							className={cn(
 								"truncate font-extrabold text-sm",

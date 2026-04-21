@@ -1,10 +1,10 @@
 import { Button } from "@Duty-Roster/ui/components/button";
 import { cn } from "@Duty-Roster/ui/lib/utils";
 import { AlertCircle, Ban, Loader2, Save, User } from "lucide-react";
+import { useNurseCard } from "../../hooks/useNurseCard";
 import { ShiftInput } from "./ShiftInput";
 import { FourWaySlider } from "./Slider";
 import type { NurseState } from "./types";
-import { useNurseCard } from "./useNurseCard";
 
 interface NurseCardProps {
 	nurse: NurseState;

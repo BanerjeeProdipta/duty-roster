@@ -1,5 +1,5 @@
 import { Coffee, Moon, Sun, Sunset } from "lucide-react";
-import type { ShiftType } from "./roster-matrix.types";
+import type { ShiftType } from "./RosterMatrix.types";
 
 export const SHIFT_STYLES: Record<ShiftType, string> = {
 	morning:

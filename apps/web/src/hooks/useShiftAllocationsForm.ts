@@ -3,12 +3,12 @@
 import { useForm } from "@tanstack/react-form";
 import { useEffect, useState } from "react";
 import z from "zod";
-import type { NurseData, NurseState } from "./types";
+import { normalize } from "@/utils";
+import type { NurseData } from "../components/shift-allocations/types";
 import {
 	convertToPreferences,
 	useUpdatePreferences,
 } from "./useUpdatePreferences";
-import { normalize } from "./utils";
 
 interface UseShiftAllocationsFormProps {
 	initialData: NurseData[];
@@ -78,5 +78,3 @@ export function useShiftAllocationsForm({
 		isSaving,
 	};
 }
-
-export type { NurseState };

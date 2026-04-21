@@ -1,6 +1,6 @@
 "use client";
 
-import type { NurseState } from "./types";
+import type { NurseState } from "../components/shift-allocations/types";
 
 export interface NurseSummary {
 	totalCount: number;

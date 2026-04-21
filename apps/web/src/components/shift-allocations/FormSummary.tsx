@@ -10,7 +10,7 @@ import {
 	UserRoundMinus,
 	Users,
 } from "lucide-react";
-import { getNurseSummary } from "./useNurseSummary";
+import { getNurseSummary } from "../../hooks/useNurseSummary";
 
 interface FormSummaryProps {
 	nurses: any[];

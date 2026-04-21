@@ -1,23 +1,22 @@
 import { cn } from "@Duty-Roster/ui/lib/utils";
 import React from "react";
-import { LAYOUT } from "./constants";
-import type { ShiftType } from "./roster-matrix.types";
-import { ShiftBadge } from "./shift-dropdown";
+import type { ShiftDefinition } from "../../hooks/useShifts";
+import { LAYOUT } from "./Layout";
+import type { ShiftType } from "./RosterMatrix.types";
+import { ShiftBadge } from "./ShiftDropdown";
 
 interface NurseRowProps {
 	nurse: { id: string; name: string; active?: boolean };
 	dates: Date[];
 	assignments: Record<string, { id: string; shiftType: ShiftType } | null>;
-	editable?: boolean;
-	onUpdateShift?: (id: string, shiftId: string | null) => void;
+	shifts: ShiftDefinition[];
 }
 
 export const NurseRow = React.memo(function NurseRow({
 	nurse,
 	dates,
 	assignments,
-	editable = false,
-	onUpdateShift,
+	shifts,
 }: NurseRowProps) {
 	return (
 		<div
@@ -44,15 +43,8 @@ export const NurseRow = React.memo(function NurseRow({
 							type={shift?.shiftType || "off"}
 							nurseName={nurse?.name || "Nurse"}
 							date={dateKey}
-							onChange={
-								editable && shift?.id
-									? (newType) => {
-											const shiftId =
-												newType === "off" ? null : `shift_${newType}`;
-											onUpdateShift?.(shift.id, shiftId);
-										}
-									: undefined
-							}
+							assignmentId={shift?.id}
+							shifts={shifts}
 						/>
 					</div>
 				);

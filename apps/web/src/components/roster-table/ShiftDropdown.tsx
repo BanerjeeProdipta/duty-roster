@@ -10,8 +10,8 @@ import {
 import { useState } from "react";
 import type { ShiftDefinition } from "../../hooks/useShifts";
 import { useUpdateShift } from "../../hooks/useUpdateShift";
-import { SHIFT_ICONS, SHIFT_STYLES } from "./roster-matrix.constants";
-import type { ShiftType } from "./roster-matrix.types";
+import { SHIFT_ICONS, SHIFT_STYLES } from "./RosterMatrix.constants";
+import type { ShiftType } from "./RosterMatrix.types";
 
 interface ShiftBadgeProps {
 	type: ShiftType;

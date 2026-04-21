@@ -1,7 +1,7 @@
 import { ShiftCounts } from "@/components/analytics/ShiftCounts";
 import { MonthNavigator } from "@/components/shift-allocations/MonthNavigator";
 import ShiftAllocationsClient from "@/components/shift-allocations/ShiftAllocationsClient";
-import { getYearMonthFromSearchParams } from "@/components/shift-allocations/utils";
+import { getYearMonthFromSearchParams } from "@/utils";
 import { getAuthedTRPCServer } from "@/utils/trpc-server";
 
 export default async function ShiftAllocations(props: {

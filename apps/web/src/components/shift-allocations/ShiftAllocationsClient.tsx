@@ -1,10 +1,10 @@
 "use client";
 
 import { SearchInput } from "@Duty-Roster/ui/components/search-input";
+import { useShiftAllocations } from "../../hooks/useShiftAllocations";
 import { FormSummary } from "./FormSummary";
 import { NurseList } from "./NurseList";
 import type { NurseData } from "./types";
-import { useShiftAllocations } from "./useShiftAllocations";
 
 interface ShiftAllocationsClientProps {
 	initialData: NurseData[];

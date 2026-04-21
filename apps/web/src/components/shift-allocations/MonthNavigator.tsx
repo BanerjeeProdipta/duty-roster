@@ -4,7 +4,7 @@ import { Button } from "@Duty-Roster/ui/components/button";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useMemo } from "react";
-import { formatMonth, type MonthNavigatorProps } from "./utils";
+import { formatMonth, type MonthNavigatorProps } from "@/utils";
 
 export function MonthNavigator(_props: MonthNavigatorProps) {
 	const router = useRouter();

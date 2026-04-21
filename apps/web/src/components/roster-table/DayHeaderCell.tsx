@@ -1,6 +1,6 @@
 import { cn } from "@Duty-Roster/ui/lib/utils";
-import { AllocationItem } from "./allocation-item";
-import { LAYOUT } from "./constants";
+import { AllocationItem } from "./AllocationItem";
+import { LAYOUT } from "./Layout";
 
 export function DayHeaderCell({
 	date,
