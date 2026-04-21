@@ -28,7 +28,7 @@ export default async function Home(props: {
 	return (
 		<div className="flex flex-col gap-6">
 			<RosterHeader />
-			<ShiftCounts />
+			<ShiftCounts month={month} year={year} />
 			<div className="flex flex-col rounded-md">
 				<RosterTable initialSchedules={initialSchedules} />
 			</div>

@@ -30,7 +30,7 @@ export default async function DashboardPage(props: {
 	return (
 		<div className="flex flex-col gap-6">
 			<RosterHeader editable />
-			<ShiftCounts />
+			<ShiftCounts month={month} year={year} />
 
 			<div className="flex flex-col rounded-2xl">
 				<RosterTable editable initialSchedules={initialSchedules} />

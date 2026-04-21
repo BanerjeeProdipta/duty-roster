@@ -171,13 +171,17 @@ export default function ShiftAllocationsClient({
 				>
 					{({ canSubmit, isSubmitting, isDirty }) =>
 						isDirty && (
-							<div className="fade-in slide-in-from-top-2 flex animate-in items-center justify-between rounded-md border border-amber-100 bg-amber-50 p-4 shadow-sm">
-								<div className="flex items-center gap-2 font-medium text-amber-800 text-sm">
+							<div className="fade-in slide-in-from-top-2 flex animate-in items-center justify-between rounded-md border border-purple-100 bg-purple-50 p-4 shadow-sm">
+								<div className="flex items-center gap-2 font-medium text-purple-800 text-sm">
 									<AlertCircle className="h-4 w-4" />
 									<span>You have unsaved changes.</span>
 								</div>
 
-								<Button type="submit" disabled={!canSubmit || isSubmitting}>
+								<Button
+									type="submit"
+									disabled={!canSubmit || isSubmitting}
+									className="bg-purple-200 text-purple-900"
+								>
 									{isSubmitting ? "Saving..." : "Save All Changes"}
 								</Button>
 							</div>
