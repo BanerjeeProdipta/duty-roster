@@ -14,8 +14,8 @@ type GenerateRosterParams = {
 // ───────────── SUMMARY ─────────────
 
 type ScheduleRowInput = {
-	id: string;
-	date: string;
+	id: string | null;
+	date: string | null;
 	nurse: {
 		id: string;
 		name: string;
@@ -58,6 +58,28 @@ export function buildScheduleSummary(
 	>();
 
 	for (const schedule of schedules) {
+		let nurseCounts = nurseShiftCountsMap.get(schedule.nurse.id);
+		if (!nurseCounts) {
+			nurseCounts = {
+				nurse: schedule.nurse,
+				shifts: {
+					morning: 0,
+					evening: 0,
+					night: 0,
+					totalAssigned: 0,
+				},
+			};
+			nurseShiftCountsMap.set(schedule.nurse.id, nurseCounts);
+		}
+
+		if (!nurseAssignmentsMap.has(schedule.nurse.id)) {
+			nurseAssignmentsMap.set(schedule.nurse.id, {});
+		}
+
+		if (!schedule.id || !schedule.date) {
+			continue;
+		}
+
 		const dateKey = schedule.date;
 		const shiftId = schedule.shift?.id;
 		const normalizedShiftId = normalizeShiftId(shiftId);
@@ -69,19 +91,6 @@ export function buildScheduleSummary(
 			totalAssigned: 0,
 		};
 
-		const nurseCounts = nurseShiftCountsMap.get(schedule.nurse.id) ?? {
-			nurse: schedule.nurse,
-			shifts: {
-				morning: 0,
-				evening: 0,
-				night: 0,
-				totalAssigned: 0,
-			},
-		};
-
-		if (!nurseAssignmentsMap.has(schedule.nurse.id)) {
-			nurseAssignmentsMap.set(schedule.nurse.id, {});
-		}
 		const nurseMap = nurseAssignmentsMap.get(schedule.nurse.id);
 		if (nurseMap) {
 			nurseMap[dateKey] = {
@@ -167,7 +176,7 @@ export async function getSchedulesByDateRange(startDate: Date, endDate: Date) {
 	// Transform dates to strings first
 	const transformedSchedules = schedules.map((s) => ({
 		...s,
-		date: formatDateKey(s.date),
+		date: s.date ? formatDateKey(s.date) : null,
 	}));
 
 	// Build summary using transformed schedules (dates as strings)

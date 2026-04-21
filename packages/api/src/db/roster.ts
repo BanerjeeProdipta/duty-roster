@@ -33,16 +33,17 @@ export async function findSchedulesByDateRange(startDate: Date, endDate: Date) {
 				id: shift.id,
 			},
 		})
-		.from(nurseSchedule)
-		.innerJoin(nurse, eq(nurse.id, nurseSchedule.nurseId))
-		.leftJoin(shift, eq(shift.id, nurseSchedule.shiftId))
-		.where(
+		.from(nurse)
+		.leftJoin(
+			nurseSchedule,
 			and(
+				eq(nurse.id, nurseSchedule.nurseId),
 				sql`${nurseSchedule.date} >= ${start}`,
 				sql`${nurseSchedule.date} <= ${end}`,
 			),
 		)
-		.orderBy(nurseSchedule.date);
+		.leftJoin(shift, eq(shift.id, nurseSchedule.shiftId))
+		.orderBy(nurse.name, nurseSchedule.date);
 }
 
 export async function createSchedules(
