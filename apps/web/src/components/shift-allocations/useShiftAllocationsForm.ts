@@ -17,23 +17,15 @@ interface UseShiftAllocationsFormProps {
 }
 
 const createNurseSchema = (days: number) =>
-	z
-		.object({
-			id: z.string(),
-			name: z.string(),
-			morning: z.number().min(0),
-			evening: z.number().min(0),
-			night: z.number().min(0),
-			off: z.number().min(0),
-			active: z.boolean(),
-		})
-		.refine(
-			(data) => data.morning + data.evening + data.night + data.off === days,
-			{
-				message: `Total must be exactly ${days} days`,
-				path: ["off"],
-			},
-		);
+	z.object({
+		nurseId: z.string(),
+		name: z.string(),
+		morning: z.number().min(0).max(days),
+		evening: z.number().min(0).max(days),
+		night: z.number().min(0).max(days),
+		off: z.number().min(0).max(days),
+		active: z.boolean(),
+	});
 
 export function useShiftAllocationsForm({
 	initialData,
@@ -52,7 +44,7 @@ export function useShiftAllocationsForm({
 			const preferences = value.nurses.flatMap((nurse) =>
 				convertToPreferences(
 					{
-						id: nurse.id,
+						id: nurse.nurseId,
 						morning: nurse.morning,
 						evening: nurse.evening,
 						night: nurse.night,

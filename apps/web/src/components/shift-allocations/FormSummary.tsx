@@ -13,7 +13,7 @@ import {
 import { getNurseSummary } from "./useNurseSummary";
 
 interface FormSummaryProps {
-	form: any;
+	nurses: any[];
 	totalDays: number;
 	capacity?: {
 		morning: number;
@@ -23,10 +23,7 @@ interface FormSummaryProps {
 	};
 }
 
-export function FormSummary({ form, totalDays, capacity }: FormSummaryProps) {
-	const nurses =
-		form.useStore?.((state: any) => state.values.nurses ?? []) ?? [];
-
+export function FormSummary({ nurses, totalDays, capacity }: FormSummaryProps) {
 	const summary = getNurseSummary(nurses, totalDays);
 
 	return (

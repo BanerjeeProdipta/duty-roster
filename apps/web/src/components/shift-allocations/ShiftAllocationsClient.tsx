@@ -1,10 +1,9 @@
 "use client";
 
 import { SearchInput } from "@Duty-Roster/ui/components/search-input";
-import { useSearchParams } from "next/navigation";
 import { FormSummary } from "./FormSummary";
 import { NurseList } from "./NurseList";
-import type { NurseData, NurseState } from "./types";
+import type { NurseData } from "./types";
 import { useShiftAllocations } from "./useShiftAllocations";
 
 interface ShiftAllocationsClientProps {
@@ -25,39 +24,38 @@ export default function ShiftAllocationsClient({
 	month,
 	capacity,
 }: ShiftAllocationsClientProps) {
-	const searchParams = useSearchParams();
-	const highlightName = searchParams.get("n") ?? "";
-
-	const { totalDays, form } = useShiftAllocations({
+	const { form, totalDays, filteredData } = useShiftAllocations({
 		initialData,
 		year,
 		month,
 	});
+	const nurses = filteredData;
 
 	return (
-		<div className="flex flex-col gap-4">
-			<div className="flex w-full flex-col items-center gap-3 lg:flex-row">
-				<SearchInput placeholder="Search nurses..." className="w-full" />
+		<form
+			onSubmit={(e) => {
+				e.preventDefault();
+				e.stopPropagation();
+				form.handleSubmit();
+			}}
+		>
+			<div className="flex flex-col gap-4">
+				<div className="flex w-full flex-col items-center gap-3 lg:flex-row">
+					<SearchInput placeholder="Search nurses..." className="w-full" />
 
-				<div className="shrink-0">
-					<FormSummary form={form} totalDays={totalDays} capacity={capacity} />
+					<div className="shrink-0">
+						<FormSummary
+							nurses={nurses}
+							totalDays={totalDays}
+							capacity={capacity}
+						/>
+					</div>
+				</div>
+
+				<div className="flex-1">
+					<NurseList nurses={nurses} totalDays={totalDays} />
 				</div>
 			</div>
-
-			<form
-				onSubmit={(e) => {
-					e.preventDefault();
-					e.stopPropagation();
-					form.handleSubmit();
-				}}
-				className="flex-1"
-			>
-				<NurseList
-					form={form}
-					totalDays={totalDays}
-					highlightName={highlightName}
-				/>
-			</form>
-		</div>
+		</form>
 	);
 }

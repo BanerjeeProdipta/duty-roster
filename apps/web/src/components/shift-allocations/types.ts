@@ -3,7 +3,7 @@ import type { NurseShiftPreference } from "@Duty-Roster/api";
 export type NurseData = Required<NurseShiftPreference>;
 
 export type NurseState = {
-	id: string;
+	nurseId: string;
 	name: string;
 	morning: number;
 	evening: number;

@@ -4,67 +4,46 @@ import { AlertCircle, Ban, Loader2, Save, User } from "lucide-react";
 import { ShiftInput } from "./ShiftInput";
 import { FourWaySlider } from "./Slider";
 import type { NurseState } from "./types";
+import { useNurseCard } from "./useNurseCard";
 
-export function NurseCard({
-	nurse,
-	totalDays,
-	onFieldChange,
-	onActiveChange,
-	onUpdate,
-	onActiveUpdate,
-	original,
-	isActiveLoading,
-	highlight,
-}: {
+interface NurseCardProps {
 	nurse: NurseState;
 	totalDays: number;
-	onFieldChange: (field: keyof NurseState, val: number) => void;
-	onActiveChange: (active: boolean) => void;
-	onUpdate?: () => void | Promise<void>;
-	onActiveUpdate?: (active: boolean) => void | Promise<void>;
-	errors: unknown[];
-	index: number;
 	original?: NurseState;
-	isActiveLoading?: boolean;
-	highlight?: boolean;
-}) {
-	const sum = nurse.morning + nurse.evening + nurse.night + nurse.off;
-	const isInvalid = sum !== totalDays;
-	const isActive = nurse.active ?? true;
-	const hasChanged =
-		original &&
-		(original.morning !== nurse.morning ||
-			original.evening !== nurse.evening ||
-			original.night !== nurse.night ||
-			original.off !== nurse.off ||
-			original.active !== nurse.active);
+}
+
+export function NurseCard({ nurse, totalDays, original }: NurseCardProps) {
+	const {
+		state,
+		isSaving,
+		isUpdatingActive,
+		isInvalid,
+		isActive,
+		hasChanged,
+		sum,
+		handleFieldChange,
+		handleUpdate,
+		handleActiveUpdate,
+	} = useNurseCard({ nurse, totalDays, original });
 
 	return (
 		<div
 			className={cn(
 				"animate-slide-up rounded-xl border bg-white p-5 transition-all duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)]",
 				isInvalid ? "border-red-200 bg-red-50/20" : "border-slate-100/80",
-				highlight && "ring-2 ring-yellow-400",
-				// !isActive && "grayscale/10 opacity-50",
 			)}
 		>
 			<div className="mb-4 flex items-start justify-between gap-4">
 				<div className="flex flex-wrap items-center gap-3">
 					<div className="flex items-center gap-2">
-						<div className="w-28 font-bold text-slate-800">{nurse.name}</div>
+						<div className="w-28 font-bold text-slate-800">{state.name}</div>
 						<Button
-							onClick={() => {
-								if (onActiveUpdate) {
-									onActiveUpdate(!isActive);
-								} else {
-									onActiveChange(!isActive);
-								}
-							}}
+							onClick={() => handleActiveUpdate(!isActive)}
 							variant="ghost"
 							size={"xs"}
-							disabled={isActiveLoading}
+							disabled={isUpdatingActive}
 						>
-							{isActiveLoading && (
+							{isUpdatingActive && (
 								<Loader2 className="mr-1 h-3 w-3 animate-spin" />
 							)}
 							{isActive ? (
@@ -91,44 +70,48 @@ export function NurseCard({
 				</div>
 
 				<div className="flex flex-wrap items-center gap-2">
-					{onUpdate && hasChanged && (
+					{hasChanged && (
 						<Button
-							onClick={onUpdate}
+							onClick={handleUpdate}
 							variant="ghost"
 							size={"xs"}
-							disabled={!isActive}
+							disabled={!isActive || isSaving}
 							className="bg-lime-100 text-lime-700 transition duration-300 hover:bg-lime-200"
 						>
-							<Save className="h-3 w-3" />
+							{isSaving ? (
+								<Loader2 className="mr-1 h-3 w-3 animate-spin" />
+							) : (
+								<Save className="h-3 w-3" />
+							)}
 							Save
 						</Button>
 					)}
 					<ShiftInput
 						label="Day"
 						color="bg-[#FDE68A]"
-						value={nurse.morning}
-						onChange={(v) => onFieldChange("morning", v)}
+						value={state.morning}
+						onChange={(v) => handleFieldChange("morning", v)}
 						max={totalDays}
 					/>
 					<ShiftInput
 						label="Eve"
 						color="bg-[#BFDBFE]"
-						value={nurse.evening}
-						onChange={(v) => onFieldChange("evening", v)}
+						value={state.evening}
+						onChange={(v) => handleFieldChange("evening", v)}
 						max={totalDays}
 					/>
 					<ShiftInput
 						label="Ngt"
 						color="bg-[#C4B5FD]"
-						value={nurse.night}
-						onChange={(v) => onFieldChange("night", v)}
+						value={state.night}
+						onChange={(v) => handleFieldChange("night", v)}
 						max={totalDays}
 					/>
 					<ShiftInput
 						label="Off"
 						color="bg-[#E5E7EB]"
-						value={nurse.off}
-						onChange={(v) => onFieldChange("off", v)}
+						value={state.off}
+						onChange={(v) => handleFieldChange("off", v)}
 						max={totalDays}
 					/>
 				</div>
@@ -137,16 +120,15 @@ export function NurseCard({
 			<FourWaySlider
 				total={totalDays}
 				value={{
-					morning: nurse.morning,
-					evening: nurse.evening,
-					night: nurse.night,
-					off: nurse.off,
+					morning: state.morning,
+					evening: state.evening,
+					night: state.night,
+					off: state.off,
 				}}
 				onChange={(v) => {
-					onFieldChange("morning", v.morning);
-					onFieldChange("evening", v.evening);
-					onFieldChange("night", v.night);
-					onFieldChange("off", v.off);
+					handleFieldChange("morning", v.morning);
+					handleFieldChange("evening", v.evening);
+					handleFieldChange("night", v.night);
 				}}
 			/>
 

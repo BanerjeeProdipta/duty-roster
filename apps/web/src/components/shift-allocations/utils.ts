@@ -26,16 +26,14 @@ export function normalize(data: unknown, totalDays: number): NurseState[] {
 		const m = Math.round((item.morning / 100) * totalDays);
 		const e = Math.round((item.evening / 100) * totalDays);
 		const n = Math.round((item.night / 100) * totalDays);
-
-		const used = m + e + n;
-
+		const off = Math.max(0, totalDays - m - e - n);
 		return {
-			id: item.nurseId,
+			nurseId: item.nurseId,
 			name: item.name,
 			morning: m,
 			evening: e,
 			night: n,
-			off: Math.max(0, totalDays - used),
+			off,
 			active: item.active ?? true,
 		};
 	});
