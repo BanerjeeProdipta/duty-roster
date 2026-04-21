@@ -29,7 +29,7 @@ export function AllocationItem({
 	);
 
 	const textClass = cn(
-		"font-medium text-[10px]",
+		"font-medium text-xs",
 		isOver
 			? "text-red-700"
 			: isCorrect

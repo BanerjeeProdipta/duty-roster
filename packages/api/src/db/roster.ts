@@ -1,21 +1,25 @@
 import { db, schema } from "@Duty-Roster/db";
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, asc, desc, eq, sql } from "drizzle-orm";
 
 const { nurse, nurseSchedule, shift, nurseShiftPreference } = schema;
 
 import { createUTCDate, getMonthDateRange } from "../utils/roster";
 
+// ─────────────── NURSES ───────────────
+
 export async function findAllNurses() {
 	return db.select().from(nurse).orderBy(nurse.name);
 }
+
+// ─────────────── SHIFTS ───────────────
 
 export async function findAllShifts() {
 	return db.select().from(shift);
 }
 
-// TODO: respond with nurse names with off schedule for new months
+// ─────────────── SCHEDULES ───────────────
+
 export async function findSchedulesByDateRange(startDate: Date, endDate: Date) {
-	// Ensure we are comparing dates without time components or normalized time
 	const start = new Date(startDate);
 	start.setUTCHours(0, 0, 0, 0);
 	const end = new Date(endDate);
@@ -59,12 +63,11 @@ export async function createSchedules(
 	if (!firstSchedule) return;
 
 	const year = firstSchedule.date.getUTCFullYear();
-	const month = firstSchedule.date.getUTCMonth() + 1; // getMonthDateRange expects 1-12
+	const month = firstSchedule.date.getUTCMonth() + 1;
 
 	const { startDate, endDate } = getMonthDateRange(year, month);
 
 	await db.transaction(async (tx) => {
-		// Delete existing schedules for the month
 		await tx
 			.delete(nurseSchedule)
 			.where(
@@ -74,7 +77,6 @@ export async function createSchedules(
 				),
 			);
 
-		// Insert new schedules
 		await tx.insert(nurseSchedule).values(
 			schedules.map((s) => {
 				const y = s.date.getUTCFullYear();
@@ -89,50 +91,6 @@ export async function createSchedules(
 			}),
 		);
 	});
-}
-
-export async function findAllPreferredShiftsByNurse() {
-	return db
-		.select({
-			nurse: {
-				id: nurse.id,
-				name: nurse.name,
-			},
-			shiftId: nurseShiftPreference.shiftId,
-			weight: nurseShiftPreference.weight,
-			active: nurseShiftPreference.active,
-		})
-		.from(nurseShiftPreference)
-		.innerJoin(nurse, eq(nurse.id, nurseShiftPreference.nurseId));
-}
-
-export async function upsertNurseShiftPreferences(
-	preferences: {
-		nurseId: string;
-		shiftId: string;
-		weight: number;
-		active: boolean;
-	}[],
-) {
-	if (preferences.length === 0) return;
-
-	await db
-		.insert(nurseShiftPreference)
-		.values(
-			preferences.map((pref) => ({
-				nurseId: pref.nurseId,
-				shiftId: pref.shiftId,
-				weight: pref.weight,
-				active: pref.active,
-			})),
-		)
-		.onConflictDoUpdate({
-			target: [nurseShiftPreference.nurseId, nurseShiftPreference.shiftId],
-			set: {
-				weight: sql`excluded.weight`,
-				active: sql`excluded.active`,
-			},
-		});
 }
 
 export async function updateScheduleShift(id: string, shiftId: string | null) {
@@ -163,4 +121,80 @@ export async function findShiftCountsByMonth(year: number, month: number) {
 		date: r.date,
 		shiftId: r.shiftId,
 	}));
+}
+
+// ─────────────── PREFERENCES (combined query) ───────────────
+
+/** Get all nurse preferences with nurse info */
+export async function findAllPreferredShiftsByNurse() {
+	return db
+		.select({
+			nurse: {
+				id: nurse.id,
+				name: nurse.name,
+			},
+			shiftId: nurseShiftPreference.shiftId,
+			weight: nurseShiftPreference.weight,
+			active: nurseShiftPreference.active,
+		})
+		.from(nurseShiftPreference)
+		.innerJoin(nurse, eq(nurse.id, nurseShiftPreference.nurseId))
+		.orderBy(desc(nurseShiftPreference.active), asc(nurse.name));
+}
+
+/** Upsert preferences with validation - ensures total doesn't exceed daysInMonth */
+export async function upsertNurseShiftPreferences(
+	preferences: {
+		nurseId: string;
+		shiftId: string;
+		weight: number;
+		active: boolean;
+	}[],
+	daysInMonth: number,
+) {
+	if (preferences.length === 0) return;
+
+	// Group by nurseId to validate total
+	const byNurse = new Map<string, typeof preferences>();
+	for (const p of preferences) {
+		const existing = byNurse.get(p.nurseId) ?? [];
+		existing.push(p);
+		byNurse.set(p.nurseId, existing);
+	}
+
+	// Check that total for each nurse doesn't exceed daysInMonth
+	const validated: typeof preferences = [];
+	for (const [nurseId, prefs] of byNurse) {
+		const totalWeight = prefs.reduce((sum, p) => sum + p.weight, 0);
+		if (totalWeight > 100) {
+			// Clamp to 100 maximum
+			for (const p of prefs) {
+				validated.push({
+					...p,
+					weight: Math.min(p.weight, 100),
+					active: p.active && totalWeight > 0,
+				});
+			}
+		} else {
+			validated.push(...prefs);
+		}
+	}
+
+	await db
+		.insert(nurseShiftPreference)
+		.values(
+			validated.map((pref) => ({
+				nurseId: pref.nurseId,
+				shiftId: pref.shiftId,
+				weight: pref.weight,
+				active: pref.active,
+			})),
+		)
+		.onConflictDoUpdate({
+			target: [nurseShiftPreference.nurseId, nurseShiftPreference.shiftId],
+			set: {
+				weight: sql`excluded.weight`,
+				active: sql`excluded.active`,
+			},
+		});
 }

@@ -1,10 +1,21 @@
-import ShiftAllocationsClientPage from "@/components/shift-allocations/ShiftAllocationsClientPage";
-import type { NurseData } from "@/components/shift-allocations/types";
+import { ShiftCounts } from "@/components/analytics/ShiftCounts";
+import { MonthNavigator } from "@/components/shift-allocations/MonthNavigator";
+import ShiftAllocationsClient from "@/components/shift-allocations/ShiftAllocationsClient";
+import { getYearMonthFromSearchParams } from "@/components/shift-allocations/utils";
 import { getAuthedTRPCServer } from "@/utils/trpc-server";
 
-export default async function ShiftAllocations() {
+export default async function ShiftAllocations(props: {
+	searchParams: Promise<{ year?: string; month?: string }>;
+}) {
+	const { year, month } = await getYearMonthFromSearchParams(
+		props.searchParams,
+	);
+
 	const trpcServer = await getAuthedTRPCServer();
-	const nursePreferences = await trpcServer.roster.getNurseShiftPreferences();
+	const [nursePreferences, shiftRequirements] = await Promise.all([
+		trpcServer.roster.getNurseShiftPreferences(),
+		trpcServer.roster.getMonthlyShiftRequirements({ year, month }),
+	]);
 
 	if (!nursePreferences?.length) {
 		return (
@@ -15,6 +26,15 @@ export default async function ShiftAllocations() {
 	}
 
 	return (
-		<ShiftAllocationsClientPage initialData={nursePreferences as NurseData[]} />
+		<div className="flex flex-col gap-6">
+			<MonthNavigator />
+			<ShiftCounts month={month} year={year} />
+			<ShiftAllocationsClient
+				initialData={nursePreferences}
+				year={year}
+				month={month}
+				capacity={shiftRequirements.preferenceCapacity}
+			/>
+		</div>
 	);
 }

@@ -2,11 +2,9 @@
 
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { Search, X } from "lucide-react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { createContext, useContext, useMemo, useRef } from "react";
 import { toast } from "sonner";
-import { useSearchFilter } from "@/hooks/useSearchFilter";
 import { getMonthDates } from "@/utils";
 import { trpcClient } from "@/utils/trpc";
 import { LAYOUT } from "./constants";
@@ -35,14 +33,16 @@ export function RosterTable({
 	initialSchedules,
 }: RosterTableProps) {
 	const { nurseRows, dailyShiftCounts } = initialSchedules;
-	const router = useRouter();
 	const searchParams = useSearchParams();
 
-	const {
-		searchQuery,
-		setSearchQuery: handleSearch,
-		filteredData: filteredNurseRows,
-	} = useSearchFilter(nurseRows, (row) => [row.nurse.name]);
+	const highlightName = searchParams.get("n") ?? "";
+	const searchQuery = searchParams.get("q") ?? "";
+
+	const filteredNurseRows = useMemo(() => {
+		if (!searchQuery) return nurseRows;
+		const q = searchQuery.toLowerCase();
+		return nurseRows.filter((row) => row.nurse.name.toLowerCase().includes(q));
+	}, [nurseRows, searchQuery]);
 
 	const monthDates = useMemo(() => {
 		const y = searchParams.get("year");
@@ -100,7 +100,6 @@ export function RosterTable({
 			trpcClient.roster.updateShift.mutate(variables),
 		onSuccess: () => {
 			toast.success("Shift updated successfully");
-			router.refresh();
 		},
 		onError: (error) => {
 			toast.error(`Update failed: ${error.message}`);
@@ -121,37 +120,14 @@ export function RosterTable({
 	};
 
 	const shifts = shiftsData ?? [];
-
-	const shiftTimeMap = Object.fromEntries(
-		shifts.map((s) => [
-			s.name,
-			`${s.startTime.slice(0, 5)} - ${s.endTime.slice(0, 5)}`,
-		]),
-	) as Record<"morning" | "evening" | "night", string>;
+	shifts.map((s) => [
+		s.name,
+		`${s.startTime.slice(0, 5)} - ${s.endTime.slice(0, 5)}`,
+	]);
 
 	return (
 		<ShiftDefinitionContext.Provider value={shifts}>
 			<div className="flex flex-col gap-4">
-				<div className="flex items-center gap-2 rounded-xl border border-slate-200/60 bg-white/50 px-3 py-2 shadow-sm backdrop-blur-sm transition-all focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-100">
-					<Search className="h-4 w-4 text-slate-400" />
-					<input
-						type="text"
-						placeholder="Search nurses..."
-						value={searchQuery}
-						onChange={(e) => handleSearch(e.target.value)}
-						className="flex-1 bg-transparent text-sm outline-none placeholder:text-slate-400"
-					/>
-					{searchQuery && (
-						<button
-							type="button"
-							onClick={() => handleSearch("")}
-							className="rounded-full p-1 hover:bg-slate-100"
-						>
-							<X className="h-3 w-3 text-slate-400" />
-						</button>
-					)}
-				</div>
-
 				<div className="relative flex h-[calc(100vh-200px)] animate-fade-in flex-col overflow-hidden rounded-2xl border border-slate-200/60 bg-white/80 shadow-[0_8px_30px_rgb(0,0,0,0.04)] backdrop-blur-sm">
 					<div
 						ref={parentRef}
@@ -231,6 +207,7 @@ export function RosterTable({
 																pref={preference}
 																totalDays={normalizedDates.length}
 																editable={editable}
+																highlight={highlightName === nurse.name}
 															/>
 														</div>
 

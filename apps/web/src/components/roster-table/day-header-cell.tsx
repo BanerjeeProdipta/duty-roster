@@ -27,7 +27,7 @@ export function DayHeaderCell({
 			<span className="mb-0.5 block font-black text-slate-900">
 				{date.label}
 			</span>
-			<span className="mb-2 block font-medium font-mono text-[10px] text-slate-400">
+			<span className="mb-2 block font-medium font-mono text-slate-400 text-xs">
 				{date.formatted}
 			</span>
 

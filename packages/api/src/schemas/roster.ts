@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+// ─────────────── SHIFTS ───────────────
+
 export const shiftSchema = z.object({
 	id: z.string(),
 	name: z.enum(["morning", "evening", "night"]),
@@ -9,6 +11,8 @@ export const shiftSchema = z.object({
 });
 
 export type Shift = z.infer<typeof shiftSchema>;
+
+// ─────────────── PREFERENCES ───────────────
 
 export const nurseShiftPreferenceSchema = z.object({
 	nurseId: z.string(),
@@ -21,23 +25,14 @@ export const nurseShiftPreferenceSchema = z.object({
 
 export type NurseShiftPreference = z.infer<typeof nurseShiftPreferenceSchema>;
 
-export const updateNurseShiftPreferenceSchema = z.array(
-	z.object({
-		nurseId: z.string(),
-		shiftId: z.string(),
-		weight: z.number(),
-		active: z.boolean(),
-	}),
-);
+// ─────────────── SCHEDULES ───────────────
 
-export const shiftCountsSchema = z.object({
+const shiftCountsSchema = z.object({
 	morning: z.number(),
 	evening: z.number(),
 	night: z.number(),
 	totalAssigned: z.number(),
 });
-
-export type ShiftCounts = z.infer<typeof shiftCountsSchema>;
 
 export const schedulesResponseSchema = z.object({
 	nurseRows: z.array(

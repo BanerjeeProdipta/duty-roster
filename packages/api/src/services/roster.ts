@@ -11,25 +11,49 @@ type GenerateRosterParams = {
 	month: number;
 };
 
+// ───────────── CONFIG ─────────────
+
+export const ROSTER_CONFIG = {
+	COVERAGE: {
+		WEEKDAY: { morning: 20, evening: 3, night: 2 },
+		FRIDAY: { morning: 3, evening: 3, night: 2 },
+	},
+	CONSTRAINTS: {
+		MAX_NIGHTS_PER_NURSE: 3,
+		MIN_DAYS_OFF_PER_WEEK: 1,
+	},
+} as const;
+
+// ───────────── HELPERS ─────────────
+
+function getDaysInMonth(year: number, month: number): number {
+	return new Date(year, month, 0).getDate();
+}
+
+function getWeekNumber(year: number, month: number, day: number): number {
+	const date = new Date(year, month - 1, day);
+	const startOfYear = new Date(year, 0, 1);
+	const diff = date.getTime() - startOfYear.getTime();
+	const oneWeek = 604800000;
+	return Math.ceil((diff + startOfYear.getDay() * 86400000) / oneWeek);
+}
+
+function isFriday(year: number, month: number, day: number): boolean {
+	return new Date(year, month - 1, day).getDay() === 5;
+}
+
 // ───────────── SUMMARY ─────────────
 
 type ScheduleRowInput = {
 	id: string | null;
 	date: string | null;
-	nurse: {
-		id: string;
-		name: string;
-	};
-	shift: {
-		id: string;
-	} | null;
+	nurse: { id: string; name: string };
+	shift: { id: string } | null;
 };
 
 export function buildScheduleSummary(
 	schedules: ScheduleRowInput[],
-	options?: {
-		preferences?: NurseShiftPreference[];
-	},
+	options?: { preferences?: NurseShiftPreference[] },
 ) {
 	const dailyShiftCountsMap = new Map<
 		string,
@@ -48,7 +72,6 @@ export function buildScheduleSummary(
 			preference?: NurseShiftPreference;
 		}
 	>();
-
 	const nurseAssignmentsMap = new Map<
 		string,
 		Record<
@@ -58,71 +81,49 @@ export function buildScheduleSummary(
 	>();
 
 	for (const schedule of schedules) {
-		let nurseCounts = nurseShiftCountsMap.get(schedule.nurse.id);
-		if (!nurseCounts) {
-			nurseCounts = {
+		if (!nurseShiftCountsMap.has(schedule.nurse.id)) {
+			nurseShiftCountsMap.set(schedule.nurse.id, {
 				nurse: schedule.nurse,
-				shifts: {
-					morning: 0,
-					evening: 0,
-					night: 0,
-					totalAssigned: 0,
-				},
-			};
-			nurseShiftCountsMap.set(schedule.nurse.id, nurseCounts);
+				shifts: { morning: 0, evening: 0, night: 0, totalAssigned: 0 },
+			});
 		}
-
 		if (!nurseAssignmentsMap.has(schedule.nurse.id)) {
 			nurseAssignmentsMap.set(schedule.nurse.id, {});
 		}
+		if (!schedule.id || !schedule.date) continue;
 
-		if (!schedule.id || !schedule.date) {
-			continue;
-		}
+		const nurseCounts = nurseShiftCountsMap.get(schedule.nurse.id)!;
+		const nurseMap = nurseAssignmentsMap.get(schedule.nurse.id)!;
+		const normalizedShiftId = normalizeShiftId(schedule.shift?.id);
 
-		const dateKey = schedule.date;
-		const shiftId = schedule.shift?.id;
-		const normalizedShiftId = normalizeShiftId(shiftId);
-
-		const dailyCounts = dailyShiftCountsMap.get(dateKey) ?? {
-			morning: 0,
-			evening: 0,
-			night: 0,
-			totalAssigned: 0,
+		nurseMap[schedule.date] = {
+			id: schedule.id,
+			shiftType: (normalizedShiftId || "off") as
+				| "morning"
+				| "evening"
+				| "night"
+				| "off",
 		};
 
-		const nurseMap = nurseAssignmentsMap.get(schedule.nurse.id);
-		if (nurseMap) {
-			nurseMap[dateKey] = {
-				id: schedule.id,
-				shiftType: (normalizedShiftId || "off") as
-					| "morning"
-					| "evening"
-					| "night"
-					| "off",
-			};
-		}
-
-		if (
-			normalizedShiftId === "morning" ||
-			normalizedShiftId === "evening" ||
-			normalizedShiftId === "night"
-		) {
-			const key = normalizedShiftId as "morning" | "evening" | "night";
-
-			dailyCounts[key]++;
-			dailyCounts.totalAssigned++;
-
-			nurseCounts.shifts[key]++;
+		if (normalizedShiftId && normalizedShiftId !== "off") {
+			nurseCounts.shifts[normalizedShiftId]++;
 			nurseCounts.shifts.totalAssigned++;
-		}
 
-		dailyShiftCountsMap.set(dateKey, dailyCounts);
-		nurseShiftCountsMap.set(schedule.nurse.id, nurseCounts);
+			// Also update daily shift counts
+			const dailyCounts = dailyShiftCountsMap.get(schedule.date) ?? {
+				morning: 0,
+				evening: 0,
+				night: 0,
+				totalAssigned: 0,
+			};
+			dailyCounts[normalizedShiftId]++;
+			dailyCounts.totalAssigned++;
+			dailyShiftCountsMap.set(schedule.date, dailyCounts);
+		}
 	}
 
 	const prefMap = new Map(
-		options?.preferences?.map((p) => [p.nurseId, p]) || [],
+		options?.preferences?.map((p) => [p.nurseId, p]) ?? [],
 	);
 
 	const nurseRows = Array.from(nurseShiftCountsMap.values())
@@ -130,26 +131,15 @@ export function buildScheduleSummary(
 			const pref = prefMap.get(n.nurse.id);
 			return {
 				...n,
-				nurse: {
-					...n.nurse,
-					active: pref?.active ?? true,
-				},
+				nurse: { ...n.nurse, active: pref?.active ?? true },
 				assignments: nurseAssignmentsMap.get(n.nurse.id) || {},
 				preference: pref
-					? {
-							morning: pref.morning,
-							evening: pref.evening,
-							night: pref.night,
-						}
+					? { morning: pref.morning, evening: pref.evening, night: pref.night }
 					: undefined,
 			};
 		})
 		.sort((a, b) => {
-			// Sort inactive nurses to the bottom
-			if (a.nurse.active !== b.nurse.active) {
-				return a.nurse.active ? -1 : 1;
-			}
-			// Then sort by name
+			if (a.nurse.active !== b.nurse.active) return a.nurse.active ? -1 : 1;
 			return a.nurse.name.localeCompare(b.nurse.name);
 		});
 
@@ -158,6 +148,184 @@ export function buildScheduleSummary(
 		dailyShiftCounts: Object.fromEntries(dailyShiftCountsMap),
 	};
 }
+
+// ───────────── PREFERENCES (merged logic) ─────────────
+
+/** Get all preferences + capacity in one query */
+export async function getNursePreferencesWithCapacity() {
+	const rows = await rosterDb.findAllPreferredShiftsByNurse();
+
+	const prefsMap = new Map<
+		string,
+		{
+			nurseId: string;
+			name: string;
+			morning: number;
+			evening: number;
+			night: number;
+			active: boolean;
+		}
+	>();
+	const capacity = { morning: 0, evening: 0, night: 0 };
+
+	for (const row of rows) {
+		const nurseId = row.nurse.id;
+		if (!prefsMap.has(nurseId)) {
+			prefsMap.set(nurseId, {
+				nurseId,
+				name: row.nurse.name,
+				morning: 0,
+				evening: 0,
+				night: 0,
+				active: row.active ?? true,
+			});
+		}
+		const pref = prefsMap.get(nurseId)!;
+		const shiftKey = normalizeShiftId(row.shiftId) as
+			| "morning"
+			| "evening"
+			| "night";
+		if (shiftKey) {
+			pref[shiftKey] = row.weight;
+			// Add to capacity if active
+			if (pref.active) {
+				capacity[shiftKey] += row.weight;
+			}
+		}
+	}
+
+	return { preferences: Array.from(prefsMap.values()), capacity };
+}
+
+export async function listNurseShiftPreferenceWeights() {
+	const { preferences } = await getNursePreferencesWithCapacity();
+	return preferences;
+}
+
+export async function updateNurseShiftPreferenceWeights(
+	preferences: {
+		nurseId: string;
+		shiftId: string;
+		weight: number;
+		active: boolean;
+	}[],
+	daysInMonth: number,
+) {
+	// Validate: ensure morning + evening + night <= 100%
+	const byNurse = new Map<string, typeof preferences>();
+	for (const p of preferences) {
+		const existing = byNurse.get(p.nurseId) ?? [];
+		existing.push(p);
+		byNurse.set(p.nurseId, existing);
+	}
+
+	const validated: typeof preferences = [];
+	for (const [, prefs] of byNurse) {
+		const totalWeight = prefs.reduce((sum, p) => sum + p.weight, 0);
+		if (totalWeight > 100) {
+			// Normalize weights to sum to 100
+			const scale = 100 / totalWeight;
+			for (const p of prefs) {
+				validated.push({ ...p, weight: Math.round(p.weight * scale) });
+			}
+		} else {
+			validated.push(...prefs);
+		}
+	}
+
+	await rosterDb.upsertNurseShiftPreferences(validated, daysInMonth);
+}
+
+// ───────────── REQUIRMENTS ─────────────
+
+export async function getMonthlyShiftRequirements(year: number, month: number) {
+	const daysInMonth = getDaysInMonth(year, month);
+
+	// Day counts
+	const dayOfWeekCounts = {
+		monday: 0,
+		tuesday: 0,
+		wednesday: 0,
+		thursday: 0,
+		friday: 0,
+		saturday: 0,
+		sunday: 0,
+	};
+	const dayLabels = [
+		"sunday",
+		"monday",
+		"tuesday",
+		"wednesday",
+		"thursday",
+		"friday",
+		"saturday",
+	];
+	for (let day = 1; day <= daysInMonth; day++) {
+		const dayOfWeek = new Date(year, month - 1, day).getDay();
+		dayOfWeekCounts[dayLabels[dayOfWeek] as keyof typeof dayOfWeekCounts]++;
+	}
+
+	// Assigned counts
+	const assignedSchedules = await rosterDb.findShiftCountsByMonth(year, month);
+	const assignedShiftCounts = { morning: 0, evening: 0, night: 0, total: 0 };
+	for (const { shiftId } of assignedSchedules) {
+		if (shiftId === "shift_morning") assignedShiftCounts.morning++;
+		else if (shiftId === "shift_evening") assignedShiftCounts.evening++;
+		else if (shiftId === "shift_night") assignedShiftCounts.night++;
+	}
+	assignedShiftCounts.total =
+		assignedShiftCounts.morning +
+		assignedShiftCounts.evening +
+		assignedShiftCounts.night;
+
+	// Requirements
+	const { monday, tuesday, wednesday, thursday, friday, saturday, sunday } =
+		dayOfWeekCounts;
+	const weekdayCount = monday + tuesday + wednesday + thursday;
+	const { WEEKDAY, FRIDAY } = ROSTER_CONFIG.COVERAGE;
+
+	const calcShift = (shift: "morning" | "evening" | "night") =>
+		weekdayCount * WEEKDAY[shift] +
+		friday * FRIDAY[shift] +
+		saturday * WEEKDAY[shift] +
+		sunday * WEEKDAY[shift];
+
+	const shiftRequirements = {
+		morning: calcShift("morning"),
+		evening: calcShift("evening"),
+		night: calcShift("night"),
+		total: 0,
+	};
+	shiftRequirements.total =
+		shiftRequirements.morning +
+		shiftRequirements.evening +
+		shiftRequirements.night;
+
+	// Capacity (from preferences)
+	const { capacity } = await getNursePreferencesWithCapacity();
+	const preferenceCapacity = {
+		morning: Math.round((capacity.morning / 100) * daysInMonth),
+		evening: Math.round((capacity.evening / 100) * daysInMonth),
+		night: Math.round((capacity.night / 100) * daysInMonth),
+		total: 0,
+	};
+	preferenceCapacity.total =
+		preferenceCapacity.morning +
+		preferenceCapacity.evening +
+		preferenceCapacity.night;
+
+	return {
+		year,
+		month,
+		daysInMonth,
+		dayOfWeekCounts,
+		shiftRequirements,
+		assignedShiftCounts,
+		preferenceCapacity,
+	};
+}
+
+// ───────────── SCHEDULES ─────────────
 
 export async function getNurses() {
 	return rosterDb.findAllNurses();
@@ -173,49 +341,21 @@ export async function getSchedulesByDateRange(startDate: Date, endDate: Date) {
 		listNurseShiftPreferenceWeights(),
 	]);
 
-	// Transform dates to strings first
 	const transformedSchedules = schedules.map((s) => ({
 		...s,
 		date: s.date ? formatDateKey(s.date) : null,
 	}));
 
-	// Build summary using transformed schedules (dates as strings)
-	const summary = buildScheduleSummary(transformedSchedules, {
-		preferences,
-	});
-
-	return summary;
+	return buildScheduleSummary(transformedSchedules, { preferences });
 }
 
-export const ROSTER_CONFIG = {
-	COVERAGE: {
-		WEEKDAY: { morning: 20, evening: 3, night: 2 },
-		FRIDAY: { morning: 3, evening: 3, night: 2 },
-	},
-	CONSTRAINTS: {
-		MAX_NIGHTS_PER_NURSE: 3,
-		MIN_DAYS_OFF_PER_WEEK: 1,
-	},
-} as const;
+export async function updateSchedule(id: string, shiftId: string | null) {
+	return rosterDb.updateScheduleShift(id, shiftId === "off" ? null : shiftId);
+}
+
+// ───────────── GENERATE ROSTER ─────────────
 
 type ShiftType = "shift_morning" | "shift_evening" | "shift_night";
-
-function isFriday(year: number, month: number, day: number): boolean {
-	const dayOfWeek = new Date(year, month - 1, day).getDay();
-	return dayOfWeek === 5;
-}
-
-function getDaysInMonth(year: number, month: number): number {
-	return new Date(year, month, 0).getDate();
-}
-
-function getWeekNumber(year: number, month: number, day: number): number {
-	const date = new Date(year, month - 1, day);
-	const startOfYear = new Date(year, 0, 1);
-	const diff = date.getTime() - startOfYear.getTime();
-	const oneWeek = 604800000;
-	return Math.ceil((diff + startOfYear.getDay() * 86400000) / oneWeek);
-}
 
 export async function generateRoster(params: GenerateRosterParams) {
 	const { year, month } = params;
@@ -224,19 +364,17 @@ export async function generateRoster(params: GenerateRosterParams) {
 	const prefMap = new Map(preferences.map((p) => [p.nurseId, p]));
 
 	const daysInMonth = getDaysInMonth(year, month);
-
 	const nurseShiftTargets = new Map<string, Record<string, number>>();
 	const nurseShiftAssigned = new Map<string, Record<string, number>>();
 	const nurseWorkDaysPerWeek = new Map<string, Map<string, number>>();
 	const nurseNightCount = new Map<string, number>();
 	const nurseTotalWorkCount = new Map<string, number>();
 
-	nurses.forEach((n) => {
+	for (const n of nurses) {
 		nurseWorkDaysPerWeek.set(n.id, new Map());
 		nurseNightCount.set(n.id, 0);
 		nurseTotalWorkCount.set(n.id, 0);
 
-		// Initialize targets and assigned counts
 		const prefs = prefMap.get(n.id);
 		nurseShiftTargets.set(n.id, {
 			morning: Math.round(((prefs?.morning ?? 0) / 100) * daysInMonth),
@@ -244,7 +382,7 @@ export async function generateRoster(params: GenerateRosterParams) {
 			night: Math.round(((prefs?.night ?? 0) / 100) * daysInMonth),
 		});
 		nurseShiftAssigned.set(n.id, { morning: 0, evening: 0, night: 0 });
-	});
+	}
 
 	const finalSchedules: {
 		nurseId: string;
@@ -253,18 +391,12 @@ export async function generateRoster(params: GenerateRosterParams) {
 	}[] = [];
 
 	for (let day = 1; day <= daysInMonth; day++) {
-		const getWeekKey = (d: number) =>
-			`${year}-${month}-${getWeekNumber(year, month, d)}`;
-		const isFridayFn = (d: number) => isFriday(year, month, d);
-
-		const isFri = isFridayFn(day);
+		const weekKey = `${year}-${month}-${getWeekNumber(year, month, day)}`;
+		const isFri = isFriday(year, month, day);
 		const coverage = isFri
 			? ROSTER_CONFIG.COVERAGE.FRIDAY
 			: ROSTER_CONFIG.COVERAGE.WEEKDAY;
-		const weekKey = getWeekKey(day);
-		// Always create UTC noon dates for scheduling
 		const dayDate = createUTCDate(year, month, day);
-
 		const assignedToday = new Set<string>();
 
 		const assignShift = (
@@ -272,7 +404,7 @@ export async function generateRoster(params: GenerateRosterParams) {
 			count: number,
 			condition: (
 				nurse: (typeof nurses)[0],
-				state: Record<string, unknown>,
+				c: Record<string, unknown>,
 			) => boolean,
 		) => {
 			let assignedCount = 0;
@@ -307,8 +439,7 @@ export async function generateRoster(params: GenerateRosterParams) {
 				};
 			};
 
-			// Phase 1: Under-target candidates
-			const phase1Candidates = nurses
+			const phase1 = nurses
 				.map(getCandidateState)
 				.filter((c) => {
 					if (assignedToday.has(c.nurse.id)) return false;
@@ -321,70 +452,63 @@ export async function generateRoster(params: GenerateRosterParams) {
 					return a.totalWork - b.totalWork;
 				});
 
-			for (const c of phase1Candidates) {
+			for (const c of phase1) {
 				if (assignedCount >= count) break;
-				doAssign(c);
+				finalSchedules.push({
+					nurseId: c.nurse.id,
+					shiftId: type,
+					date: dayDate,
+				});
+				assignedToday.add(c.nurse.id);
+				assignedCount++;
+				nurseTotalWorkCount.set(c.nurse.id, c.totalWork + 1);
+				nurseWorkDaysPerWeek.get(c.nurse.id)?.set(weekKey, currentWeekWork + 1);
+				if (c.assigned) c.assigned[shiftKey] = (c.assigned[shiftKey] ?? 0) + 1;
+				if (type === "shift_night")
+					nurseNightCount.set(c.nurse.id, currentNights + 1);
 			}
 
-			// Phase 2: Overflow (fill remaining slots for coverage if needed)
 			if (assignedCount < count) {
-				const phase2Candidates = nurses
+				const phase2 = nurses
 					.map(getCandidateState)
 					.filter((c) => {
 						if (assignedToday.has(c.nurse.id)) return false;
 						if (!c.canWorkAny) return false;
 						if (!condition(c.nurse, c)) return false;
-						return true; // Already checked Phase 1, these might be over-target
+						return true;
 					})
 					.sort((a, b) => {
-						// Fairness first: pick those least over their target or least total work
 						const overA = a.currentCount - a.targetCount;
 						const overB = b.currentCount - b.targetCount;
 						if (overA !== overB) return overA - overB;
 						return a.totalWork - b.totalWork;
 					});
 
-				for (const c of phase2Candidates) {
+				for (const c of phase2) {
 					if (assignedCount >= count) break;
-					doAssign(c);
-				}
-			}
-
-			function doAssign(c: ReturnType<typeof getCandidateState>) {
-				finalSchedules.push({
-					nurseId: c.nurse.id,
-					shiftId: type,
-					date: dayDate,
-				});
-
-				assignedToday.add(c.nurse.id);
-				assignedCount++;
-
-				// Update counters
-				nurseTotalWorkCount.set(c.nurse.id, c.totalWork + 1);
-				const nWeeks = nurseWorkDaysPerWeek.get(c.nurse.id);
-				if (nWeeks) {
-					nWeeks.set(weekKey, c.currentWeekWork + 1);
-				}
-				if (c.assigned) {
-					const cur = c.assigned[shiftKey] ?? 0;
-					c.assigned[shiftKey] = cur + 1;
-				}
-				if (type === "shift_night") {
-					nurseNightCount.set(
-						c.nurse.id,
-						(nurseNightCount.get(c.nurse.id) ?? 0) + 1,
-					);
+					finalSchedules.push({
+						nurseId: c.nurse.id,
+						shiftId: type,
+						date: dayDate,
+					});
+					assignedToday.add(c.nurse.id);
+					assignedCount++;
+					nurseTotalWorkCount.set(c.nurse.id, c.totalWork + 1);
+					nurseWorkDaysPerWeek
+						.get(c.nurse.id)
+						?.set(weekKey, currentWeekWork + 1);
+					if (c.assigned)
+						c.assigned[shiftKey] = (c.assigned[shiftKey] ?? 0) + 1;
+					if (type === "shift_night")
+						nurseNightCount.set(c.nurse.id, currentNights + 1);
 				}
 			}
 		};
 
-		// Assign harder shifts first (Night, then Evening, then Morning)
 		assignShift("shift_night", coverage.night, (_n, c) => c.canWorkNight);
 		assignShift("shift_evening", coverage.evening, () => true);
 		assignShift("shift_morning", coverage.morning, () => true);
 
-		// Add "OFF" entries for non-assigned nurses
 		for (const nurse of nurses) {
 			if (!assignedToday.has(nurse.id)) {
 				finalSchedules.push({
@@ -405,163 +529,4 @@ export async function generateRoster(params: GenerateRosterParams) {
 		coverage: ROSTER_CONFIG.COVERAGE,
 		constraints: ROSTER_CONFIG.CONSTRAINTS,
 	};
-}
-export async function listNurseShiftPreferenceWeights() {
-	const rows = await rosterDb.findAllPreferredShiftsByNurse();
-
-	const grouped = rows.reduce(
-		(acc, row) => {
-			const nurseId = row.nurse.id;
-
-			if (!acc[nurseId]) {
-				acc[nurseId] = {
-					nurseId,
-					name: row.nurse.name,
-					active: row.active ?? true,
-				};
-			}
-
-			// Convert "shift_night" -> "night"
-			const shiftKey = normalizeShiftId(row.shiftId);
-
-			(acc[nurseId] as Record<string, unknown>)[shiftKey] = row.weight;
-
-			return acc;
-		},
-		{} as Record<
-			string,
-			{
-				nurseId: string;
-				name: string;
-				morning?: number;
-				evening?: number;
-				night?: number;
-				active: boolean;
-			}
-		>,
-	);
-
-	// convert object → array
-	return Object.values(grouped);
-}
-
-export async function updateNurseShiftPreferenceWeights(
-	preferences: {
-		nurseId: string;
-		shiftId: string;
-		weight: number;
-		active: boolean;
-	}[],
-) {
-	return rosterDb.upsertNurseShiftPreferences(preferences);
-}
-export async function updateSchedule(id: string, shiftId: string | null) {
-	// If shiftId is "off", we treat it as null shift
-	const normalizedShiftId = shiftId === "off" ? null : shiftId;
-	return rosterDb.updateScheduleShift(id, normalizedShiftId);
-}
-
-export async function getMonthlyShiftRequirements(year: number, month: number) {
-	const daysInMonth = getDaysInMonth(year, month);
-
-	const dayOfWeekCounts = {
-		monday: 0,
-		tuesday: 0,
-		wednesday: 0,
-		thursday: 0,
-		friday: 0,
-		saturday: 0,
-		sunday: 0,
-	};
-
-	const dayLabels = [
-		"sunday",
-		"monday",
-		"tuesday",
-		"wednesday",
-		"thursday",
-		"friday",
-		"saturday",
-	];
-
-	for (let day = 1; day <= daysInMonth; day++) {
-		const dayOfWeek = new Date(year, month - 1, day).getDay();
-		const dayKey = dayLabels[dayOfWeek] as keyof typeof dayOfWeekCounts;
-		dayOfWeekCounts[dayKey]++;
-	}
-
-	const assignedShiftCounts = {
-		morning: 0,
-		evening: 0,
-		night: 0,
-		total: 0,
-	};
-
-	const assignedSchedules = await rosterDb.findShiftCountsByMonth(year, month);
-
-	for (const schedule of assignedSchedules) {
-		const shiftId = schedule.shiftId;
-		if (shiftId === "shift_morning") {
-			assignedShiftCounts.morning++;
-		} else if (shiftId === "shift_evening") {
-			assignedShiftCounts.evening++;
-		} else if (shiftId === "shift_night") {
-			assignedShiftCounts.night++;
-		}
-	}
-	assignedShiftCounts.total =
-		assignedShiftCounts.morning +
-		assignedShiftCounts.evening +
-		assignedShiftCounts.night;
-
-	const result = {
-		year,
-		month,
-		daysInMonth,
-		dayOfWeekCounts,
-		shiftRequirements: {
-			morning: 0,
-			evening: 0,
-			night: 0,
-			total: 0,
-		},
-		assignedShiftCounts,
-	};
-
-	const MON_THU =
-		dayOfWeekCounts.monday +
-		dayOfWeekCounts.tuesday +
-		dayOfWeekCounts.wednesday +
-		dayOfWeekCounts.thursday;
-	const FRI = dayOfWeekCounts.friday;
-	const SAT = dayOfWeekCounts.saturday;
-	const SUN = dayOfWeekCounts.sunday;
-
-	const WEEKDAY_COVERAGE = ROSTER_CONFIG.COVERAGE.WEEKDAY;
-	const FRIDAY_COVERAGE = ROSTER_CONFIG.COVERAGE.FRIDAY;
-
-	result.shiftRequirements.morning =
-		MON_THU * WEEKDAY_COVERAGE.morning +
-		FRI * FRIDAY_COVERAGE.morning +
-		SAT * WEEKDAY_COVERAGE.morning +
-		SUN * WEEKDAY_COVERAGE.morning;
-
-	result.shiftRequirements.evening =
-		MON_THU * WEEKDAY_COVERAGE.evening +
-		FRI * FRIDAY_COVERAGE.evening +
-		SAT * WEEKDAY_COVERAGE.evening +
-		SUN * WEEKDAY_COVERAGE.evening;
-
-	result.shiftRequirements.night =
-		MON_THU * WEEKDAY_COVERAGE.night +
-		FRI * FRIDAY_COVERAGE.night +
-		SAT * WEEKDAY_COVERAGE.night +
-		SUN * WEEKDAY_COVERAGE.night;
-
-	result.shiftRequirements.total =
-		result.shiftRequirements.morning +
-		result.shiftRequirements.evening +
-		result.shiftRequirements.night;
-
-	return result;
 }

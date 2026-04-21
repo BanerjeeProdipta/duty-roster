@@ -4,10 +4,13 @@ import { useMemo, useState } from "react";
 export function useSearchFilter<T>(
 	data: T[],
 	searchFields: (item: T) => string[],
+	initialQueryFromProps?: string,
 ) {
 	const searchParams = useSearchParams();
-	const initialQuery = searchParams.get("q") ?? "";
-	const [searchQuery, setSearchQuery] = useState(initialQuery);
+	const urlQuery = searchParams.get("q") ?? "";
+	const [searchQuery, setSearchQuery] = useState(
+		initialQueryFromProps ?? urlQuery,
+	);
 
 	const handleSearch = (value: string) => {
 		setSearchQuery(value);

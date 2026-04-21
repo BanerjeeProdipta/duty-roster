@@ -3,19 +3,18 @@ import {
 	nurseShiftPreferenceSchema,
 	schedulesResponseSchema,
 	shiftSchema,
-	updateNurseShiftPreferenceSchema,
 } from "../schemas/roster";
 import * as rosterService from "../services/roster";
 import { protectedProcedure, publicProcedure, router } from "../trpc";
 
 export const rosterRouter = router({
-	getNurses: protectedProcedure.query(async () => {
-		return rosterService.getNurses();
-	}),
+	// ─────────────── READS ───────────────
 
-	getShifts: publicProcedure.output(z.array(shiftSchema)).query(async () => {
-		return rosterService.getShifts();
-	}),
+	getNurses: protectedProcedure.query(() => rosterService.getNurses()),
+
+	getShifts: publicProcedure
+		.output(z.array(shiftSchema))
+		.query(() => rosterService.getShifts()),
 
 	getSchedules: publicProcedure
 		.input(
@@ -24,74 +23,22 @@ export const rosterRouter = router({
 					startDate: z.string(),
 					endDate: z.string(),
 				})
-				.refine((data) => new Date(data.startDate) <= new Date(data.endDate), {
+				.refine((d) => new Date(d.startDate) <= new Date(d.endDate), {
 					message: "startDate must be before or equal to endDate",
 					path: ["endDate"],
 				}),
 		)
 		.output(schedulesResponseSchema)
-		.query(async ({ input }) => {
-			const startDate = new Date(input.startDate);
-			const endDate = new Date(input.endDate);
-			return rosterService.getSchedulesByDateRange(startDate, endDate);
-		}),
-
-	generateRoster: protectedProcedure
-		.input(
-			z.object({
-				year: z.number().int().min(2000).max(2100),
-				month: z.number().int().min(1).max(12),
-			}),
-		)
-		.output(
-			z.object({
-				year: z.number(),
-				month: z.number(),
-				schedulesCreated: z.number(),
-				coverage: z.object({
-					weekday: z.object({
-						morning: z.number(),
-						evening: z.number(),
-						night: z.number(),
-					}),
-					friday: z.object({
-						morning: z.number(),
-						evening: z.number(),
-						night: z.number(),
-					}),
-				}),
-				constraints: z.object({
-					maxNightsPerNurse: z.number(),
-					minDaysOffPerWeek: z.number(),
-				}),
-			}),
-		)
-		.mutation(async ({ input }) => {
-			return rosterService.generateRoster(input);
-		}),
+		.query(({ input }) =>
+			rosterService.getSchedulesByDateRange(
+				new Date(input.startDate),
+				new Date(input.endDate),
+			),
+		),
 
 	getNurseShiftPreferences: publicProcedure
 		.output(z.array(nurseShiftPreferenceSchema))
-		.query(async () => {
-			return rosterService.listNurseShiftPreferenceWeights();
-		}),
-
-	updateNurseShiftPreferences: protectedProcedure
-		.input(updateNurseShiftPreferenceSchema)
-		.mutation(async ({ input }) => {
-			return rosterService.updateNurseShiftPreferenceWeights(input);
-		}),
-
-	updateShift: protectedProcedure
-		.input(
-			z.object({
-				id: z.string(),
-				shiftId: z.string().nullable(),
-			}),
-		)
-		.mutation(async ({ input }) => {
-			return rosterService.updateSchedule(input.id, input.shiftId);
-		}),
+		.query(() => rosterService.listNurseShiftPreferenceWeights()),
 
 	getMonthlyShiftRequirements: publicProcedure
 		.input(
@@ -126,9 +73,53 @@ export const rosterRouter = router({
 					night: z.number(),
 					total: z.number(),
 				}),
+				preferenceCapacity: z.object({
+					morning: z.number(),
+					evening: z.number(),
+					night: z.number(),
+					total: z.number(),
+				}),
 			}),
 		)
-		.query(async ({ input }) => {
-			return rosterService.getMonthlyShiftRequirements(input.year, input.month);
-		}),
+		.query(({ input }) =>
+			rosterService.getMonthlyShiftRequirements(input.year, input.month),
+		),
+
+	// ─────────────── WRITES ───────────────
+
+	generateRoster: protectedProcedure
+		.input(
+			z.object({
+				year: z.number().int().min(2000).max(2100),
+				month: z.number().int().min(1).max(12),
+			}),
+		)
+		.mutation(({ input }) => rosterService.generateRoster(input)),
+
+	updateNurseShiftPreferences: protectedProcedure
+		.input(
+			z.object({
+				preferences: z.array(
+					z.object({
+						nurseId: z.string(),
+						shiftId: z.string(),
+						weight: z.number(),
+						active: z.boolean(),
+					}),
+				),
+				daysInMonth: z.number().int().min(1),
+			}),
+		)
+		.mutation(({ input }) =>
+			rosterService.updateNurseShiftPreferenceWeights(
+				input.preferences,
+				input.daysInMonth,
+			),
+		),
+
+	updateShift: protectedProcedure
+		.input(z.object({ id: z.string(), shiftId: z.string().nullable() }))
+		.mutation(({ input }) =>
+			rosterService.updateSchedule(input.id, input.shiftId),
+		),
 });

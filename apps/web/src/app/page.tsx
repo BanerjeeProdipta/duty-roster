@@ -1,6 +1,8 @@
+import { SearchInput } from "@Duty-Roster/ui/components/search-input";
 import { ShiftCounts } from "@/components/analytics/ShiftCounts";
 import { RosterTable } from "@/components/roster-table";
 import { RosterHeader } from "@/components/roster-table/roster-header";
+import { getYearMonthFromSearchParams } from "@/components/shift-allocations/utils";
 import { getMonthDateRange } from "@/utils";
 import { getTRPCServer } from "@/utils/trpc-server";
 
@@ -9,14 +11,9 @@ export const revalidate = 0;
 export default async function Home(props: {
 	searchParams: Promise<{ year?: string; month?: string }>;
 }) {
-	const searchParams = await props.searchParams;
-	const today = new Date();
-	const year = searchParams.year
-		? Number.parseInt(searchParams.year, 10)
-		: today.getFullYear();
-	const month = searchParams.month
-		? Number.parseInt(searchParams.month, 10)
-		: today.getMonth() + 1;
+	const { year, month } = await getYearMonthFromSearchParams(
+		props.searchParams,
+	);
 
 	const { startDate, endDate } = getMonthDateRange(year, month);
 	const trpcServer = await getTRPCServer();
@@ -29,6 +26,8 @@ export default async function Home(props: {
 		<div className="flex flex-col gap-6">
 			<RosterHeader />
 			<ShiftCounts month={month} year={year} />
+			<SearchInput placeholder="Search nurses..." className="w-full" />
+
 			<div className="flex flex-col rounded-md">
 				<RosterTable initialSchedules={initialSchedules} />
 			</div>

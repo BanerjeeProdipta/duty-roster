@@ -3,8 +3,6 @@
 import { cn } from "@Duty-Roster/ui/lib/utils";
 import { useEffect, useState } from "react";
 
-// محدود set of allowed colors → Tailwind can detect all classes
-// Using !border- to override global * { @apply border-border }
 const colorMap = {
 	green: {
 		bg: "bg-green-500",
@@ -56,7 +54,6 @@ const colorMap = {
 type ColorKey = keyof typeof colorMap;
 
 export function ShiftInput({
-	label,
 	color,
 	value,
 	onChange,
@@ -81,9 +78,6 @@ export function ShiftInput({
 	return (
 		<div className="flex flex-col items-center">
 			<div className="flex items-center gap-1">
-				{/* Color Dot */}
-				<div className={cn("h-2 w-2 rounded-full", c.bg)} title={label} />
-
 				{/* Input */}
 				<input
 					type="number"
