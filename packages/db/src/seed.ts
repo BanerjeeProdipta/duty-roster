@@ -57,21 +57,21 @@ async function seed() {
 	const shifts = [
 		{
 			id: "shift_morning",
-			name: "morning",
+			name: "morning" as const,
 			startTime: "08:00",
 			endTime: "14:00",
 			crossesMidnight: false,
 		},
 		{
 			id: "shift_evening",
-			name: "evening",
+			name: "evening" as const,
 			startTime: "14:00",
 			endTime: "20:00",
 			crossesMidnight: false,
 		},
 		{
 			id: "shift_night",
-			name: "night",
+			name: "night" as const,
 			startTime: "20:00",
 			endTime: "08:00",
 			crossesMidnight: true,

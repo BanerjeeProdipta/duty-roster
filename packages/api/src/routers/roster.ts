@@ -36,55 +36,6 @@ export const rosterRouter = router({
 			),
 		),
 
-	getNurseShiftPreferences: publicProcedure
-		.output(z.array(nurseShiftPreferenceSchema))
-		.query(() => rosterService.listNurseShiftPreferenceWeights()),
-
-	getMonthlyShiftRequirements: publicProcedure
-		.input(
-			z.object({
-				year: z.number().int().min(2000).max(2100),
-				month: z.number().int().min(1).max(12),
-			}),
-		)
-		.output(
-			z.object({
-				year: z.number(),
-				month: z.number(),
-				daysInMonth: z.number(),
-				dayOfWeekCounts: z.object({
-					monday: z.number(),
-					tuesday: z.number(),
-					wednesday: z.number(),
-					thursday: z.number(),
-					friday: z.number(),
-					saturday: z.number(),
-					sunday: z.number(),
-				}),
-				shiftRequirements: z.object({
-					morning: z.number(),
-					evening: z.number(),
-					night: z.number(),
-					total: z.number(),
-				}),
-				assignedShiftCounts: z.object({
-					morning: z.number(),
-					evening: z.number(),
-					night: z.number(),
-					total: z.number(),
-				}),
-				preferenceCapacity: z.object({
-					morning: z.number(),
-					evening: z.number(),
-					night: z.number(),
-					total: z.number(),
-				}),
-			}),
-		)
-		.query(({ input }) =>
-			rosterService.getMonthlyShiftRequirements(input.year, input.month),
-		),
-
 	// ─────────────── WRITES ───────────────
 
 	generateRoster: protectedProcedure

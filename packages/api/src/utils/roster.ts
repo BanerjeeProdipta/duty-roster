@@ -1,3 +1,18 @@
+export type ScheduleRowInput = {
+	id: string;
+	date: string;
+	nurse: { id: string; name: string };
+	shift?: { id: string } | null;
+};
+
+export type PreferenceWeight = {
+	nurseId: string;
+	morning: number;
+	evening: number;
+	night: number;
+	active: boolean;
+};
+
 /**
  * Roster Utility Functions
  * Centralized logic for date manipulation and shift normalization
@@ -34,4 +49,36 @@ export function getMonthDateRange(year: number, month: number) {
  */
 export function createUTCDate(year: number, month: number, day: number): Date {
 	return new Date(Date.UTC(year, month - 1, day, 12, 0, 0, 0));
+}
+
+export function getDaysInMonth(year: number, month: number): number {
+	return new Date(year, month, 0).getDate();
+}
+
+export function getWeekNumber(
+	year: number,
+	month: number,
+	day: number,
+): number {
+	const date = new Date(year, month - 1, day);
+	const startOfYear = new Date(year, 0, 1);
+	const diff = date.getTime() - startOfYear.getTime();
+	const oneWeek = 604800000;
+	return Math.ceil((diff + startOfYear.getDay() * 86400000) / oneWeek);
+}
+
+export function isFriday(year: number, month: number, day: number): boolean {
+	return new Date(year, month - 1, day).getDay() === 5;
+}
+
+export function getDaysCountFromStartAndEndDate(
+	startDate: Date,
+	endDate: Date,
+): number {
+	const start = new Date(startDate);
+	start.setUTCHours(0, 0, 0, 0);
+	const end = new Date(endDate);
+	end.setUTCHours(0, 0, 0, 0);
+	const diff = end.getTime() - start.getTime();
+	return Math.floor(diff / (1000 * 60 * 60 * 24)) + 1;
 }

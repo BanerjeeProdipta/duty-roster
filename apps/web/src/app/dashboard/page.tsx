@@ -1,5 +1,4 @@
 import { SearchInput } from "@Duty-Roster/ui/components/search-input";
-import { ShiftCounts } from "@/components/analytics/ShiftCounts";
 import { RosterHeader } from "@/components/roster-table/RosterHeader";
 import { RosterTable } from "@/components/roster-table/RosterTable";
 import { getMonthDateRange, getYearMonthFromSearchParams } from "@/utils";
@@ -21,10 +20,12 @@ export default async function DashboardPage(props: {
 		endDate,
 	});
 
+	console.log(initialSchedules);
+
 	return (
 		<div className="flex flex-col gap-6">
 			<RosterHeader editable />
-			<ShiftCounts month={month} year={year} />
+			{/* <ShiftCounts month={month} year={year} /> */}
 			<SearchInput placeholder="Search nurses..." className="w-full" />
 
 			<div className="flex flex-col rounded-2xl">

@@ -1,9 +1,11 @@
 "use client";
 
+import { useEffect } from "react";
 import { useRosterDates } from "../../hooks/useRosterDates";
 import { useRosterRows } from "../../hooks/useRosterRows";
 import { useRosterSchedules } from "../../hooks/useRosterSchedules";
 import { useShifts } from "../../hooks/useShifts";
+import { useRosterStore } from "../../store/roster/useRosterStore";
 import { DayHeaderCell } from "./DayHeaderCell";
 import { LAYOUT } from "./Layout";
 import { NurseIdentityCell } from "./NurseIdentityCell";
@@ -23,12 +25,22 @@ export function RosterTable({
 	month,
 	initialSchedules,
 }: RosterTableProps) {
-	const { data: schedulesData } = useRosterSchedules(
-		year,
-		month,
-		initialSchedules,
+	const storeInitialSchedules = useRosterStore(
+		(state) => state.initialSchedules,
 	);
-	const rosterData = schedulesData ?? initialSchedules;
+	const setInitialSchedules = useRosterStore(
+		(state) => state.setInitialSchedules,
+	);
+
+	useEffect(() => {
+		if (initialSchedules && !storeInitialSchedules) {
+			setInitialSchedules(initialSchedules);
+		}
+	}, [initialSchedules, storeInitialSchedules, setInitialSchedules]);
+
+	const dataToUse = storeInitialSchedules ?? initialSchedules;
+	const { data: schedulesData } = useRosterSchedules(year, month, dataToUse);
+	const rosterData = schedulesData ?? dataToUse;
 	const shifts = useShifts();
 	const { weekDates, normalizedDates } = useRosterDates();
 	const { filteredNurseRows, parentRef } = useRosterRows(rosterData);

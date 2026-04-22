@@ -1,5 +1,5 @@
 import { db, schema } from "@Duty-Roster/db";
-import { and, asc, desc, eq, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, lte, sql } from "drizzle-orm";
 
 const { nurse, nurseSchedule, shift, nurseShiftPreference } = schema;
 
@@ -19,35 +19,71 @@ export async function findAllShifts() {
 
 // ─────────────── SCHEDULES ───────────────
 
-export async function findSchedulesByDateRange(startDate: Date, endDate: Date) {
+export async function findSchedulesAndPreferencesByDateRange(
+	startDate: Date,
+	endDate: Date,
+) {
 	const start = new Date(startDate);
 	start.setUTCHours(0, 0, 0, 0);
+
 	const end = new Date(endDate);
 	end.setUTCHours(23, 59, 59, 999);
 
-	return db
-		.select({
-			id: nurseSchedule.id,
-			date: nurseSchedule.date,
-			nurse: {
-				id: nurse.id,
-				name: nurse.name,
-			},
-			shift: {
-				id: shift.id,
-			},
-		})
-		.from(nurse)
-		.leftJoin(
-			nurseSchedule,
-			and(
-				eq(nurse.id, nurseSchedule.nurseId),
-				sql`${nurseSchedule.date} >= ${start}`,
-				sql`${nurseSchedule.date} <= ${end}`,
-			),
-		)
-		.leftJoin(shift, eq(shift.id, nurseSchedule.shiftId))
-		.orderBy(nurse.name, nurseSchedule.date);
+	const result = await db.execute(sql`
+    WITH nurse_prefs AS (
+      SELECT
+        nurse.id,
+        nurse.name,
+        COALESCE(BOOL_OR(nsp.active), false)                        AS active,
+        COALESCE(SUM(CASE WHEN nsp.shift_id = 'shift_morning' THEN nsp.weight ELSE 0 END), 0) AS morning,
+        COALESCE(SUM(CASE WHEN nsp.shift_id = 'shift_evening' THEN nsp.weight ELSE 0 END), 0) AS evening,
+        COALESCE(SUM(CASE WHEN nsp.shift_id = 'shift_night'   THEN nsp.weight ELSE 0 END), 0) AS night
+      FROM nurse
+      LEFT JOIN nurse_shift_preference nsp ON nurse.id = nsp.nurse_id
+      GROUP BY nurse.id, nurse.name
+    ),
+
+    nurse_assignments AS (
+      SELECT
+        ns.nurse_id,
+        COALESCE(
+          json_object_agg(
+            TO_CHAR(ns.date, 'YYYY-MM-DD'),
+            json_build_object('id', ns.id, 'shiftType', REPLACE(s.id, 'shift_', ''))
+          ),
+          '{}'::json
+        )                                                           AS assignments,
+        COUNT(*) FILTER (WHERE s.id = 'shift_morning')             AS morning_count,
+        COUNT(*) FILTER (WHERE s.id = 'shift_evening')             AS evening_count,
+        COUNT(*) FILTER (WHERE s.id = 'shift_night')               AS night_count,
+        COUNT(*)                                                    AS total_assigned
+      FROM nurse_schedule ns
+      JOIN shift s ON s.id = ns.shift_id
+      WHERE ns.date >= ${start}
+        AND ns.date <= ${end}
+      GROUP BY ns.nurse_id
+    )
+
+    SELECT
+      np.id,
+      np.name,
+      np.active,
+      np.morning                                                    AS "prefMorning",
+      np.evening                                                    AS "prefEvening",
+      np.night                                                      AS "prefNight",
+      COALESCE(na.assignments, '{}'::json)                         AS assignments,
+      COALESCE(na.morning_count, 0)                                AS "shiftMorning",
+      COALESCE(na.evening_count, 0)                                AS "shiftEvening",
+      COALESCE(na.night_count,   0)                                AS "shiftNight",
+      COALESCE(na.total_assigned, 0)                               AS "totalAssigned"
+    FROM nurse_prefs np
+    LEFT JOIN nurse_assignments na ON np.id = na.nurse_id
+    ORDER BY
+      np.active DESC NULLS LAST,
+      np.name ASC
+  `);
+
+	return result.rows;
 }
 
 export async function createSchedules(

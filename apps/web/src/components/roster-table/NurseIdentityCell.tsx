@@ -17,10 +17,9 @@ export function NurseIdentityCell({
 }) {
 	const totalAssigned =
 		(counts?.morning || 0) + (counts?.evening || 0) + (counts?.night || 0);
-	const targetMorning = Math.round(((pref?.morning || 0) / 100) * totalDays);
-	const targetEvening = Math.round(((pref?.evening || 0) / 100) * totalDays);
-	const targetNight = Math.round(((pref?.night || 0) / 100) * totalDays);
-	const targetWorkedDays = targetMorning + targetEvening + targetNight;
+
+	const targetWorkedDays =
+		pref?.morning ?? 0 + pref?.evening ?? 0 + pref?.night ?? 0;
 
 	const isOverWorked = totalAssigned > targetWorkedDays;
 	const isPerfect = totalAssigned === targetWorkedDays;
@@ -65,19 +64,19 @@ export function NurseIdentityCell({
 				<div className="flex items-center justify-between gap-1">
 					<AllocationItem
 						current={counts?.morning || 0}
-						target={targetMorning}
+						target={pref?.morning || 0}
 						color="bg-[#FDE68A]"
 						label="M"
 					/>
 					<AllocationItem
 						current={counts?.evening || 0}
-						target={targetEvening}
+						target={pref?.evening || 0}
 						color="bg-[#BFDBFE]"
 						label="E"
 					/>
 					<AllocationItem
 						current={counts?.night || 0}
-						target={targetNight}
+						target={pref?.night || 0}
 						color="bg-[#C4B5FD]"
 						label="N"
 					/>
