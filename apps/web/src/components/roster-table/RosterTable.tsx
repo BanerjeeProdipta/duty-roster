@@ -2,6 +2,7 @@
 
 import { useRosterDates } from "../../hooks/useRosterDates";
 import { useRosterRows } from "../../hooks/useRosterRows";
+import { useRosterSchedules } from "../../hooks/useRosterSchedules";
 import { useShifts } from "../../hooks/useShifts";
 import { DayHeaderCell } from "./DayHeaderCell";
 import { LAYOUT } from "./Layout";
@@ -11,18 +12,28 @@ import type { SchedulesResponse } from "./RosterMatrix.types";
 
 type RosterTableProps = {
 	editable?: boolean;
+	year: number;
+	month: number;
 	initialSchedules: SchedulesResponse;
 };
 
 export function RosterTable({
 	editable = false,
+	year,
+	month,
 	initialSchedules,
 }: RosterTableProps) {
+	const { data: schedulesData } = useRosterSchedules(
+		year,
+		month,
+		initialSchedules,
+	);
+	const rosterData = schedulesData ?? initialSchedules;
 	const shifts = useShifts();
 	const { weekDates, normalizedDates } = useRosterDates();
-	const { filteredNurseRows, parentRef } = useRosterRows(initialSchedules);
+	const { filteredNurseRows, parentRef } = useRosterRows(rosterData);
 
-	const { dailyShiftCounts } = initialSchedules;
+	const { dailyShiftCounts } = rosterData;
 
 	if (!filteredNurseRows?.length) {
 		return <div className="p-4 text-slate-500">No nurses found</div>;

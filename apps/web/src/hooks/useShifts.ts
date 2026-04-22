@@ -2,6 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { createContext } from "react";
+import { QUERY_KEYS } from "@/utils/query-keys";
 import { trpcClient } from "@/utils/trpc";
 
 export type ShiftDefinition = {
@@ -16,7 +17,7 @@ export const ShiftDefinitionContext = createContext<ShiftDefinition[]>([]);
 
 export function useShifts() {
 	const { data: shiftsData } = useQuery({
-		queryKey: ["shifts"],
+		queryKey: QUERY_KEYS.shifts,
 		queryFn: () => trpcClient.roster.getShifts.query(),
 	}) as {
 		data?: ShiftDefinition[];

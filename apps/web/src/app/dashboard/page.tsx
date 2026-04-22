@@ -28,7 +28,12 @@ export default async function DashboardPage(props: {
 			<SearchInput placeholder="Search nurses..." className="w-full" />
 
 			<div className="flex flex-col rounded-2xl">
-				<RosterTable editable initialSchedules={initialSchedules} />
+				<RosterTable
+					editable
+					year={year}
+					month={month}
+					initialSchedules={initialSchedules}
+				/>
 			</div>
 		</div>
 	);

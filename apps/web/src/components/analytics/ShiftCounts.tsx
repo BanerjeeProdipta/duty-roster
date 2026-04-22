@@ -3,6 +3,7 @@
 import { Label } from "@Duty-Roster/ui/components/label";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
+import { QUERY_KEYS } from "@/utils/query-keys";
 import { trpcClient } from "@/utils/trpc";
 import { ShiftCountCard } from "../shift-allocations/ShiftCountCard";
 
@@ -22,7 +23,7 @@ export function ShiftCounts({
 	}, [providedYear, providedMonth]);
 
 	const { data, isLoading } = useQuery({
-		queryKey: ["shiftRequirements", year, month],
+		queryKey: QUERY_KEYS.shiftRequirements(year, month),
 		queryFn: () =>
 			trpcClient.roster.getMonthlyShiftRequirements.query({ year, month }),
 	});
