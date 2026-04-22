@@ -18,7 +18,7 @@ export type ShiftCounts = {
 	morning: number;
 	evening: number;
 	night: number;
-	totalAssigned: number;
+	total: number;
 };
 
 export type SchedulesResponse = {
@@ -28,13 +28,9 @@ export type SchedulesResponse = {
 			name: string;
 			active?: boolean;
 		};
-		shifts: ShiftCounts;
 		assignments: Record<string, { id: string; shiftType: ShiftType } | null>;
-		preference?: {
-			morning?: number;
-			evening?: number;
-			night?: number;
-		};
+		preferenceWiseShiftMetrics: ShiftCounts;
+		assignedShiftMetrics: ShiftCounts;
 	}[];
 	dailyShiftCounts: Record<string, ShiftCounts>;
 };

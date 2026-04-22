@@ -6,20 +6,18 @@ export function NurseIdentityCell({
 	nurse,
 	counts,
 	pref,
-	totalDays,
 	editable,
 }: {
 	nurse: { id: string; name: string; active?: boolean };
 	counts: { morning: number; evening: number; night: number } | undefined;
 	pref?: { morning?: number; evening?: number; night?: number } | undefined;
-	totalDays: number;
 	editable?: boolean;
 }) {
 	const totalAssigned =
 		(counts?.morning || 0) + (counts?.evening || 0) + (counts?.night || 0);
 
 	const targetWorkedDays =
-		pref?.morning ?? 0 + pref?.evening ?? 0 + pref?.night ?? 0;
+		(pref?.morning ?? 0) + (pref?.evening ?? 0) + (pref?.night ?? 0);
 
 	const isOverWorked = totalAssigned > targetWorkedDays;
 	const isPerfect = totalAssigned === targetWorkedDays;

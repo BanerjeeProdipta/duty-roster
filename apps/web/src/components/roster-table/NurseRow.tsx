@@ -1,6 +1,6 @@
 import { cn } from "@Duty-Roster/ui/lib/utils";
 import React from "react";
-import type { ShiftDefinition } from "../../hooks/useShifts";
+import type { ShiftDefinition } from "../../hooks/useGetShifts";
 import { LAYOUT } from "./Layout";
 import type { ShiftType } from "./RosterMatrix.types";
 import { ShiftBadge } from "./ShiftDropdown";

@@ -22,19 +22,22 @@ export function useUpdatePreferences(options?: { onSuccess?: () => void }) {
 		}: {
 			preferences: PreferenceUpdate[];
 			daysInMonth: number;
-		}) =>
-			trpcClient.roster.updateNurseShiftPreferences.mutate({
+		}) => {
+			return trpcClient.roster.updateNurseShiftPreferences.mutate({
 				preferences,
 				daysInMonth,
-			}),
+			});
+		},
 
 		onSuccess: (...args) => {
+			console.log("onSuccess called, args:", args);
 			toast.success("Preferences saved successfully");
 			router.refresh();
 			options?.onSuccess?.(...args);
 		},
 
 		onError: (error: Error) => {
+			console.log("onError called:", error);
 			toast.error(`Failed to save: ${error.message}`);
 		},
 	});
@@ -99,36 +102,4 @@ export function useUpdateNurseActive(options?: { onSuccess?: () => void }) {
 	});
 
 	return mutation;
-}
-
-export function convertToPreferences(
-	nurse: {
-		id: string;
-		morning: number;
-		evening: number;
-		night: number;
-		active: boolean;
-	},
-	totalDays: number,
-): PreferenceUpdate[] {
-	return [
-		{
-			nurseId: nurse.id,
-			shiftId: "shift_morning",
-			weight: Math.round((nurse.morning / totalDays) * 100),
-			active: nurse.active,
-		},
-		{
-			nurseId: nurse.id,
-			shiftId: "shift_evening",
-			weight: Math.round((nurse.evening / totalDays) * 100),
-			active: nurse.active,
-		},
-		{
-			nurseId: nurse.id,
-			shiftId: "shift_night",
-			weight: Math.round((nurse.night / totalDays) * 100),
-			active: nurse.active,
-		},
-	];
 }

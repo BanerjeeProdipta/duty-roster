@@ -31,7 +31,7 @@ const shiftCountsSchema = z.object({
 	morning: z.number(),
 	evening: z.number(),
 	night: z.number(),
-	totalAssigned: z.number(),
+	total: z.number(),
 });
 
 export const schedulesResponseSchema = z.object({
@@ -42,7 +42,6 @@ export const schedulesResponseSchema = z.object({
 				name: z.string(),
 				active: z.boolean().optional(),
 			}),
-			shifts: shiftCountsSchema,
 			assignments: z.record(
 				z.string(),
 				z
@@ -52,13 +51,8 @@ export const schedulesResponseSchema = z.object({
 					})
 					.nullable(),
 			),
-			preference: z
-				.object({
-					morning: z.number().optional(),
-					evening: z.number().optional(),
-					night: z.number().optional(),
-				})
-				.optional(),
+			preferenceWiseShiftMetrics: shiftCountsSchema,
+			assignedShiftMetrics: shiftCountsSchema,
 		}),
 	),
 	dailyShiftCounts: z.record(z.string(), shiftCountsSchema),

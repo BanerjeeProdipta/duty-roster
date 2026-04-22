@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect } from "react";
+import { useVirtualizer } from "@tanstack/react-virtual";
+import { useEffect, useRef } from "react";
+import { useShifts } from "../../hooks/useGetShifts";
 import { useRosterDates } from "../../hooks/useRosterDates";
-import { useRosterRows } from "../../hooks/useRosterRows";
-import { useRosterSchedules } from "../../hooks/useRosterSchedules";
-import { useShifts } from "../../hooks/useShifts";
 import { useRosterStore } from "../../store/roster/useRosterStore";
 import { DayHeaderCell } from "./DayHeaderCell";
 import { LAYOUT } from "./Layout";
@@ -14,41 +13,43 @@ import type { SchedulesResponse } from "./RosterMatrix.types";
 
 type RosterTableProps = {
 	editable?: boolean;
-	year: number;
-	month: number;
 	initialSchedules: SchedulesResponse;
 };
 
 export function RosterTable({
 	editable = false,
-	year,
-	month,
 	initialSchedules,
 }: RosterTableProps) {
-	const storeInitialSchedules = useRosterStore(
-		(state) => state.initialSchedules,
-	);
 	const setInitialSchedules = useRosterStore(
 		(state) => state.setInitialSchedules,
 	);
+	const dailyShiftCounts = useRosterStore((state) => state.dailyShiftCounts);
+	const nurseRows = useRosterStore((state) => state.nurseRows);
+
+	const parentRef = useRef<HTMLDivElement>(null);
+	const shifts = useShifts();
 
 	useEffect(() => {
-		if (initialSchedules && !storeInitialSchedules) {
-			setInitialSchedules(initialSchedules);
-		}
-	}, [initialSchedules, storeInitialSchedules, setInitialSchedules]);
+		setInitialSchedules(initialSchedules);
+	}, [initialSchedules, setInitialSchedules]);
 
-	const dataToUse = storeInitialSchedules ?? initialSchedules;
-	const { data: schedulesData } = useRosterSchedules(year, month, dataToUse);
-	const rosterData = schedulesData ?? dataToUse;
-	const shifts = useShifts();
 	const { weekDates, normalizedDates } = useRosterDates();
-	const { filteredNurseRows, parentRef } = useRosterRows(rosterData);
 
-	const { dailyShiftCounts } = rosterData;
+	// Initialize virtualizer for rows
+	const rowVirtualizer = useVirtualizer({
+		count: nurseRows?.length ?? 0,
+		getScrollElement: () => parentRef.current,
+		estimateSize: () => LAYOUT.rowHeight,
+		overscan: 5, // Render extra rows outside viewport for smooth scrolling
+	});
 
-	if (!filteredNurseRows?.length) {
-		return <div className="p-4 text-slate-500">No nurses found</div>;
+	const virtualItems = rowVirtualizer.getVirtualItems();
+	const totalSize = rowVirtualizer.getTotalSize();
+
+	console.log({ virtualItems });
+
+	if (!nurseRows?.length) {
+		return <div className="p-4 text-slate-500">No schedules found</div>;
 	}
 
 	return (
@@ -90,34 +91,51 @@ export function RosterTable({
 							</tr>
 						</thead>
 
-						<tbody>
-							{filteredNurseRows.map((nurseRowData) => {
+						<tbody
+							style={{
+								height: `${totalSize}px`,
+								position: "relative",
+							}}
+						>
+							{virtualItems.map((virtualItem) => {
+								const nurseRowData = nurseRows[virtualItem.index];
 								const {
 									nurse,
-									shifts: counts,
 									assignments,
-									preference,
+									preferenceWiseShiftMetrics,
+									assignedShiftMetrics,
 								} = nurseRowData;
 
 								return (
-									<tr key={nurse.id} className="flex w-full">
+									<tr
+										key={`${nurse.id}-${virtualItem.index}`}
+										style={{
+											position: "absolute",
+											top: `${virtualItem.start}px`,
+											height: `${virtualItem.size}px`,
+											width: "100%",
+										}}
+									>
 										<td
-											className="sticky left-0 z-20 bg-white"
+											className="sticky left-0 z-20 border-slate-200 border-b bg-white"
 											style={{
 												width: LAYOUT.nameColWidth,
 												minWidth: LAYOUT.nameColWidth,
+												height: LAYOUT.rowHeight,
 											}}
 										>
 											<NurseIdentityCell
 												nurse={nurse}
-												counts={counts}
-												pref={preference}
-												totalDays={normalizedDates.length}
+												counts={assignedShiftMetrics}
+												pref={preferenceWiseShiftMetrics}
 												editable={editable}
 											/>
 										</td>
 
-										<td className="flex flex-1">
+										<td
+											className="border-slate-200 border-b"
+											style={{ height: "100%" }}
+										>
 											<NurseRow
 												nurse={nurse}
 												dates={weekDates}

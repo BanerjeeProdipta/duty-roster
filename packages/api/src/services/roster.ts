@@ -129,7 +129,7 @@ export async function getSchedulesByDateRange(
 
 	const dailyShiftCounts: Record<
 		string,
-		{ morning: number; evening: number; night: number; totalAssigned: number }
+		{ morning: number; evening: number; night: number; total: number }
 	> = {};
 
 	const nurseRows = rows.map((row) => {
@@ -143,16 +143,25 @@ export async function getSchedulesByDateRange(
 					morning: 0,
 					evening: 0,
 					night: 0,
-					totalAssigned: 0,
+					total: 0,
 				};
 			}
 			if (assignment.shiftType === "morning") dailyShiftCounts[date].morning++;
 			else if (assignment.shiftType === "evening")
 				dailyShiftCounts[date].evening++;
 			else if (assignment.shiftType === "night") dailyShiftCounts[date].night++;
-			if (assignment.shiftType !== "off")
-				dailyShiftCounts[date].totalAssigned++;
+			if (assignment.shiftType !== "off") dailyShiftCounts[date].total++;
 		}
+
+		const preferenceMorning = Math.round(
+			((Number(row.prefMorning) || 0) / 100) * totalDays,
+		);
+		const preferenceEvening = Math.round(
+			((Number(row.prefEvening) || 0) / 100) * totalDays,
+		);
+		const preferenceNight = Math.round(
+			((Number(row.prefNight) || 0) / 100) * totalDays,
+		);
 
 		return {
 			nurse: {
@@ -160,17 +169,18 @@ export async function getSchedulesByDateRange(
 				name: row.name as string,
 				active: row.active as boolean,
 			},
-			shifts: {
+			assignedShiftMetrics: {
 				morning: Number(row.shiftMorning),
 				evening: Number(row.shiftEvening),
 				night: Number(row.shiftNight),
-				totalAssigned: Number(row.totalAssigned),
+				total: Number(row.totalAssigned),
 			},
 			assignments,
-			preference: {
-				morning: Math.round(((Number(row.prefMorning) || 0) / 100) * totalDays),
-				evening: Math.round(((Number(row.prefEvening) || 0) / 100) * totalDays),
-				night: Math.round(((Number(row.prefNight) || 0) / 100) * totalDays),
+			preferenceWiseShiftMetrics: {
+				morning: preferenceMorning,
+				evening: preferenceEvening,
+				night: preferenceNight,
+				total: preferenceMorning + preferenceEvening + preferenceNight,
 			},
 		};
 	});

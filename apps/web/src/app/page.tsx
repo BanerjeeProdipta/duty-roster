@@ -27,11 +27,7 @@ export default async function Home(props: {
 			<SearchInput placeholder="Search nurses..." className="w-full" />
 
 			<div className="flex flex-col rounded-md">
-				<RosterTable
-					year={year}
-					month={month}
-					initialSchedules={initialSchedules}
-				/>
+				<RosterTable initialSchedules={initialSchedules} />
 			</div>
 		</div>
 	);

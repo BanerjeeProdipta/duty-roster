@@ -3,10 +3,19 @@ import type { SchedulesResponse } from "../../components/roster-table/RosterMatr
 
 interface RosterState {
 	initialSchedules: SchedulesResponse | null;
+	nurseRows: SchedulesResponse["nurseRows"];
+	dailyShiftCounts: SchedulesResponse["dailyShiftCounts"];
 	setInitialSchedules: (schedules: SchedulesResponse) => void;
 }
 
 export const useRosterStore = create<RosterState>((set) => ({
 	initialSchedules: null,
-	setInitialSchedules: (schedules) => set({ initialSchedules: schedules }),
+	nurseRows: [],
+	dailyShiftCounts: {},
+	setInitialSchedules: (schedules) =>
+		set({
+			initialSchedules: schedules,
+			nurseRows: schedules.nurseRows ?? [],
+			dailyShiftCounts: schedules.dailyShiftCounts ?? {},
+		}),
 }));

@@ -14,7 +14,7 @@ export const useGenerateRoster = () => {
 			}),
 
 		onSuccess: async (result, _variables) => {
-			toast.success(`Generated ${result.schedulesCreated} schedules`);
+			toast.success(`Generated ${result} schedules`);
 			router.refresh();
 		},
 
