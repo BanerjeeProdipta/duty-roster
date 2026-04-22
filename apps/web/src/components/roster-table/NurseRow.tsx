@@ -42,6 +42,7 @@ export const NurseRow = React.memo(function NurseRow({
 						<ShiftBadge
 							type={shift?.shiftType || "off"}
 							nurseName={nurse?.name || "Nurse"}
+							nurseId={nurse.id}
 							date={dateKey}
 							assignmentId={shift?.id}
 							shifts={shifts}

@@ -7,7 +7,7 @@ import {
 	DropdownMenuRadioItem,
 	DropdownMenuTrigger,
 } from "@Duty-Roster/ui/components/dropdown-menu";
-import { useState } from "react";
+import { startTransition, useOptimistic, useState } from "react";
 import type { ShiftDefinition } from "../../hooks/useGetShifts";
 import { useUpdateShift } from "../../hooks/useUpdateShift";
 import { SHIFT_ICONS, SHIFT_STYLES } from "./RosterMatrix.constants";
@@ -16,6 +16,7 @@ import type { ShiftType } from "./RosterMatrix.types";
 interface ShiftBadgeProps {
 	type: ShiftType;
 	nurseName: string;
+	nurseId: string;
 	date: string;
 	assignmentId?: string;
 	shifts: ShiftDefinition[];
@@ -40,6 +41,7 @@ const defaultLabel: Record<ShiftType, string> = {
 export function ShiftBadge({
 	type,
 	nurseName,
+	nurseId,
 	date,
 	assignmentId,
 	shifts,
@@ -47,29 +49,38 @@ export function ShiftBadge({
 	const [open, setOpen] = useState(false);
 	const updateMutation = useUpdateShift();
 
-	const shiftDef = shifts.find((s) => s.name === type);
-	const label = shiftDef ? defaultLabel[type] : defaultLabel[type];
-	const timeRange =
-		type !== "off" && shiftDef
-			? `${shiftDef.startTime.slice(0, 5)} - ${shiftDef.endTime.slice(0, 5)}`
-			: "No shift";
+	const [optimisticType, setOptimisticType] = useOptimistic(type);
 
 	const handleChange = (value: ShiftType) => {
-		if (assignmentId) {
-			const shiftId = value === "off" ? null : `shift_${value}`;
-			updateMutation.mutate({ id: assignmentId, shiftId });
-		}
 		setOpen(false);
+		if (!assignmentId) return;
+
+		startTransition(() => {
+			setOptimisticType(value);
+			updateMutation.mutate({
+				id: assignmentId,
+				shiftId: value === "off" ? null : `shift_${value}`,
+				nurseId,
+				dateKey: date,
+			});
+		});
 	};
+
+	const shiftDef = shifts.find((s) => s.name === optimisticType);
+	const label = defaultLabel[optimisticType];
+	const timeRange =
+		optimisticType !== "off" && shiftDef
+			? `${shiftDef.startTime.slice(0, 5)} - ${shiftDef.endTime.slice(0, 5)}`
+			: "No shift";
 
 	const badge = (
 		<div
 			className={`flex h-12 w-12 items-center justify-center rounded-lg font-bold text-lg shadow-sm transition-all duration-200 hover:translate-y-[1px] hover:scale-105 ${
 				assignmentId ? "cursor-pointer" : ""
-			} ${SHIFT_STYLES[type]}`}
+			} ${SHIFT_STYLES[optimisticType]}`}
 			title={`${nurseName} - ${date}: ${label} (${timeRange})`}
 		>
-			{SHIFT_ICONS[type]}
+			{SHIFT_ICONS[optimisticType]}
 		</div>
 	);
 
@@ -101,7 +112,7 @@ export function ShiftBadge({
 				</div>
 
 				<DropdownMenuRadioGroup
-					value={type}
+					value={optimisticType}
 					onValueChange={handleChange}
 					className="-mt-1"
 				>
@@ -110,7 +121,7 @@ export function ShiftBadge({
 							key={item.value}
 							value={item.value}
 							className={`mb-2 flex cursor-pointer items-center gap-3 rounded-md px-2 py-1 transition-all duration-200 ease-out ${
-								type === item.value
+								optimisticType === item.value
 									? "bg-primary/10 ring-1 ring-primary"
 									: "hover:bg-slate-50"
 							}`}

@@ -28,10 +28,7 @@ export default async function DashboardPage(props: {
 			<RosterHeader editable />
 			<ShiftCounts />
 			<SearchInput placeholder="Search nurses..." className="w-full" />
-
-			<div className="flex flex-col rounded-2xl">
-				<RosterTable editable initialSchedules={initialSchedules} />
-			</div>
+			<RosterTable editable initialSchedules={initialSchedules} />
 		</div>
 	);
 }
