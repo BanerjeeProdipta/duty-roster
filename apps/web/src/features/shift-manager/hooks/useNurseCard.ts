@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
 	useUpdateNurseActive,
 	useUpdatePreferences,
@@ -17,6 +17,21 @@ export function useNurseCard({ nurse, totalDays }: UseNurseCardOptions) {
 	const [draft, setDraft] = useState<NurseState>(nurse);
 	const [isSaving, setIsSaving] = useState(false);
 	const [isUpdatingActive, setIsUpdatingActive] = useState(false);
+
+	useEffect(() => {
+		setDraft({
+			...nurse,
+			off: Math.max(0, totalDays - nurse.morning - nurse.evening - nurse.night),
+		});
+	}, [
+		nurse.nurseId,
+		nurse.name,
+		nurse.morning,
+		nurse.evening,
+		nurse.night,
+		nurse.active,
+		totalDays,
+	]);
 
 	const updatePrefsMutation = useUpdatePreferences();
 	const updateActiveMutation = useUpdateNurseActive();

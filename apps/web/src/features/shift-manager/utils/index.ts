@@ -3,10 +3,13 @@ import type { NurseState, PreferenceUpdate } from "../types";
 export function convertToPreferences(
 	nurse: Pick<
 		NurseState,
-		"nurseId" | "morning" | "evening" | "night" | "active"
+		"nurseId" | "morning" | "evening" | "night" | "off" | "active"
 	>,
 	totalDays: number,
 ): PreferenceUpdate[] {
+	const workingDays = nurse.morning + nurse.evening + nurse.night;
+	const offDays = totalDays - workingDays;
+
 	return [
 		{
 			nurseId: nurse.nurseId,

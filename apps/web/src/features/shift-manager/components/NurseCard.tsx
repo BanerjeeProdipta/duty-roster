@@ -35,8 +35,8 @@ export function NurseCard({ nurse, totalDays }: NurseCardProps) {
 			<div className="mb-4 flex items-start justify-between gap-2">
 				<div className="flex flex-wrap items-center gap-1">
 					<div className="flex items-center gap-2">
-						<div className="w-12 font-bold text-slate-800">{draft.name}</div>
 						<ActiveToggle
+							name={nurse.name}
 							active={draft.active}
 							loading={isUpdatingActive}
 							onToggle={handleToggleActive}
@@ -120,10 +120,12 @@ const shiftColor: Record<
 };
 
 function ActiveToggle({
+	name,
 	active,
 	loading,
 	onToggle,
 }: {
+	name: string;
 	active: boolean;
 	loading: boolean;
 	onToggle: () => void;
@@ -133,16 +135,16 @@ function ActiveToggle({
 			type="button"
 			onClick={onToggle}
 			disabled={loading}
-			className="inline-flex items-center gap-1 rounded-md px-2 py-1 font-medium text-xs hover:bg-slate-100"
+			className="inline-flex items-center gap-1 rounded-md px-2 py-1 font-medium text-sm hover:bg-slate-100"
 		>
 			{loading ? (
 				<Loader2 className="mr-1 h-3 w-3 animate-spin" />
 			) : active ? (
-				<User className="h-3 w-3" />
+				<User className="h-4 w-4" />
 			) : (
-				<Ban className="h-3 w-3" />
+				<Ban className="h-4 w-4" />
 			)}
-			{active ? "Active" : "Inactive"}
+			{name}
 		</button>
 	);
 }
@@ -164,11 +166,10 @@ function SaveButton({
 			className="inline-flex items-center gap-1 rounded-md bg-lime-100 px-2 py-1 font-medium text-lime-700 text-xs transition duration-300 hover:bg-lime-200 disabled:opacity-50"
 		>
 			{loading ? (
-				<Loader2 className="mr-1 h-3 w-3 animate-spin" />
+				<Loader2 className="mr-1 h-5 w-5 animate-spin" />
 			) : (
-				<Save className="h-3 w-3" />
+				<Save className="h-6 w-6" />
 			)}
-			Save
 		</button>
 	);
 }

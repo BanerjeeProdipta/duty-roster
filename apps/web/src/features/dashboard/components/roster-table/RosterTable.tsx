@@ -1,10 +1,11 @@
 "use client";
 
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { useEffect, useRef } from "react";
+import { Loader2 } from "lucide-react";
+import { useRef } from "react";
 import { useShifts } from "@/hooks/useGetShifts";
 import { useRosterDates } from "@/hooks/useRosterDates";
-import { useRosterStore } from "@/store/roster/useRosterStore";
+import { useScheduleInit } from "@/hooks/useScheduleInit";
 import { DayHeaderCell } from "./DayHeaderCell";
 import { LAYOUT } from "./Layout";
 import { NurseIdentityCell } from "./NurseIdentityCell";
@@ -13,27 +14,22 @@ import type { SchedulesResponse } from "./RosterMatrix.types";
 
 type RosterTableProps = {
 	editable?: boolean;
-	initialSchedules: SchedulesResponse;
+	initialSchedules?: SchedulesResponse;
 };
 
 export function RosterTable({
 	editable = false,
 	initialSchedules,
 }: RosterTableProps) {
-	const setInitialSchedules = useRosterStore(
-		(state) => state.setInitialSchedules,
-	);
-	const dailyShiftCounts = useRosterStore((state) => state.dailyShiftCounts);
-	const nurseRows = useRosterStore((state) => state.nurseRows);
+	const { schedules, isFetching } = useScheduleInit(initialSchedules);
 
 	const parentRef = useRef<HTMLDivElement>(null);
 	const shifts = useShifts();
 
-	useEffect(() => {
-		setInitialSchedules(initialSchedules);
-	}, [initialSchedules, setInitialSchedules]);
-
 	const { weekDates, normalizedDates } = useRosterDates();
+
+	const nurseRows = schedules?.nurseRows ?? [];
+	const dailyShiftCounts = schedules?.dailyShiftCounts ?? {};
 
 	// Initialize virtualizer for rows
 	const rowVirtualizer = useVirtualizer({
@@ -46,7 +42,13 @@ export function RosterTable({
 	const virtualItems = rowVirtualizer.getVirtualItems();
 	const totalSize = rowVirtualizer.getTotalSize();
 
-	console.log({ virtualItems });
+	if (isFetching && !nurseRows?.length) {
+		return (
+			<div className="flex items-center justify-center py-12">
+				<Loader2 className="h-6 w-6 animate-spin text-slate-400" />
+			</div>
+		);
+	}
 
 	if (!nurseRows?.length) {
 		return <div className="p-4 text-slate-500">No schedules found</div>;

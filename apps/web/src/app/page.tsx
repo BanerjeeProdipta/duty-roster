@@ -23,7 +23,6 @@ export default async function Home(props: {
 
 	return (
 		<div className="flex flex-col gap-6">
-			<RosterHeader />
 			<SearchInput placeholder="Search nurses..." className="w-full" />
 			<RosterTable initialSchedules={initialSchedules} />
 		</div>

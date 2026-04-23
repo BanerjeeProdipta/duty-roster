@@ -385,6 +385,7 @@ export async function generateRoster(params: GenerateRosterParams) {
 		// For each shift type (in demand order), assign nurses
 		for (const shiftType of shiftDemand) {
 			const slotsNeeded = coverage[shiftType];
+			let assignedCount = 0;
 
 			// Get eligible nurses, sorted by who needs it most
 			const eligible = getEligibleNurses(
@@ -411,11 +412,7 @@ export async function generateRoster(params: GenerateRosterParams) {
 					date: createUTCDate(year, month, day),
 				});
 
-				// Check if required slots are filled
-				const assignedCount = schedules.filter(
-					(s) =>
-						s.date.getUTCDate() === day && s.shiftId === `shift_${shiftType}`,
-				).length;
+				assignedCount++;
 
 				if (assignedCount >= slotsNeeded) break;
 			}

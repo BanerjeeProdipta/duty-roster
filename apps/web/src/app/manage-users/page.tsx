@@ -22,7 +22,7 @@ export default async function ShiftAllocationsPage(props: {
 	return (
 		<div className="flex flex-col gap-6">
 			<MonthNavigator />
-			<ShiftCounts />
+			<ShiftCounts initialSchedules={initialSchedules} />
 			<ShiftAllocationsClient initialSchedules={initialSchedules} />
 		</div>
 	);

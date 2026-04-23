@@ -1,8 +1,9 @@
 import { useMemo } from "react";
-import { useRosterStore } from "@/store/roster/useRosterStore";
+import type { SchedulesResponse } from "./roster-table/RosterMatrix.types";
 
-export function useShiftCountMetrics() {
-	const { nurseRows, dailyShiftCounts } = useRosterStore();
+export function useShiftCountMetrics(schedules?: SchedulesResponse) {
+	const nurseRows = schedules?.nurseRows ?? [];
+	const dailyShiftCounts = schedules?.dailyShiftCounts ?? {};
 
 	return useMemo(() => {
 		const shiftRequirements = {

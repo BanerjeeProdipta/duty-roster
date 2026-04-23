@@ -1,7 +1,6 @@
 "use client";
 
-import { useMutation } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { trpcClient } from "@/utils/trpc";
 
@@ -13,7 +12,7 @@ interface PreferenceUpdate {
 }
 
 export function useUpdatePreferences(options?: { onSuccess?: () => void }) {
-	const router = useRouter();
+	const queryClient = useQueryClient();
 
 	const mutation = useMutation({
 		mutationFn: async ({
@@ -29,15 +28,13 @@ export function useUpdatePreferences(options?: { onSuccess?: () => void }) {
 			});
 		},
 
-		onSuccess: (...args) => {
-			console.log("onSuccess called, args:", args);
+		onSuccess: () => {
 			toast.success("Preferences saved successfully");
-			router.refresh();
-			options?.onSuccess?.(...args);
+			queryClient.invalidateQueries({ queryKey: ["schedules"] });
+			options?.onSuccess?.();
 		},
 
 		onError: (error: Error) => {
-			console.log("onError called:", error);
 			toast.error(`Failed to save: ${error.message}`);
 		},
 	});
@@ -46,7 +43,7 @@ export function useUpdatePreferences(options?: { onSuccess?: () => void }) {
 }
 
 export function useUpdateNurseActive(options?: { onSuccess?: () => void }) {
-	const router = useRouter();
+	const queryClient = useQueryClient();
 
 	const mutation = useMutation({
 		mutationFn: async ({
@@ -90,10 +87,10 @@ export function useUpdateNurseActive(options?: { onSuccess?: () => void }) {
 			});
 		},
 
-		onSuccess: (...args) => {
+		onSuccess: () => {
 			toast.success("Active status updated");
-			router.refresh();
-			options?.onSuccess?.(...args);
+			queryClient.invalidateQueries({ queryKey: ["schedules"] });
+			options?.onSuccess?.();
 		},
 
 		onError: (error: Error) => {

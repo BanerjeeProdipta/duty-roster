@@ -1,10 +1,16 @@
 "use client";
 
-import { Label } from "@Duty-Roster/ui/components/label";
+import type { SchedulesResponse } from "@Duty-Roster/api";
+import { useSchedules } from "@/hooks/useSchedules";
 import { ShiftCountCard } from "./ShiftCountCard";
 import { useShiftCountMetrics } from "./useShiftCountMetrics";
 
-export function ShiftCounts() {
+type ShiftCountsProps = {
+	initialSchedules?: SchedulesResponse;
+};
+
+export function ShiftCounts({ initialSchedules }: ShiftCountsProps) {
+	const { schedules } = useSchedules(initialSchedules);
 	const {
 		totalRequired,
 		totalAssigned,
@@ -12,7 +18,7 @@ export function ShiftCounts() {
 		shiftRequirements,
 		assignedShiftCounts,
 		preferenceCapacity,
-	} = useShiftCountMetrics();
+	} = useShiftCountMetrics(schedules);
 
 	return (
 		<div className="flex flex-col gap-3 rounded-xl border bg-white p-3 sm:p-4">

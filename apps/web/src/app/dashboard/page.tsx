@@ -21,12 +21,10 @@ export default async function DashboardPage(props: {
 		endDate,
 	});
 
-	console.log(initialSchedules);
-
 	return (
 		<div className="flex flex-col gap-6">
 			<RosterHeader editable />
-			<ShiftCounts />
+			<ShiftCounts initialSchedules={initialSchedules} />
 			<SearchInput placeholder="Search nurses..." className="w-full" />
 			<RosterTable editable initialSchedules={initialSchedules} />
 		</div>

@@ -1,5 +1,11 @@
 import { relations } from "drizzle-orm";
-import { pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
+import {
+	index,
+	pgTable,
+	text,
+	timestamp,
+	uniqueIndex,
+} from "drizzle-orm/pg-core";
 
 import { nurse } from "./nurse";
 import { shift } from "./shift";
@@ -27,6 +33,7 @@ export const nurseSchedule = pgTable(
 			table.nurseId,
 			table.date,
 		),
+		dateIdx: index("idx_nurse_schedule_date").on(table.date),
 	}),
 );
 

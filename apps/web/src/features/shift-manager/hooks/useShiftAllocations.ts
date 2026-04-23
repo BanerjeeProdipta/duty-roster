@@ -1,25 +1,15 @@
 import { useSearchParams } from "next/navigation";
-import { useEffect } from "react";
 import type { SchedulesResponse } from "@/features/dashboard/components/roster-table/RosterMatrix.types";
-import { useRosterStore } from "@/store/roster/useRosterStore";
 import { getDaysInMonth } from "@/utils";
 import type { NurseState } from "../types";
 
-export function useShiftAllocations(initialSchedules?: SchedulesResponse) {
-	const setInitialSchedules = useRosterStore((s) => s.setInitialSchedules);
-	const nurseRowsFromStore = useRosterStore((s) => s.nurseRows);
-
-	useEffect(() => {
-		if (initialSchedules) setInitialSchedules(initialSchedules);
-	}, [initialSchedules, setInitialSchedules]);
-
-	const nurseRows =
-		nurseRowsFromStore.length > 0
-			? nurseRowsFromStore
-			: (initialSchedules?.nurseRows ?? []);
+export function useShiftAllocations(
+	schedules?: SchedulesResponse,
+	externalTotalDays?: number,
+) {
+	const nurseRows = schedules?.nurseRows ?? [];
 
 	const searchParams = useSearchParams();
-	const totalDaysParam = searchParams.get("days");
 	const yearParam = searchParams.get("year");
 	const monthParam = searchParams.get("month");
 	const qParam = searchParams.get("q") ?? "";
@@ -29,9 +19,8 @@ export function useShiftAllocations(initialSchedules?: SchedulesResponse) {
 	const month = monthParam
 		? Number.parseInt(monthParam, 10)
 		: now.getMonth() + 1;
-	const totalDays = totalDaysParam
-		? Number.parseInt(totalDaysParam, 10)
-		: getDaysInMonth(new Date(year, month - 1));
+	const totalDays =
+		externalTotalDays ?? getDaysInMonth(new Date(year, month - 1));
 
 	const nurses: NurseState[] = nurseRows.map((row) => {
 		const pref = row.preferenceWiseShiftMetrics;

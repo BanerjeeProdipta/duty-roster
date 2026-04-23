@@ -81,7 +81,7 @@ export function ShiftCountCard({
 				<div
 					className={cn(
 						"inline-flex items-center gap-1 font-semibold text-sm",
-						isFulfilled ? "text-emerald-600" : "text-rose-500",
+						isFulfilled ? "text-slate-600" : "text-rose-500",
 					)}
 				>
 					<Label variant="inline">Needed:</Label>

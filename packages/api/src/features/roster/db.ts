@@ -116,10 +116,16 @@ export async function createSchedules(
 
 	const year = firstSchedule.date.getUTCFullYear();
 	const month = firstSchedule.date.getUTCMonth() + 1;
-
 	const { startDate, endDate } = getMonthDateRange(year, month);
 
-	// Delete existing schedules for the month (no transaction - Neon doesn't support it)
+	const normalizedSchedules = schedules.map((s) => ({
+		id: `schedule_${s.nurseId}_${s.date.toISOString().split("T")[0]}`,
+		nurseId: s.nurseId,
+		shiftId: s.shiftId,
+		date: s.date,
+	}));
+
+	// 1️⃣ Clear the entire month first
 	await db
 		.delete(nurseSchedule)
 		.where(
@@ -129,18 +135,11 @@ export async function createSchedules(
 			),
 		);
 
-	// Insert new schedules in batches
+	// 2️⃣ Insert in batches
 	const BATCH_SIZE = 100;
-	for (let i = 0; i < schedules.length; i += BATCH_SIZE) {
-		const batch = schedules.slice(i, i + BATCH_SIZE);
-		await db.insert(nurseSchedule).values(
-			batch.map((s) => ({
-				id: `schedule_${s.date.getUTCFullYear()}_${s.date.getUTCMonth() + 1}_${s.date.getUTCDate()}_${s.nurseId}_${s.shiftId}`,
-				nurseId: s.nurseId,
-				shiftId: s.shiftId,
-				date: s.date,
-			})),
-		);
+	for (let i = 0; i < normalizedSchedules.length; i += BATCH_SIZE) {
+		const batch = normalizedSchedules.slice(i, i + BATCH_SIZE);
+		await db.insert(nurseSchedule).values(batch);
 	}
 }
 

@@ -60,7 +60,6 @@ export function ShiftInput({
 	max,
 	disabled,
 }: {
-	label: string;
 	color: ColorKey;
 	value: number;
 	onChange: (v: number) => void;
