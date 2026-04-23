@@ -2,9 +2,18 @@
 
 import { Label } from "@Duty-Roster/ui/components/label";
 import { cn } from "@Duty-Roster/ui/lib/utils";
-import { Moon, Sun, Sunset } from "lucide-react";
+import { FileUser, Moon, Sun, Sunset } from "lucide-react";
 
 const shiftConfig = {
+	total: {
+		label: "Shift",
+		bg: "bg-slate-400",
+		bgLight: "bg-slate-50",
+		bgDark: "bg-slate-700",
+		text: "text-slate-700",
+		border: "border-slate-200",
+		Icon: FileUser,
+	},
 	morning: {
 		label: "Morning",
 		bg: "bg-[#FDE68A]",
@@ -34,7 +43,7 @@ const shiftConfig = {
 	},
 };
 
-type ShiftType = keyof typeof shiftConfig;
+type ShiftType = "total" | "morning" | "evening" | "night";
 
 interface ShiftCountCardProps {
 	shift: ShiftType;
@@ -72,7 +81,7 @@ export function ShiftCountCard({
 				<div
 					className={cn(
 						"inline-flex items-center gap-1 font-semibold text-sm",
-						config.text,
+						isFulfilled ? "text-emerald-600" : "text-rose-500",
 					)}
 				>
 					<Label variant="inline">Needed:</Label>
@@ -82,25 +91,20 @@ export function ShiftCountCard({
 
 			<div className="grid grid-cols-3 gap-2">
 				<div className="flex flex-col items-center rounded-lg bg-white/60 p-2">
-					<Label>Req</Label>
+					<Label className="text-[10px]">Required</Label>
 					<span className={cn("font-bold text-lg", config.text)}>
 						{required}
 					</span>
 				</div>
 				<div className="flex flex-col items-center rounded-lg bg-white/60 p-2">
-					<Label>Assigned</Label>
-					<span
-						className={cn(
-							"font-bold text-lg",
-							isFulfilled ? "text-green-600" : "text-red-500",
-						)}
-					>
+					<Label className="text-[10px]">Assigned</Label>
+					<span className={cn("font-bold text-lg", config.text)}>
 						{assigned}
 					</span>
 				</div>
 				<div className="flex flex-col items-center rounded-lg bg-white/60 p-2">
-					<Label>Pref</Label>
-					<span className="font-bold text-lg text-slate-600">
+					<Label className="text-[10px]">Preference</Label>
+					<span className={cn("font-bold text-lg", config.text)}>
 						{Math.round(capacity)}
 					</span>
 				</div>

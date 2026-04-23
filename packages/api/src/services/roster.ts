@@ -1,10 +1,7 @@
 import type { Assignment } from "@Duty-Roster/db/types/shift";
 import * as rosterDb from "../db/roster";
 import type { SchedulesResponse } from "../schemas/roster";
-import {
-	getDaysCountFromStartAndEndDate,
-	normalizeShiftId,
-} from "../utils/roster";
+import { getDaysCountFromStartAndEndDate } from "../utils/roster";
 
 type GenerateRosterParams = {
 	year: number;
@@ -25,52 +22,6 @@ export const ROSTER_CONFIG = {
 } as const;
 
 // ───────────── PREFERENCES (merged logic) ─────────────
-
-/** Get all preferences + capacity in one query */
-export async function getNursePreferencesWithCapacity() {
-	const rows = await rosterDb.findAllPreferredShiftsByNurse();
-
-	const prefsMap = new Map<
-		string,
-		{
-			nurseId: string;
-			name: string;
-			morning: number;
-			evening: number;
-			night: number;
-			active: boolean;
-		}
-	>();
-	const capacity = { morning: 0, evening: 0, night: 0 };
-
-	for (const row of rows) {
-		const nurseId = row.nurse.id;
-		if (!prefsMap.has(nurseId)) {
-			prefsMap.set(nurseId, {
-				nurseId,
-				name: row.nurse.name,
-				morning: 0,
-				evening: 0,
-				night: 0,
-				active: row.active ?? true,
-			});
-		}
-		const pref = prefsMap.get(nurseId)!;
-		const shiftKey = normalizeShiftId(row.shiftId) as
-			| "morning"
-			| "evening"
-			| "night";
-		if (shiftKey) {
-			pref[shiftKey] = row.weight;
-			// Add to capacity if active
-			if (pref.active) {
-				capacity[shiftKey] += row.weight;
-			}
-		}
-	}
-
-	return { preferences: Array.from(prefsMap.values()), capacity };
-}
 
 export async function updateNurseShiftPreferenceWeights(
 	preferences: {
@@ -107,10 +58,6 @@ export async function updateNurseShiftPreferenceWeights(
 }
 
 // ───────────── SCHEDULES ─────────────
-
-export async function getNurses() {
-	return rosterDb.findAllNurses();
-}
 
 export async function getShifts() {
 	return rosterDb.findAllShifts();

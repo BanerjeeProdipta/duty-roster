@@ -16,43 +16,14 @@ export function ShiftCounts() {
 
 	return (
 		<div className="flex flex-col gap-3 rounded-xl border bg-white p-3 sm:p-4">
-			{/* Summary Row */}
-			<div className="flex items-center justify-between rounded-lg bg-slate-50 p-3">
-				<div className="flex flex-col">
-					<Label>Required</Label>
-					<span className="font-bold text-slate-800 text-xl">
-						{totalRequired}
-					</span>
-				</div>
-
-				<div className="flex flex-col items-center">
-					<Label>Assigned</Label>
-					<span
-						className={`font-bold text-xl ${
-							totalAssigned >= totalRequired ? "text-green-600" : "text-red-500"
-						}`}
-					>
-						{totalAssigned}
-					</span>
-				</div>
-
-				<div className="flex flex-col">
-					<Label>Needed</Label>
-					<span className="font-bold text-slate-800 text-xl">
-						{Math.max(0, totalRequired - totalAssigned)}
-					</span>
-				</div>
-
-				<div className="flex flex-col items-end">
-					<Label>Capacity</Label>
-					<span className="font-bold text-slate-600 text-xl">
-						{Math.round(totalCapacity)}
-					</span>
-				</div>
-			</div>
-
 			{/* Shift Breakdown */}
-			<div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+			<div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
+				<ShiftCountCard
+					shift="total"
+					required={totalRequired}
+					assigned={totalAssigned}
+					capacity={totalCapacity}
+				/>
 				<ShiftCountCard
 					shift="morning"
 					required={shiftRequirements.morning}
