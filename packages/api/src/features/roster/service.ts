@@ -1,7 +1,7 @@
 import type { Assignment } from "@Duty-Roster/db/types/shift";
-import * as rosterDb from "../db/roster";
-import type { SchedulesResponse } from "../schemas/roster";
-import { getDaysCountFromStartAndEndDate } from "../utils/roster";
+import * as rosterDb from "./db";
+import type { SchedulesResponse } from "./schema";
+import { getDaysCountFromStartAndEndDate } from "./utils";
 
 type GenerateRosterParams = {
 	year: number;

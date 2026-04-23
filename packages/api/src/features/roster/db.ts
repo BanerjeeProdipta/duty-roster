@@ -1,9 +1,9 @@
 import { db, schema } from "@Duty-Roster/db";
-import { and, asc, desc, eq, gte, lte, sql } from "drizzle-orm";
+import { and, asc, desc, eq, sql } from "drizzle-orm";
 
 const { nurse, nurseSchedule, shift, nurseShiftPreference } = schema;
 
-import { createUTCDate, getMonthDateRange } from "../utils/roster";
+import { createUTCDate, getMonthDateRange } from "./utils";
 
 // ─────────────── NURSES ───────────────
 
@@ -202,7 +202,7 @@ export async function upsertNurseShiftPreferences(
 		weight: number;
 		active: boolean;
 	}[],
-	daysInMonth: number,
+	_daysInMonth: number,
 ) {
 	if (preferences.length === 0) return;
 
@@ -216,7 +216,7 @@ export async function upsertNurseShiftPreferences(
 
 	// Check that total for each nurse doesn't exceed daysInMonth
 	const validated: typeof preferences = [];
-	for (const [nurseId, prefs] of byNurse) {
+	for (const [_nurseId, prefs] of byNurse) {
 		const totalWeight = prefs.reduce((sum, p) => sum + p.weight, 0);
 		if (totalWeight > 100) {
 			// Clamp to 100 maximum

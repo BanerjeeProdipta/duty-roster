@@ -1,7 +1,7 @@
 import { z } from "zod";
-import { schedulesResponseSchema, shiftSchema } from "../schemas/roster";
-import * as rosterService from "../services/roster";
-import { protectedProcedure, publicProcedure, router } from "../trpc";
+import { protectedProcedure, publicProcedure, router } from "../../trpc";
+import { schedulesResponseSchema, shiftSchema } from "./schema";
+import * as rosterService from "./service";
 
 export const rosterRouter = router({
 	// ─────────────── READS ───────────────
