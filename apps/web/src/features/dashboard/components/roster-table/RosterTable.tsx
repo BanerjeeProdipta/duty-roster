@@ -63,7 +63,7 @@ export function RosterTable({
 						<thead>
 							<tr>
 								<th
-									className="sticky top-0 left-0 z-[30] border-r border-b bg-slate-50 px-3 py-3 text-center"
+									className="sticky top-0 left-0 z-[30] border-r border-b bg-slate-50 px-3 py-3 text-center text-slate-600 text-sm uppercase tracking-widest"
 									style={{
 										width: LAYOUT.nameColWidth,
 										height: LAYOUT.headerHeight,
