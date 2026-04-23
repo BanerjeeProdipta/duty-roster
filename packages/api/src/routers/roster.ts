@@ -69,8 +69,20 @@ export const rosterRouter = router({
 		),
 
 	updateShift: protectedProcedure
-		.input(z.object({ id: z.string(), shiftId: z.string().nullable() }))
+		.input(
+			z.object({
+				id: z.string(),
+				shiftId: z.string().nullable(),
+				nurseId: z.string(),
+				dateKey: z.string(),
+			}),
+		)
 		.mutation(({ input }) =>
-			rosterService.updateSchedule(input.id, input.shiftId),
+			rosterService.upsertSchedule(
+				input.id,
+				input.shiftId,
+				input.nurseId,
+				input.dateKey,
+			),
 		),
 });

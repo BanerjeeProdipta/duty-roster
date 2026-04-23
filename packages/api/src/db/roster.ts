@@ -11,6 +11,22 @@ export async function findAllNurses() {
 	return db.select().from(nurse).orderBy(nurse.name);
 }
 
+// ─────────────── CREATE SCHEDULE ───────────────
+
+export async function createSchedule(
+	nurseId: string,
+	date: Date,
+	shiftId: string | null,
+) {
+	const id = `schedule_${nurseId}_${date.toISOString().split("T")[0]}`;
+	return db.insert(nurseSchedule).values({
+		id,
+		nurseId,
+		date,
+		shiftId: shiftId === "off" ? null : shiftId,
+	});
+}
+
 // ─────────────── SHIFTS ───────────────
 
 export async function findAllShifts() {

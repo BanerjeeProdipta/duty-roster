@@ -23,16 +23,40 @@ type UpdateShiftVariables = {
 
 export function useUpdateShift() {
 	return useMutation({
-		mutationFn: ({ id, shiftId }: UpdateShiftVariables) =>
-			trpcClient.roster.updateShift.mutate({ id, shiftId }),
+		mutationFn: ({ id, shiftId, nurseId, dateKey }: UpdateShiftVariables) =>
+			trpcClient.roster.updateShift.mutate({ id, shiftId, nurseId, dateKey }),
 
 		onMutate: ({ nurseId, dateKey, shiftId }) => {
-			useRosterStore
-				.getState()
-				.updateAssignment(nurseId, dateKey, shiftIdToShiftType(shiftId));
+			const store = useRosterStore.getState();
+			const row = store.nurseRows.find((r) => r.nurse.id === nurseId);
+			const assignment = row?.assignments[dateKey];
+
+			const previousShiftType = assignment?.shiftType || "off";
+
+			store.updateAssignment(
+				nurseId,
+				dateKey,
+				shiftIdToShiftType(shiftId),
+				previousShiftType,
+			);
+
+			return { previousShiftType };
 		},
 
-		onError: () => {
+		onError: (_err, vars, context) => {
+			if (context?.previousShiftType) {
+				const store = useRosterStore.getState();
+				const row = store.nurseRows.find((r) => r.nurse.id === vars.nurseId);
+				const currentShiftType =
+					row?.assignments[vars.dateKey]?.shiftType || "off";
+
+				store.updateAssignment(
+					vars.nurseId,
+					vars.dateKey,
+					context.previousShiftType,
+					currentShiftType,
+				);
+			}
 			toast.error("Failed to update shift");
 		},
 

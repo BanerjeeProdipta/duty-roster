@@ -188,7 +188,18 @@ export async function getSchedulesByDateRange(
 	return { nurseRows, dailyShiftCounts };
 }
 
-export async function updateSchedule(id: string, shiftId: string | null) {
+export async function upsertSchedule(
+	id: string,
+	shiftId: string | null,
+	nurseId?: string,
+	dateKey?: string,
+) {
+	if (id === "new" && nurseId && dateKey) {
+		return rosterDb.createSchedule(nurseId, new Date(dateKey), shiftId);
+	}
+	if (!id || id === "new") {
+		return;
+	}
 	return rosterDb.updateScheduleShift(id, shiftId === "off" ? null : shiftId);
 }
 

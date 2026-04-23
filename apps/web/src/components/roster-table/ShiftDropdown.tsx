@@ -53,12 +53,12 @@ export function ShiftBadge({
 
 	const handleChange = (value: ShiftType) => {
 		setOpen(false);
-		if (!assignmentId) return;
+		if (!assignmentId && value === "off") return;
 
 		startTransition(() => {
 			setOptimisticType(value);
 			updateMutation.mutate({
-				id: assignmentId,
+				id: assignmentId || "new",
 				shiftId: value === "off" ? null : `shift_${value}`,
 				nurseId,
 				dateKey: date,
@@ -75,16 +75,14 @@ export function ShiftBadge({
 
 	const badge = (
 		<div
-			className={`flex h-12 w-12 items-center justify-center rounded-lg font-bold text-lg shadow-sm transition-all duration-200 hover:translate-y-[1px] hover:scale-105 ${
-				assignmentId ? "cursor-pointer" : ""
+			className={`flex h-12 w-12 cursor-pointer items-center justify-center rounded-lg font-bold text-lg shadow-sm transition-all duration-200 hover:translate-y-[1px] hover:scale-105 ${
+				!assignmentId ? "border-2 border-slate-300 border-dashed" : ""
 			} ${SHIFT_STYLES[optimisticType]}`}
 			title={`${nurseName} - ${date}: ${label} (${timeRange})`}
 		>
 			{SHIFT_ICONS[optimisticType]}
 		</div>
 	);
-
-	if (!assignmentId) return badge;
 
 	const shiftOptions = [
 		...shifts.map((s) => ({
