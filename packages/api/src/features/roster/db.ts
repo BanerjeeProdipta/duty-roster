@@ -3,7 +3,7 @@ import { and, asc, desc, eq, sql } from "drizzle-orm";
 
 const { nurse, nurseSchedule, shift, nurseShiftPreference } = schema;
 
-import { createUTCDate, getMonthDateRange } from "./utils";
+import { getMonthDateRange } from "./utils";
 
 // ─────────────── NURSES ───────────────
 
@@ -119,30 +119,29 @@ export async function createSchedules(
 
 	const { startDate, endDate } = getMonthDateRange(year, month);
 
-	await db.transaction(async (tx) => {
-		await tx
-			.delete(nurseSchedule)
-			.where(
-				and(
-					sql`${nurseSchedule.date} >= ${startDate}`,
-					sql`${nurseSchedule.date} <= ${endDate}`,
-				),
-			);
-
-		await tx.insert(nurseSchedule).values(
-			schedules.map((s) => {
-				const y = s.date.getUTCFullYear();
-				const m = s.date.getUTCMonth();
-				const d = s.date.getUTCDate();
-				return {
-					id: `schedule_${y}${m + 1}${d}_${s.nurseId}`,
-					nurseId: s.nurseId,
-					shiftId: s.shiftId,
-					date: createUTCDate(y, m + 1, d),
-				};
-			}),
+	// Delete existing schedules for the month (no transaction - Neon doesn't support it)
+	await db
+		.delete(nurseSchedule)
+		.where(
+			and(
+				sql`${nurseSchedule.date} >= ${startDate}`,
+				sql`${nurseSchedule.date} <= ${endDate}`,
+			),
 		);
-	});
+
+	// Insert new schedules in batches
+	const BATCH_SIZE = 100;
+	for (let i = 0; i < schedules.length; i += BATCH_SIZE) {
+		const batch = schedules.slice(i, i + BATCH_SIZE);
+		await db.insert(nurseSchedule).values(
+			batch.map((s) => ({
+				id: `schedule_${s.date.getUTCFullYear()}_${s.date.getUTCMonth() + 1}_${s.date.getUTCDate()}_${s.nurseId}_${s.shiftId}`,
+				nurseId: s.nurseId,
+				shiftId: s.shiftId,
+				date: s.date,
+			})),
+		);
+	}
 }
 
 export async function updateScheduleShift(id: string, shiftId: string | null) {

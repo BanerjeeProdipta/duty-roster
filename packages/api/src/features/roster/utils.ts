@@ -52,7 +52,7 @@ export function createUTCDate(year: number, month: number, day: number): Date {
 }
 
 export function getDaysInMonth(year: number, month: number): number {
-	return new Date(year, month, 0).getDate();
+	return new Date(Date.UTC(year, month, 0)).getUTCDate();
 }
 
 export function getWeekNumber(
