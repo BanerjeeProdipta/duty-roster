@@ -1,7 +1,7 @@
 import { SearchInput } from "@Duty-Roster/ui/components/search-input";
-import { ShiftCounts } from "@/components/analytics/ShiftCounts";
-import { RosterHeader } from "@/components/roster-table/RosterHeader";
-import { RosterTable } from "@/components/roster-table/RosterTable";
+import { RosterHeader } from "@/features/dashboard/components/roster-table/RosterHeader";
+import { RosterTable } from "@/features/dashboard/components/roster-table/RosterTable";
+import { ShiftCounts } from "@/features/dashboard/components/ShiftCounts";
 import { getMonthDateRange, getYearMonthFromSearchParams } from "@/utils";
 import { getAuthedTRPCServer } from "@/utils/trpc-server";
 

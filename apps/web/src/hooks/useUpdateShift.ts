@@ -2,7 +2,7 @@
 
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
-import type { ShiftType } from "@/components/roster-table/RosterMatrix.types";
+import type { ShiftType } from "@/features/dashboard/components/roster-table/RosterMatrix.types";
 import { useRosterStore } from "@/store/roster/useRosterStore";
 import { trpcClient } from "@/utils/trpc";
 

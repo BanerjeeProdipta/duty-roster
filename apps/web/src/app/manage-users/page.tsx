@@ -1,6 +1,6 @@
-import { ShiftCounts } from "@/components/analytics/ShiftCounts";
 import { MonthNavigator } from "@/components/MonthNavigator";
 import ShiftAllocationsClient from "@/feature/shift-manager/ShiftAllocationsClient";
+import { ShiftCounts } from "@/features/dashboard/components/ShiftCounts";
 import { getMonthDateRange, getYearMonthFromSearchParams } from "@/utils";
 import { getAuthedTRPCServer } from "@/utils/trpc-server";
 

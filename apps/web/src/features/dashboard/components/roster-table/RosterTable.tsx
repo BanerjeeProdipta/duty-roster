@@ -2,9 +2,9 @@
 
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useEffect, useRef } from "react";
-import { useShifts } from "../../hooks/useGetShifts";
-import { useRosterDates } from "../../hooks/useRosterDates";
-import { useRosterStore } from "../../store/roster/useRosterStore";
+import { useShifts } from "@/hooks/useGetShifts";
+import { useRosterDates } from "@/hooks/useRosterDates";
+import { useRosterStore } from "@/store/roster/useRosterStore";
 import { DayHeaderCell } from "./DayHeaderCell";
 import { LAYOUT } from "./Layout";
 import { NurseIdentityCell } from "./NurseIdentityCell";

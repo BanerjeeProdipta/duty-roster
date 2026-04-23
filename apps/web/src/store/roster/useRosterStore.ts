@@ -3,7 +3,7 @@ import type {
 	SchedulesResponse,
 	ShiftCounts,
 	ShiftType,
-} from "../../components/roster-table/RosterMatrix.types";
+} from "@/features/dashboard/components/roster-table/RosterMatrix.types";
 
 interface RosterState {
 	initialSchedules: SchedulesResponse | null;

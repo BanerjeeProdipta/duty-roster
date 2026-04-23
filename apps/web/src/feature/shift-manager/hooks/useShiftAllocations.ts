@@ -1,8 +1,8 @@
 import { useSearchParams } from "next/navigation";
 import { useEffect } from "react";
+import type { SchedulesResponse } from "@/features/dashboard/components/roster-table/RosterMatrix.types";
 import { useRosterStore } from "@/store/roster/useRosterStore";
 import { getDaysInMonth } from "@/utils";
-import type { SchedulesResponse } from "../roster-table/RosterMatrix.types";
 import type { NurseState } from "../types";
 
 export function useShiftAllocations(initialSchedules?: SchedulesResponse) {

@@ -1,7 +1,21 @@
-import type {
-	NurseData,
-	NurseState,
-} from "@/components/shift-allocations/types";
+export interface NurseState {
+	nurseId: string;
+	name: string;
+	morning: number;
+	evening: number;
+	night: number;
+	off: number;
+	active: boolean;
+}
+
+export interface NurseData {
+	nurseId: string;
+	name: string;
+	morning: number;
+	evening: number;
+	night: number;
+	active?: boolean;
+}
 
 export interface MonthNavigatorProps {
 	year?: number;

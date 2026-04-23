@@ -31,7 +31,7 @@ export function NurseIdentityCell({
 		>
 			<div className="flex h-full flex-col justify-center gap-2">
 				<div className="flex items-center justify-between gap-1 overflow-hidden">
-					<Link href={`/shift-preference?q=${nurse.name}`}>
+					<Link href={`/manage-users?q=${nurse.name}`}>
 						<span
 							className={cn(
 								"truncate font-extrabold text-sm",

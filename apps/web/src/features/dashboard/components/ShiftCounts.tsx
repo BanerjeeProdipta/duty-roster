@@ -1,8 +1,8 @@
 "use client";
 
 import { Label } from "@Duty-Roster/ui/components/label";
-import { useShiftCountMetrics } from "@/components/analytics/useShiftCountMetrics";
 import { ShiftCountCard } from "./ShiftCountCard";
+import { useShiftCountMetrics } from "./useShiftCountMetrics";
 
 export function ShiftCounts() {
 	const {

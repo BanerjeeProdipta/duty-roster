@@ -19,7 +19,7 @@ export default function Header() {
 	const links = [
 		{ to: "/", label: "Home" },
 		{ to: "/dashboard", label: "Dashboard" },
-		{ to: "/shift-preference", label: "Manage" },
+		{ to: "/manage-users", label: "Manage" },
 	] as const;
 
 	const handleSignOut = async () => {

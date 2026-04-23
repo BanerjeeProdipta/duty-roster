@@ -6,13 +6,13 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { toast } from "sonner";
 import z from "zod";
+import Loader from "@/components/loader";
 import { authClient } from "@/lib/auth-client";
-import Loader from "../loader";
 
-export default function SignUpForm({
-	onSwitchToSignIn,
+export default function SignInForm({
+	onSwitchToSignUp,
 }: {
-	onSwitchToSignIn?: () => void;
+	onSwitchToSignUp?: () => void;
 }) {
 	const router = useRouter();
 	const { data: session, isPending } = authClient.useSession();
@@ -27,21 +27,19 @@ export default function SignUpForm({
 		defaultValues: {
 			email: "",
 			password: "",
-			name: "",
 		},
 		onSubmit: async ({ value }) => {
-			await authClient.signUp.email(
+			await authClient.signIn.email(
 				{
 					email: value.email,
 					password: value.password,
-					name: value.name,
 					callbackURL: "/dashboard",
 				},
 				{
 					onSuccess: () => {
 						router.refresh();
 						router.push("/dashboard");
-						toast.success("Sign up successful");
+						toast.success("Sign in successful");
 					},
 					onError: (error) => {
 						toast.error(error.error.message || error.error.statusText);
@@ -51,7 +49,6 @@ export default function SignUpForm({
 		},
 		validators: {
 			onSubmit: z.object({
-				name: z.string().min(2, "Name must be at least 2 characters"),
 				email: z.email("Invalid email address"),
 				password: z.string().min(1, "Password is required"),
 			}),
@@ -64,7 +61,7 @@ export default function SignUpForm({
 
 	return (
 		<div className="fade-in animate-in duration-500">
-			<h1 className="mb-6 text-center font-bold text-3xl">Create Account</h1>
+			<h1 className="mb-6 text-center font-bold text-3xl">Welcome Back</h1>
 
 			<form
 				onSubmit={(e) => {
@@ -74,28 +71,6 @@ export default function SignUpForm({
 				}}
 				className="space-y-4"
 			>
-				<div>
-					<form.Field name="name">
-						{(field) => (
-							<div className="space-y-2">
-								<Label htmlFor={field.name}>Name</Label>
-								<Input
-									id={field.name}
-									name={field.name}
-									value={field.state.value}
-									onBlur={field.handleBlur}
-									onChange={(e) => field.handleChange(e.target.value)}
-								/>
-								{field.state.meta.errors.map((error) => (
-									<p key={error?.message} className="text-red-500">
-										{error?.message}
-									</p>
-								))}
-							</div>
-						)}
-					</form.Field>
-				</div>
-
 				<div>
 					<form.Field name="email">
 						{(field) => (
@@ -110,8 +85,11 @@ export default function SignUpForm({
 									onChange={(e) => field.handleChange(e.target.value)}
 								/>
 								{field.state.meta.errors.map((error) => (
-									<p key={error?.message} className="text-red-500">
-										{error?.message}
+									<p
+										key={typeof error === "string" ? error : error?.message}
+										className="text-red-500"
+									>
+										{typeof error === "string" ? error : error?.message}
 									</p>
 								))}
 							</div>
@@ -133,13 +111,25 @@ export default function SignUpForm({
 									onChange={(e) => field.handleChange(e.target.value)}
 								/>
 								{field.state.meta.errors.map((error) => (
-									<p key={error?.message} className="text-red-500">
-										{error?.message}
+									<p
+										key={typeof error === "string" ? error : error?.message}
+										className="text-red-500"
+									>
+										{typeof error === "string" ? error : error?.message}
 									</p>
 								))}
 							</div>
 						)}
 					</form.Field>
+				</div>
+
+				<div className="text-right">
+					<a
+						href="/auth/forgot-password"
+						className="text-primary text-sm hover:underline"
+					>
+						Forgot Password?
+					</a>
 				</div>
 
 				<form.Subscribe
@@ -154,20 +144,20 @@ export default function SignUpForm({
 							className="w-full"
 							disabled={!canSubmit || isSubmitting}
 						>
-							{isSubmitting ? "Submitting..." : "Sign Up"}
+							{isSubmitting ? "Submitting..." : "Sign In"}
 						</Button>
 					)}
 				</form.Subscribe>
 			</form>
 
 			<div className="mt-6 text-center text-muted-foreground text-sm">
-				Already have an account?{" "}
+				Don&apos;t have an account?{" "}
 				<button
 					type="button"
-					onClick={onSwitchToSignIn}
+					onClick={onSwitchToSignUp}
 					className="font-semibold text-primary transition-colors hover:text-primary/80"
 				>
-					Sign In
+					Sign Up
 				</button>
 			</div>
 		</div>

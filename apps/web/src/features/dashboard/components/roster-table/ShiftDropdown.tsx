@@ -8,8 +8,8 @@ import {
 	DropdownMenuTrigger,
 } from "@Duty-Roster/ui/components/dropdown-menu";
 import { startTransition, useOptimistic, useState } from "react";
-import type { ShiftDefinition } from "../../hooks/useGetShifts";
-import { useUpdateShift } from "../../hooks/useUpdateShift";
+import type { ShiftDefinition } from "@/hooks/useGetShifts";
+import { useUpdateShift } from "@/hooks/useUpdateShift";
 import { SHIFT_ICONS, SHIFT_STYLES } from "./RosterMatrix.constants";
 import type { ShiftType } from "./RosterMatrix.types";
 

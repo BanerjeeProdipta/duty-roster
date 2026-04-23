@@ -11,7 +11,7 @@ export async function middleware(request: NextRequest) {
 	}
 
 	// Unauthenticated users trying to access protected paths → redirect to auth
-	const protectedPaths = ["/dashboard", "/shift-preference"];
+	const protectedPaths = ["/dashboard", "/manage-users"];
 	const isProtected = protectedPaths.some((path) => pathname.startsWith(path));
 
 	if (!sessionCookie && isProtected) {
@@ -22,5 +22,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-	matcher: ["/dashboard/:path*", "/shift-preference/:path*", "/auth/:path*"],
+	matcher: ["/dashboard/:path*", "/manage-users/:path*", "/auth/:path*"],
 };
