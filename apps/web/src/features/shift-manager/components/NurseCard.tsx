@@ -2,8 +2,8 @@
 
 import { cn } from "@Duty-Roster/ui/lib/utils";
 import { AlertCircle, Ban, Loader2, Save, User } from "lucide-react";
-import { ShiftInput } from "@/feature/shift-manager/components/ShiftInput";
-import { FourWaySlider } from "@/feature/shift-manager/components/Slider";
+import { ShiftInput } from "@/features/shift-manager/components/ShiftInput";
+import { FourWaySlider } from "@/features/shift-manager/components/Slider";
 import { useNurseCard } from "../hooks/useNurseCard";
 import type { NurseState, ShiftField } from "../types";
 

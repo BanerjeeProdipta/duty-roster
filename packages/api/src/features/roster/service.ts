@@ -22,13 +22,12 @@ export const ROSTER_CONFIG = {
 	},
 	CONSTRAINTS: {
 		MAX_CONSECUTIVE_NIGHTS: 2,
-		MAX_NIGHTS_PER_NURSE: 3,
+		MAX_CONSECUTIVE_DAYS: 6,
 		MIN_DAYS_OFF_PER_WEEK: 1,
 	},
 } as const;
 
 // ───────────── NURSES WITH FRIDAY OFF ─────────────
-// Hardcoded list of nurse IDs who will always have Friday off
 export const FRIDAY_OFF_NURSES: string[] = ["nurse_1_id", "nurse_2_id"];
 
 // ───────────── PREFERENCES (merged logic) ─────────────
@@ -42,7 +41,6 @@ export async function updateNurseShiftPreferenceWeights(
 	}[],
 	daysInMonth: number,
 ) {
-	// Validate: ensure morning + evening + night <= 100%
 	const byNurse = new Map<string, typeof preferences>();
 	for (const p of preferences) {
 		const existing = byNurse.get(p.nurseId) ?? [];
@@ -54,7 +52,6 @@ export async function updateNurseShiftPreferenceWeights(
 	for (const [, prefs] of byNurse) {
 		const totalWeight = prefs.reduce((sum, p) => sum + p.weight, 0);
 		if (totalWeight > 100) {
-			// Normalize weights to sum to 100
 			const scale = 100 / totalWeight;
 			for (const p of prefs) {
 				validated.push({ ...p, weight: Math.round(p.weight * scale) });
@@ -92,7 +89,6 @@ export async function getSchedulesByDateRange(
 	const nurseRows = rows.map((row) => {
 		const assignments = (row.assignments ?? {}) as Record<string, Assignment>;
 
-		// Accumulate dailyShiftCounts in a single pass
 		for (const [date, assignment] of Object.entries(assignments)) {
 			if (!assignment) continue;
 			if (!dailyShiftCounts[date]) {
@@ -165,155 +161,168 @@ export async function upsertSchedule(
 type ShiftType = "morning" | "evening" | "night";
 type DayType = "WEEKDAY" | "FRIDAY";
 
+type ShiftCounts = { morning: number; evening: number; night: number };
+
 type NursePreferenceProfile = {
 	nurseId: string;
 	nurseName: string;
-	preferences: {
-		morning: number;
-		evening: number;
-		night: number;
-	};
-	hardConstraintShift: ShiftType | null; // null unless 100% single shift
-};
-
-type DailyCoverage = {
-	morning: number;
-	evening: number;
-	night: number;
-};
-
-type NurseShiftState = {
-	nurseId: string;
-	nurseName: string;
-	shiftsThisMonth: ShiftType[];
+	active: boolean;
+	preferences: ShiftCounts;
+	maxShifts: ShiftCounts;
+	assigned: ShiftCounts;
+	hardConstraintShift: ShiftType | null;
+	consecutiveDays: number;
 	consecutiveNights: number;
-	lastShift: ShiftType | null;
-	daysOffThisWeek: number;
-	weekStartDay: number;
 };
 
-/**
- * Gets the coverage needs for a given day type
- */
-function getCoverageForDay(dayType: DayType): DailyCoverage {
+function getCoverageForDay(dayType: DayType): ShiftCounts {
 	return dayType === "FRIDAY"
 		? ROSTER_CONFIG.COVERAGE.FRIDAY
 		: ROSTER_CONFIG.COVERAGE.WEEKDAY;
 }
 
-/**
- * Determines if a day is a Friday
- */
 function isFridayDay(year: number, month: number, day: number): boolean {
 	return new Date(Date.UTC(year, month - 1, day)).getUTCDay() === 5;
 }
 
-/**
- * Determines the day type based on the date
- */
 function getDayType(year: number, month: number, day: number): DayType {
 	return isFridayDay(year, month, day) ? "FRIDAY" : "WEEKDAY";
 }
 
-/**
- * Builds preference profiles for each nurse from raw preference data
- */
 function buildNurseProfiles(
 	rows: Awaited<
 		ReturnType<typeof rosterDb.findSchedulesAndPreferencesByDateRange>
 	>,
-): NursePreferenceProfile[] {
-	return rows.map((row) => {
-		const prefMorning = Number(row.prefMorning) || 0;
-		const prefEvening = Number(row.prefEvening) || 0;
-		const prefNight = Number(row.prefNight) || 0;
-		const total = prefMorning + prefEvening + prefNight;
+	daysInMonth: number,
+): Map<string, NursePreferenceProfile> {
+	const profiles = new Map<string, NursePreferenceProfile>();
 
-		// Determine hard constraint: 100% preference for single shift
+	for (const row of rows) {
+		const pm = Number(row.prefMorning) || 0;
+		const pe = Number(row.prefEvening) || 0;
+		const pn = Number(row.prefNight) || 0;
+		const active = row.active as boolean;
+
+		// Calculate max shift limits from preference weights
+		const maxMorning = Math.round((pm / 100) * daysInMonth);
+		const maxEvening = Math.round((pe / 100) * daysInMonth);
+		const maxNight = Math.round((pn / 100) * daysInMonth);
+
+		// Hard constraint: 100% preference for single shift
 		let hardConstraintShift: ShiftType | null = null;
-		if (total === 100) {
-			if (prefMorning === 100) hardConstraintShift = "morning";
-			else if (prefEvening === 100) hardConstraintShift = "evening";
-			else if (prefNight === 100) hardConstraintShift = "night";
+		if (pm + pe + pn === 100) {
+			if (pm === 100) hardConstraintShift = "morning";
+			else if (pe === 100) hardConstraintShift = "evening";
+			else if (pn === 100) hardConstraintShift = "night";
 		}
 
-		return {
+		profiles.set(row.id as string, {
 			nurseId: row.id as string,
 			nurseName: row.name as string,
-			preferences: {
-				morning: prefMorning,
-				evening: prefEvening,
-				night: prefNight,
-			},
+			active,
+			preferences: { morning: pm, evening: pe, night: pn },
+			maxShifts: { morning: maxMorning, evening: maxEvening, night: maxNight },
+			assigned: { morning: 0, evening: 0, night: 0 },
 			hardConstraintShift,
-		};
-	});
-}
-
-/**
- * Initializes shift tracking state for each nurse
- */
-function initializeNurseStates(
-	profiles: NursePreferenceProfile[],
-): Map<string, NurseShiftState> {
-	const states = new Map<string, NurseShiftState>();
-	for (const profile of profiles) {
-		states.set(profile.nurseId, {
-			nurseId: profile.nurseId,
-			nurseName: profile.nurseName,
-			shiftsThisMonth: [],
+			consecutiveDays: 0,
 			consecutiveNights: 0,
-			lastShift: null,
-			daysOffThisWeek: 0,
-			weekStartDay: 1, // Day 1 starts the week counter
 		});
 	}
-	return states;
+
+	return profiles;
 }
 
-/**
- * Checks if a nurse is available for a shift on a given day
- */
 function canAssignShift(
-	state: NurseShiftState,
+	profile: NursePreferenceProfile,
 	shiftType: ShiftType,
-	dayOfMonth: number,
+	isFriday: boolean,
 ): boolean {
-	// Check consecutive night limit (2 nights max → 1 off required)
+	// 1. Skip inactive nurses
+	if (!profile.active) return false;
+
+	// 2. Skip FRIDAY_OFF_NURSES on Fridays
+	if (isFriday && FRIDAY_OFF_NURSES.includes(profile.nurseId)) return false;
+
+	// 3. Check if exceeded preference limit for THIS shift type
+	if (profile.assigned[shiftType] >= profile.maxShifts[shiftType]) {
+		return false;
+	}
+
+	// 4. Hard constraint: only allow their preferred shift
+	if (profile.hardConstraintShift) {
+		return profile.hardConstraintShift === shiftType;
+	}
+
+	// 5. If 0% preference for shift type, skip
+	if (profile.preferences[shiftType] === 0) return false;
+
+	// 6. Check consecutive days limit
+	if (
+		profile.consecutiveDays >= ROSTER_CONFIG.CONSTRAINTS.MAX_CONSECUTIVE_DAYS
+	) {
+		return false;
+	}
+
+	// 7. Check consecutive nights limit
 	if (shiftType === "night") {
 		if (
-			state.consecutiveNights >=
+			profile.consecutiveNights >=
 			ROSTER_CONFIG.CONSTRAINTS.MAX_CONSECUTIVE_NIGHTS
 		) {
 			return false;
 		}
 	}
 
-	// Check weekly off constraint (min 1 day off per week)
-	const currentWeek = Math.floor((dayOfMonth - state.weekStartDay) / 7);
-	const stateWeek = Math.floor(
-		(state.shiftsThisMonth.length - state.weekStartDay + 1) / 7,
-	);
-	if (currentWeek > stateWeek && state.daysOffThisWeek === 0) {
-		// Already worked a full week without a day off - but this is checked at end of week
-	}
-
 	return true;
 }
 
-/**
- * Updates consecutive night count and enforces required off
- */
-function updateConsecutiveNightCount(
-	state: NurseShiftState,
+function getNursesEligibleForShift(
+	profiles: Map<string, NursePreferenceProfile>,
+	shiftType: ShiftType,
+	isFriday: boolean,
+): NursePreferenceProfile[] {
+	const eligible: NursePreferenceProfile[] = [];
+
+	for (const profile of profiles.values()) {
+		if (canAssignShift(profile, shiftType, isFriday)) {
+			eligible.push(profile);
+		}
+	}
+
+	// Sort by who is MOST UNDER their preference limit for THIS shift type
+	// Lower gap = higher priority (more under their limit)
+	eligible.sort((a, b) => {
+		const gapA = a.maxShifts[shiftType] - a.assigned[shiftType];
+		const gapB = b.maxShifts[shiftType] - b.assigned[shiftType];
+		return gapB - gapA; // Descending: nurses who need this shift more come first
+	});
+
+	return eligible;
+}
+
+function recordShift(
+	profile: NursePreferenceProfile,
 	shiftType: ShiftType,
 ): void {
+	profile.assigned[shiftType]++;
+	profile.consecutiveDays++;
+
 	if (shiftType === "night") {
-		state.consecutiveNights++;
+		profile.consecutiveNights++;
 	} else {
-		state.consecutiveNights = 0;
+		profile.consecutiveNights = 0;
 	}
-	state.lastShift = shiftType;
+}
+
+function resetConsecutiveDays(
+	profiles: Map<string, NursePreferenceProfile>,
+	assignedToday: Set<string>,
+): void {
+	for (const profile of profiles.values()) {
+		if (!assignedToday.has(profile.nurseId)) {
+			profile.consecutiveDays = 0;
+		}
+	}
 }
 
 /**
@@ -322,22 +331,15 @@ function updateConsecutiveNightCount(
 export async function generateRoster(params: GenerateRosterParams) {
 	const { year, month } = params;
 	const daysInMonth = getDaysInMonth(year, month);
-
-	// Get current schedule data for preferences
 	const { startDate, endDate } = getMonthDateRange(year, month);
 	const rows = await rosterDb.findSchedulesAndPreferencesByDateRange(
 		startDate,
 		endDate,
 	);
 
-	// Build nurse profiles with preferences
-	const profiles = buildNurseProfiles(rows);
-	const profileMap = new Map(profiles.map((p) => [p.nurseId, p]));
+	// Build profiles with preference limits
+	const profiles = buildNurseProfiles(rows, daysInMonth);
 
-	// Initialize shift state for tracking
-	const states = initializeNurseStates(profiles);
-
-	// Generate schedules: array of { nurseId, shiftId, date }
 	const schedules: { nurseId: string; shiftId: string | null; date: Date }[] =
 		[];
 
@@ -345,146 +347,72 @@ export async function generateRoster(params: GenerateRosterParams) {
 	for (let day = 1; day <= daysInMonth; day++) {
 		const dayType = getDayType(year, month, day);
 		const coverage = getCoverageForDay(dayType);
-
-		// Get available nurses (exclude FRIDAY_OFF_NURSES on Fridays)
-		const fridayOffNurseIds = FRIDAY_OFF_NURSES;
 		const isFriday = dayType === "FRIDAY";
 
-		// Track nurses assigned TODAY (avoid duplicates in same day)
-		const nursesAssignedToday = new Set<string>();
+		const assignedToday = new Set<string>();
 
-		// Phase 1: Assign hard-constraint nurses (100% single shift)
-		const slotsRemaining = { ...coverage };
-
-		// For each shift type, find and assign hard-constraint nurses
+		// For each shift type, assign nurses
 		const shiftTypes: ShiftType[] = ["morning", "evening", "night"];
+
 		for (const shiftType of shiftTypes) {
-			// Continue until all slots filled or no more eligible nurses
-			while (slotsRemaining[shiftType] > 0) {
-				let assigned = false;
+			const slotsNeeded = coverage[shiftType];
 
-				// Find nurses with hard constraint for this shift type
-				for (const [nurseId, profile] of profileMap) {
-					if (profile.hardConstraintShift !== shiftType) continue;
-					if (nursesAssignedToday.has(nurseId)) continue;
+			// Get nurses eligible for THIS shift type
+			const eligible = getNursesEligibleForShift(profiles, shiftType, isFriday);
 
-					const state = states.get(nurseId);
-					if (!state) continue;
+			// Assign nurses until slots filled or no more eligible
+			let assigned = 0;
+			for (const profile of eligible) {
+				if (assigned >= slotsNeeded) break;
 
-					// Skip FRIDAY_OFF_NURSES on Fridays
-					if (isFriday && fridayOffNurseIds.includes(nurseId)) continue;
+				// Skip if already assigned a different shift today
+				if (assignedToday.has(profile.nurseId)) continue;
 
-					// Check if nurse can take this shift
-					if (canAssignShift(state, shiftType, day)) {
-						// Assign shift
-						state.shiftsThisMonth.push(shiftType);
-						updateConsecutiveNightCount(state, shiftType);
-						nursesAssignedToday.add(nurseId);
+				// Check one more time (could have been assigned another shift just now)
+				if (!canAssignShift(profile, shiftType, isFriday)) continue;
 
-						// Record schedule
-						const shiftId = `shift_${shiftType}`;
-						schedules.push({
-							nurseId,
-							shiftId,
-							date: createUTCDate(year, month, day),
-						});
+				// Assign this nurse
+				recordShift(profile, shiftType);
+				assignedToday.add(profile.nurseId);
 
-						slotsRemaining[shiftType]--;
-						assigned = true;
-						break; // Move to next slot
-					}
-				}
-
-				if (!assigned) break; // No more eligible nurses for this shift type
-			}
-		}
-
-		// Phase 2: Fill remaining slots with preference-based assignment
-		for (const shiftType of shiftTypes) {
-			while (slotsRemaining[shiftType] > 0) {
-				// Find best available nurse for this shift (not assigned today)
-				let bestState: NurseShiftState | null = null;
-				let bestScore = Number.NEGATIVE_INFINITY;
-
-				for (const [, state] of states) {
-					const profile = profileMap.get(state.nurseId);
-					if (!profile) continue;
-
-					// Skip if already assigned a shift today
-					if (nursesAssignedToday.has(state.nurseId)) continue;
-
-					// Skip FRIDAY_OFF_NURSES on Fridays
-					if (isFriday && fridayOffNurseIds.includes(state.nurseId)) continue;
-
-					// Check hard constraint (if nurse has 100% pref for different shift)
-					if (
-						profile.hardConstraintShift &&
-						profile.hardConstraintShift !== shiftType
-					) {
-						continue;
-					}
-
-					// Check availability
-					if (!canAssignShift(state, shiftType, day)) continue;
-
-					// Calculate score: preference + fairness
-					const prefWeight = profile.preferences[shiftType];
-					const shiftsOfType = state.shiftsThisMonth.filter(
-						(s) => s === shiftType,
-					).length;
-					const fairnessScore = 50 - shiftsOfType;
-					const score = prefWeight + fairnessScore;
-
-					if (score > bestScore) {
-						bestScore = score;
-						bestState = state;
-					}
-				}
-
-				// If no nurse available, try harder (relax constraints)
-				if (!bestState) {
-					// Find any available nurse not assigned today
-					for (const [, state] of states) {
-						if (nursesAssignedToday.has(state.nurseId)) continue;
-						if (isFriday && fridayOffNurseIds.includes(state.nurseId)) continue;
-						if (canAssignShift(state, shiftType, day)) {
-							bestState = state;
-							break;
-						}
-					}
-				}
-
-				// If still no nurse, this slot remains unfilled
-				if (!bestState) break;
-
-				// Assign the shift
-				bestState.shiftsThisMonth.push(shiftType);
-				updateConsecutiveNightCount(bestState, shiftType);
-				nursesAssignedToday.add(bestState.nurseId);
-
-				const shiftId = `shift_${shiftType}`;
 				schedules.push({
-					nurseId: bestState.nurseId,
-					shiftId,
+					nurseId: profile.nurseId,
+					shiftId: `shift_${shiftType}`,
 					date: createUTCDate(year, month, day),
 				});
 
-				slotsRemaining[shiftType]--;
+				assigned++;
 			}
 		}
 
-		// Phase 3: Assign off days to nurses who need weekly off
-		// (Simplified: ensure minimum coverage met in phases 1 & 2)
+		// Reset consecutive days for nurses who didn't work today
+		resetConsecutiveDays(profiles, assignedToday);
 	}
 
-	// Persist the generated schedules
+	// Persist the schedules
 	if (schedules.length > 0) {
 		await rosterDb.createSchedules(schedules);
 	}
+
+	// Build shift counts for response
+	const shiftCounts: Record<string, ShiftCounts> = {};
+	const totalCounts: Record<string, number> = {};
+	for (const profile of profiles.values()) {
+		shiftCounts[profile.nurseName] = { ...profile.assigned };
+		totalCounts[profile.nurseName] =
+			profile.assigned.morning +
+			profile.assigned.evening +
+			profile.assigned.night;
+	}
+
+	// Sort by total shifts for logging
+	const sortedNurses = Object.entries(totalCounts).sort((a, b) => a[1] - b[1]);
 
 	return {
 		generated: true,
 		daysInMonth,
 		schedulesCreated: schedules.length,
+		shiftCounts,
+		sortedNurses,
 	};
 }
