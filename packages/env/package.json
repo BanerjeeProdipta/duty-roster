@@ -16,9 +16,6 @@
 		"./web": {
 			"default": "./src/web.ts"
 		},
-		"./native": {
-			"default": "./src/native.ts"
-		},
 		"./*": {
 			"default": "./src/*.ts"
 		}
