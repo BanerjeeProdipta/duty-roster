@@ -6,8 +6,10 @@
 		"lib": ["ESNext", "DOM", "DOM.Iterable"],
 		"paths": {
 			"@Duty-Roster/ui/*": ["./src/*"]
-		}
+		},
+		"typeRoots": ["./src/types", "./node_modules/@types"],
+		"types": []
 	},
-	"include": ["src/**/*.ts", "src/**/*.tsx"],
+	"include": ["src/**/*.ts", "src/**/*.tsx", "src/types/**/*.d.ts"],
 	"exclude": ["node_modules"]
 }

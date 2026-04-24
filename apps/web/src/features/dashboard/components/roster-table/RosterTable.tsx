@@ -2,6 +2,7 @@
 
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { Loader2 } from "lucide-react";
+import { useSearchParams } from "next/navigation";
 import { useRef } from "react";
 import { useShifts } from "@/hooks/useGetShifts";
 import { useRosterDates } from "@/hooks/useRosterDates";
@@ -23,12 +24,20 @@ export function RosterTable({
 }: RosterTableProps) {
 	const { schedules, isFetching } = useScheduleInit(initialSchedules);
 
+	const searchParams = useSearchParams();
+	const qParam = searchParams.get("q") ?? "";
+
 	const parentRef = useRef<HTMLDivElement>(null);
 	const shifts = useShifts();
 
 	const { weekDates, normalizedDates } = useRosterDates();
 
-	const nurseRows = schedules?.nurseRows ?? [];
+	let nurseRows = schedules?.nurseRows ?? [];
+	if (qParam.trim()) {
+		nurseRows = nurseRows.filter((row) =>
+			row.nurse.name.toLowerCase().includes(qParam.toLowerCase()),
+		);
+	}
 	const dailyShiftCounts = schedules?.dailyShiftCounts ?? {};
 
 	// Initialize virtualizer for rows

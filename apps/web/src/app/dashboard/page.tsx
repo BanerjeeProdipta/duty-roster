@@ -21,11 +21,22 @@ export default async function DashboardPage(props: {
 		endDate,
 	});
 
+	const nurseNames =
+		initialSchedules?.nurseRows.map((row) => row.nurse.name) ?? [];
+	const nurseCount = nurseNames.length;
+
 	return (
 		<div className="flex flex-col gap-6">
 			<RosterHeader editable />
 			<ShiftCounts initialSchedules={initialSchedules} />
-			<SearchInput placeholder="Search nurses..." className="w-full" />
+			<SearchInput
+				paramKey="q"
+				language="bn-BD"
+				placeholder="নার্সের নাম দিয়ে খুঁজুন..."
+				suggestions={nurseNames}
+				suggestionCount={nurseCount}
+			/>
+
 			<RosterTable editable initialSchedules={initialSchedules} />
 		</div>
 	);
