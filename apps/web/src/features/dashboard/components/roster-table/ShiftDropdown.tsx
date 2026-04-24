@@ -7,6 +7,7 @@ import {
 	DropdownMenuRadioItem,
 	DropdownMenuTrigger,
 } from "@Duty-Roster/ui/components/dropdown-menu";
+import { cn } from "@Duty-Roster/ui/lib/utils";
 import { startTransition, useOptimistic, useState } from "react";
 import type { ShiftDefinition } from "@/hooks/useGetShifts";
 import { useUpdateShift } from "@/hooks/useUpdateShift";
@@ -20,6 +21,7 @@ interface ShiftBadgeProps {
 	date: string;
 	assignmentId?: string;
 	shifts: ShiftDefinition[];
+	editable?: boolean;
 }
 
 const shiftIconBg = (value: ShiftType) =>
@@ -38,6 +40,23 @@ const defaultLabel: Record<ShiftType, string> = {
 	off: "Day Off",
 };
 
+const formatTime12h = (time: string) => {
+	const [hours, minutes] = time.split(":").map(Number);
+	const period = hours >= 12 ? "PM" : "AM";
+	const hour12 = hours % 12 || 12;
+	return `${hour12}:${minutes.toString().padStart(2, "0")} ${period}`;
+};
+
+const formatDateDMY = (dateStr: string) => {
+	const date = new Date(`${dateStr}T00:00:00`);
+	const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+	const dayName = days[date.getDay()];
+	const day = date.getDate().toString().padStart(2, "0");
+	const month = (date.getMonth() + 1).toString().padStart(2, "0");
+	const year = date.getFullYear();
+	return `${dayName}, ${day}-${month}-${year}`;
+};
+
 export function ShiftBadge({
 	type,
 	nurseName,
@@ -45,6 +64,7 @@ export function ShiftBadge({
 	date,
 	assignmentId,
 	shifts,
+	editable = false,
 }: ShiftBadgeProps) {
 	const [open, setOpen] = useState(false);
 	const updateMutation = useUpdateShift();
@@ -70,25 +90,33 @@ export function ShiftBadge({
 	const label = defaultLabel[optimisticType];
 	const timeRange =
 		optimisticType !== "off" && shiftDef
-			? `${shiftDef.startTime.slice(0, 5)} - ${shiftDef.endTime.slice(0, 5)}`
+			? `${formatTime12h(shiftDef.startTime)} - ${formatTime12h(shiftDef.endTime)}`
 			: "No shift";
 
 	const badge = (
 		<div
-			className={`flex h-12 w-12 cursor-pointer items-center justify-center rounded-lg font-bold text-lg shadow-sm transition-all duration-200 hover:translate-y-[1px] hover:scale-105 ${
-				!assignmentId ? "border-2 border-slate-300 border-dashed" : ""
-			} ${SHIFT_STYLES[optimisticType]}`}
-			title={`${nurseName} - ${date}: ${label} (${timeRange})`}
+			className={cn(
+				"flex h-12 w-12 items-center justify-center rounded-lg font-bold text-lg shadow-sm",
+				editable &&
+					"cursor-pointer transition-all duration-200 hover:translate-y-[1px] hover:scale-105",
+				!assignmentId && "border-2 border-slate-300 border-dashed",
+				SHIFT_STYLES[optimisticType],
+			)}
+			title={`${nurseName} - ${formatDateDMY(date)}: ${label} (${timeRange})`}
 		>
 			{SHIFT_ICONS[optimisticType]}
 		</div>
 	);
 
+	if (!editable) {
+		return badge;
+	}
+
 	const shiftOptions = [
 		...shifts.map((s) => ({
 			value: s.name,
 			label: defaultLabel[s.name],
-			time: `${s.startTime.slice(0, 5)} - ${s.endTime.slice(0, 5)}`,
+			time: `${formatTime12h(s.startTime)} - ${formatTime12h(s.endTime)}`,
 		})),
 		{ value: "off" as const, label: "Day Off", time: "No shift" },
 	];
@@ -106,7 +134,7 @@ export function ShiftBadge({
 			>
 				<div className="mb-3 flex items-center justify-between border-b px-1 pb-2 text-center transition-all duration-200">
 					<p className="font-semibold">{nurseName}</p>
-					<p className="text-muted-foreground text-xs">{date}</p>
+					<p className="text-muted-foreground text-xs">{formatDateDMY(date)}</p>
 				</div>
 
 				<DropdownMenuRadioGroup
@@ -118,16 +146,18 @@ export function ShiftBadge({
 						<DropdownMenuRadioItem
 							key={item.value}
 							value={item.value}
-							className={`mb-2 flex cursor-pointer items-center gap-3 rounded-md px-2 py-1 transition-all duration-200 ease-out ${
+							className={cn(
+								"mb-2 flex cursor-pointer items-center gap-3 rounded-md px-2 py-1 transition-all duration-200 ease-out",
 								optimisticType === item.value
-									? "bg-primary/10 ring-1 ring-primary"
-									: "hover:bg-slate-50"
-							}`}
+									? "bg-primary/10"
+									: "hover:bg-slate-50",
+							)}
 						>
 							<div
-								className={`flex h-10 w-10 items-center justify-center rounded-md transition-colors duration-200 ${shiftIconBg(
-									item.value,
-								)} text-lg`}
+								className={cn(
+									"flex h-10 w-10 items-center justify-center rounded-md text-lg transition-colors duration-200",
+									shiftIconBg(item.value),
+								)}
 							>
 								{SHIFT_ICONS[item.value]}
 							</div>

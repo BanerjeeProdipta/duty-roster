@@ -67,8 +67,7 @@ export default function Header() {
 					})}
 					{!isPending && session?.user && (
 						<Button
-							variant="ghost"
-							size="sm"
+							variant="secondary"
 							onClick={handleSignOut}
 							className="ml-1"
 						>

@@ -31,19 +31,25 @@ export function NurseIdentityCell({
 		>
 			<div className="flex h-full flex-col justify-center gap-2">
 				<div className="flex items-center justify-between gap-1 overflow-hidden">
-					<Link href={`/manage-users?q=${nurse.name}`}>
+					{editable ? (
+						<Link href={`/manage-users?q=${nurse.name}`}>
+							<span
+								className={cn(
+									"cursor-pointer truncate font-extrabold text-blue-900 text-sm hover:text-blue-800 hover:underline",
+								)}
+								title={nurse.name}
+							>
+								{nurse?.name || "Nurse"}
+							</span>
+						</Link>
+					) : (
 						<span
-							className={cn(
-								"truncate font-extrabold text-sm",
-								editable &&
-									"cursor-pointer text-blue-900 hover:text-blue-800 hover:underline",
-								!editable && "text-slate-900",
-							)}
+							className={cn("truncate font-extrabold text-slate-900 text-sm")}
 							title={nurse.name}
 						>
 							{nurse?.name || "Nurse"}
 						</span>
-					</Link>
+					)}
 					<div
 						className={cn(
 							"shrink-0 rounded-md border px-1.5 py-0.5 font-black text-[9px]",

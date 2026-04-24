@@ -10,6 +10,7 @@ interface NurseRowProps {
 	dates: Date[];
 	assignments: Record<string, { id: string; shiftType: ShiftType } | null>;
 	shifts: ShiftDefinition[];
+	editable?: boolean;
 }
 
 export const NurseRow = React.memo(function NurseRow({
@@ -17,6 +18,7 @@ export const NurseRow = React.memo(function NurseRow({
 	dates,
 	assignments,
 	shifts,
+	editable = false,
 }: NurseRowProps) {
 	return (
 		<div
@@ -46,6 +48,7 @@ export const NurseRow = React.memo(function NurseRow({
 							date={dateKey}
 							assignmentId={shift?.id}
 							shifts={shifts}
+							editable={editable}
 						/>
 					</div>
 				);

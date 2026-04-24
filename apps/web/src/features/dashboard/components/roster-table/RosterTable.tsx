@@ -152,6 +152,7 @@ export function RosterTable({
 												dates={weekDates}
 												assignments={assignments}
 												shifts={shifts}
+												editable={editable}
 											/>
 										</td>
 									</tr>
