@@ -42,7 +42,6 @@ export async function createContextFromRequest(
 	try {
 		const { auth } = await import("@Duty-Roster/auth");
 		const session = await auth.api.getSession({
-			asRes: false,
 			query: Object.fromEntries(new URL(request.url).searchParams),
 			headers: request.headers,
 		});

@@ -6,7 +6,6 @@ import { Loader2 } from "lucide-react";
 import { useScheduleInit } from "@/hooks/useScheduleInit";
 import { NurseCard } from "./components/NurseCard";
 import { ShiftTotalsBar } from "./components/ShiftTotalsBar";
-import { useShiftAllocations } from "./hooks/useShiftAllocations";
 
 interface ShiftAllocationsClientProps {
 	initialSchedules?: SchedulesResponse;
@@ -15,8 +14,7 @@ interface ShiftAllocationsClientProps {
 export default function ShiftAllocationsClient({
 	initialSchedules,
 }: ShiftAllocationsClientProps) {
-	const { schedules, isFetching, totalDays, nurses } =
-		useScheduleInit(initialSchedules);
+	const { isFetching, totalDays, nurses } = useScheduleInit(initialSchedules);
 
 	const showLoader = isFetching && !nurses.length;
 

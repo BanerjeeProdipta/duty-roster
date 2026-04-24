@@ -1,4 +1,4 @@
-import { SearchInput } from "@Duty-Roster/ui/components/search-input";
+import { RosterHeader } from "@/features/dashboard/roster-table/RosterHeader";
 import { RosterTable } from "@/features/dashboard/roster-table/RosterTable";
 import { getMonthDateRange, getYearMonthFromSearchParams } from "@/utils";
 import { getTRPCServer } from "@/utils/trpc-server";
@@ -19,19 +19,9 @@ export default async function Home(props: {
 		endDate,
 	});
 
-	const nurseNames =
-		initialSchedules?.nurseRows.map((row) => row.nurse.name) ?? [];
-	const nurseCount = nurseNames.length;
-
 	return (
 		<div className="flex flex-col gap-6">
-			<SearchInput
-				paramKey="q"
-				language="bn-BD"
-				placeholder="নার্সের নাম দিয়ে খুঁজুন..."
-				suggestions={nurseNames}
-				suggestionCount={nurseCount}
-			/>
+			<RosterHeader initialSchedules={initialSchedules} />
 			<RosterTable initialSchedules={initialSchedules} />
 		</div>
 	);

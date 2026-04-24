@@ -51,12 +51,12 @@ export function MonthNavigator(_props: MonthNavigatorProps) {
 	}, [year, month, navigateToMonth]);
 
 	return (
-		<div className="flex items-center justify-between">
+		<div className="flex items-center justify-between gap-2 rounded-lg border">
 			<Button variant="ghost" size="icon-sm" onClick={goToPreviousMonth}>
 				<ArrowLeft className="h-4 w-4" />
 			</Button>
 
-			<div className="font-semibold text-slate-800 text-sm">
+			<div className="font-medium text-slate-800 text-sm">
 				{formatMonth(monthDate)}
 			</div>
 

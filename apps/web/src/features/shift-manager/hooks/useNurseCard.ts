@@ -31,6 +31,7 @@ export function useNurseCard({ nurse, totalDays }: UseNurseCardOptions) {
 		nurse.night,
 		nurse.active,
 		totalDays,
+		nurse,
 	]);
 
 	const updatePrefsMutation = useUpdatePreferences();

@@ -1,12 +1,11 @@
-import * as fs from "fs";
-import * as path from "path";
+import "regenerator-runtime";
+import * as fs from "node:fs";
+import fontkit from "@pdf-lib/fontkit";
+import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 import { z } from "zod";
 import { protectedProcedure, publicProcedure, router } from "../../trpc";
 import { schedulesResponseSchema, shiftSchema } from "./schema";
 import * as rosterService from "./service";
-
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const ExcelJS = require("exceljs");
 
 export const rosterRouter = router({
 	// ─────────────── READS ───────────────
@@ -85,7 +84,7 @@ export const rosterRouter = router({
 			),
 		),
 
-	downloadCSV: publicProcedure
+	downloadPDF: publicProcedure
 		.input(z.object({ startDate: z.string(), endDate: z.string() }))
 		.query(async ({ input }) => {
 			const schedules = await rosterService.getSchedulesByDateRange(
@@ -106,9 +105,10 @@ export const rosterRouter = router({
 			const currentYear = new Date().getFullYear();
 
 			for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-				const day = d.getDate();
-				const dayName = d.toLocaleString("en-US", { weekday: "short" });
-				dates.push({ dayName, date: day });
+				dates.push({
+					dayName: d.toLocaleString("en-US", { weekday: "long" }).slice(0, 3),
+					date: d.getDate(),
+				});
 			}
 
 			const rosterMonthName = new Date(start).toLocaleString("en-US", {
@@ -118,7 +118,6 @@ export const rosterRouter = router({
 
 			const rows = (schedules?.nurseRows ?? []).map((row) => {
 				const rowData: Record<string, string> = { Name: row.nurse.name };
-
 				for (const dateObj of dates) {
 					const shortMonth = new Date(start).toLocaleString("en-US", {
 						month: "short",
@@ -126,154 +125,213 @@ export const rosterRouter = router({
 					const monthIndex = new Date(`${shortMonth} 1 2024`).getMonth() + 1;
 					const dateKey = `${currentYear}-${String(monthIndex).padStart(2, "0")}-${String(dateObj.date).padStart(2, "0")}`;
 					const assignment = row.assignments[dateKey];
-					const letter = assignment
+					rowData[`${dateObj.dayName} ${dateObj.date}`] = assignment
 						? (shiftLetter[assignment.shiftType] ?? "?")
 						: "O";
-
-					const colKey = `${dateObj.dayName} ${dateObj.date}`;
-					rowData[colKey] = letter;
 				}
 				return rowData;
 			});
 
-			const nurseChunks = [];
-			for (let i = 0; i < rows.length; i += 16) {
-				nurseChunks.push(rows.slice(i, i + 16));
+			// Load a font that supports Bangla — place NotoSansBengali-Regular.ttf in public/fonts/
+			const fontPath =
+				"/Users/prodiptabanerjee/Projects/duty-roster/apps/web/public/fonts/NotoSansBengali-Regular.ttf";
+			const fontBytes = fs.readFileSync(fontPath);
+
+			const pdfDoc = await PDFDocument.create();
+			pdfDoc.registerFontkit(fontkit);
+			const banglaFont = await pdfDoc.embedFont(fontBytes);
+			const regularFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
+			const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+			// A4 landscape: 841.89 x 595.28 pts
+			const PAGE_WIDTH = 841.89;
+			const PAGE_HEIGHT = 595.28;
+			const MARGIN = 14;
+			const NURSES_PER_PAGE = 15;
+
+			const chunks: (typeof rows)[] = [];
+			for (let i = 0; i < rows.length; i += NURSES_PER_PAGE) {
+				chunks.push(rows.slice(i, i + NURSES_PER_PAGE));
 			}
+			// Always 2 pages
+			while (chunks.length < 2) chunks.push([]);
 
-			const templatePath = path.join(
-				process.cwd(),
-				"apps/web/public/roster-template.xlsx",
-			);
-			const templateBuffer = fs.readFileSync(templatePath);
-			const workbook = new ExcelJS.Workbook();
-			await workbook.xlsx.load(templateBuffer);
+			const nameColWidth = 110;
+			const availableWidth = PAGE_WIDTH - MARGIN * 2 - nameColWidth;
+			const dayColWidth = availableWidth / dates.length;
 
-			const light_gray = "FFD3D3D3";
-			const lighter_gray = "FFF0F0F0";
-			const white = "FFFFFFFF";
-			const headerBorder = {
-				left: { style: "thin" as const, color: { argb: "FF000000" } },
-				right: { style: "thin" as const, color: { argb: "FF000000" } },
-				top: { style: "thin" as const, color: { argb: "FF000000" } },
-				bottom: { style: "thin" as const, color: { argb: "FF000000" } },
+			const HEADER_HEIGHT = 28;
+			const ROW_HEIGHT = 22;
+			const TABLE_TOP = PAGE_HEIGHT - 80; // below title rows
+
+			// Shift colors - grayscale only
+			const shiftColors: Record<string, ReturnType<typeof rgb>> = {
+				M: rgb(1, 1, 1),
+				E: rgb(1, 1, 1),
+				N: rgb(1, 1, 1),
+				O: rgb(1, 1, 1),
 			};
 
-			nurseChunks.forEach((chunkNurses, pageIndex) => {
-				// eslint-disable-next-line @typescript-eslint/no-explicit-any
-				let worksheet: any;
+			for (const [pageIdx, nurseChunk] of chunks.entries()) {
+				const page = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
 
-				if (pageIndex === 0) {
-					worksheet =
-						workbook.getWorksheet("Roster") || workbook.getWorksheet(1);
-				} else {
-					worksheet = workbook.addWorksheet(`Roster P${pageIndex + 1}`);
-				}
-
-				worksheet.pageSetup = {
-					margins: {
-						left: 0.2,
-						right: 0.2,
-						top: 0.35,
-						bottom: 0.35,
-						header: 0.2,
-						footer: 0.2,
-					},
-					paperSize: 9,
-					orientation: "landscape",
-				};
-
-				const titleRow = worksheet.getRow(1);
-				titleRow.getCell(1).value = "উপজেলা স্বাস্থ্য কমপ্লেক্স";
-				titleRow.height = 24;
-				titleRow.getCell(1).font = { name: "Calibri", size: 16, bold: true };
-				titleRow.getCell(1).alignment = {
-					horizontal: "center" as const,
-					vertical: "middle" as const,
-				};
-
-				const monthRow = worksheet.getRow(2);
-				monthRow.getCell(1).value = rosterMonthName;
-				monthRow.height = 20;
-				monthRow.getCell(1).font = { name: "Calibri", size: 13, bold: true };
-				monthRow.getCell(1).alignment = {
-					horizontal: "center" as const,
-					vertical: "middle" as const,
-				};
-
-				const headerData = ["Name"];
-				for (const dateObj of dates) {
-					headerData.push(`${dateObj.dayName}\n${dateObj.date}`);
-				}
-
-				const headerRow = worksheet.getRow(4);
-				headerData.forEach((header, idx) => {
-					const cell = headerRow.getCell(idx + 1);
-					cell.value = header;
-					cell.font = { name: "Calibri", size: 7, bold: true };
-					cell.fill = {
-						type: "pattern",
-						pattern: "solid",
-						fgColor: { argb: light_gray },
-					};
-					cell.alignment = {
-						horizontal: "center" as const,
-						vertical: "middle" as const,
-						wrapText: true,
-					};
-					cell.border = headerBorder;
+				// --- Title ---
+				page.drawText("উপজেলা স্বাস্থ্য কমপ্লেক্স", {
+					x: PAGE_WIDTH / 2 - 90,
+					y: PAGE_HEIGHT - 30,
+					size: 16,
+					font: banglaFont,
+					color: rgb(0, 0, 0),
 				});
-				headerRow.height = 28;
 
-				chunkNurses.forEach((nurse, nurseIndex) => {
-					const isGrayRow = nurseIndex % 2 === 1;
-					const rowFill = isGrayRow ? lighter_gray : white;
+				page.drawText(`নার্সেস রোস্টার — ${rosterMonthName}`, {
+					x: PAGE_WIDTH / 2 - 80,
+					y: PAGE_HEIGHT - 52,
+					size: 11,
+					font: banglaFont,
+					color: rgb(0.2, 0.2, 0.2),
+				});
 
-					const rowData = [nurse.Name];
-					for (const dateObj of dates) {
-						const colKey = `${dateObj.dayName} ${dateObj.date}`;
-						rowData.push(nurse[colKey] || "");
-					}
-
-					const dataRowIndex = 5 + nurseIndex;
-					const dataRow = worksheet.getRow(dataRowIndex);
-
-					rowData.forEach((val, colIdx) => {
-						const cell = dataRow.getCell(colIdx + 1);
-						cell.value = val;
-
-						if (colIdx === 0) {
-							cell.font = { name: "Calibri", size: 8, bold: true };
-							cell.alignment = {
-								horizontal: "left",
-								vertical: "middle" as const,
-							};
-						} else {
-							cell.font = { name: "Calibri", size: 7 };
-							cell.alignment = {
-								horizontal: "center" as const,
-								vertical: "middle" as const,
-							};
-						}
-
-						cell.fill = {
-							type: "pattern",
-							pattern: "solid",
-							fgColor: { argb: rowFill },
-						};
-						cell.border = headerBorder;
+				if (chunks.length > 1) {
+					page.drawText(`Page ${pageIdx + 1} of ${chunks.length}`, {
+						x: PAGE_WIDTH - MARGIN - 60,
+						y: PAGE_HEIGHT - 20,
+						size: 8,
+						font: regularFont,
+						color: rgb(0.5, 0.5, 0.5),
 					});
-					dataRow.height = 14;
+				}
+
+				// --- Header row ---
+				const headerY = TABLE_TOP;
+
+				// "Name" header
+				page.drawRectangle({
+					x: MARGIN,
+					y: headerY - HEADER_HEIGHT,
+					width: nameColWidth,
+					height: HEADER_HEIGHT,
+					color: rgb(0.83, 0.83, 0.83),
+					borderColor: rgb(0, 0, 0),
+					borderWidth: 0.5,
+				});
+				page.drawText("Name", {
+					x: MARGIN + 4,
+					y: headerY - HEADER_HEIGHT / 2 - 4,
+					size: 8,
+					font: boldFont,
+					color: rgb(0, 0, 0),
 				});
 
-				const columnWidths = [{ width: 15 }];
-				for (let i = 0; i < dates.length; i++) {
-					columnWidths.push({ width: 5.5 });
+				// Date headers
+				for (const [i, dateObj] of dates.entries()) {
+					const x = MARGIN + nameColWidth + i * dayColWidth;
+					page.drawRectangle({
+						x,
+						y: headerY - HEADER_HEIGHT,
+						width: dayColWidth,
+						height: HEADER_HEIGHT,
+						color: rgb(0.83, 0.83, 0.83),
+						borderColor: rgb(0, 0, 0),
+						borderWidth: 0.5,
+					});
+					page.drawText(dateObj.dayName.slice(0, 3), {
+						x: x + dayColWidth / 2 - 6,
+						y: headerY - 12,
+						size: 6,
+						font: boldFont,
+						color: rgb(0, 0, 0),
+					});
+					page.drawText(String(dateObj.date), {
+						x: x + dayColWidth / 2 - 4,
+						y: headerY - 22,
+						size: 7,
+						font: boldFont,
+						color: rgb(0, 0, 0),
+					});
 				}
-				worksheet.columns = columnWidths;
-			});
 
-			const buffer = await workbook.xlsx.writeBuffer();
-			return buffer.toString("base64");
+				// --- Nurse rows ---
+				for (const [ni, nurse] of nurseChunk.entries()) {
+					const rowY = headerY - HEADER_HEIGHT - ni * ROW_HEIGHT;
+					const rowBg = ni % 2 === 0 ? rgb(1, 1, 1) : rgb(0.94, 0.94, 0.94);
+
+					// Name cell
+					page.drawRectangle({
+						x: MARGIN,
+						y: rowY - ROW_HEIGHT,
+						width: nameColWidth,
+						height: ROW_HEIGHT,
+						color: rowBg,
+						borderColor: rgb(0.6, 0.6, 0.6),
+						borderWidth: 0.3,
+					});
+					page.drawText(nurse.Name ?? "", {
+						x: MARGIN + 3,
+						y: rowY - ROW_HEIGHT / 2 - 3,
+						size: 7,
+						font: banglaFont,
+						color: rgb(0, 0, 0),
+						maxWidth: nameColWidth - 6,
+					});
+
+					// Shift cells
+					for (const [i, dateObj] of dates.entries()) {
+						const colKey = `${dateObj.dayName} ${dateObj.date}`;
+						const letter = nurse[colKey] ?? "O";
+						const x = MARGIN + nameColWidth + i * dayColWidth;
+						const cellColor = shiftColors[letter] ?? rowBg;
+
+						page.drawRectangle({
+							x,
+							y: rowY - ROW_HEIGHT,
+							width: dayColWidth,
+							height: ROW_HEIGHT,
+							color: cellColor,
+							borderColor: rgb(0.6, 0.6, 0.6),
+							borderWidth: 0.3,
+						});
+						page.drawText(letter, {
+							x: x + dayColWidth / 2 - 3,
+							y: rowY - ROW_HEIGHT / 2 - 3,
+							size: 7,
+							font: boldFont,
+							color: rgb(0, 0, 0),
+						});
+					}
+				}
+
+				// --- Legend ---
+				const legendY = MARGIN + 20;
+				const legendItems = [
+					{ label: "M = Morning", color: shiftColors.M },
+					{ label: "E = Evening", color: shiftColors.E },
+					{ label: "N = Night", color: shiftColors.N },
+					{ label: "O = Off", color: shiftColors.O },
+				];
+				let lx = MARGIN;
+				for (const item of legendItems) {
+					page.drawRectangle({
+						x: lx,
+						y: legendY - 8,
+						width: 10,
+						height: 10,
+						color: item.color,
+						borderColor: rgb(0, 0, 0),
+						borderWidth: 0.3,
+					});
+					page.drawText(item.label, {
+						x: lx + 13,
+						y: legendY - 4,
+						size: 7,
+						font: regularFont,
+						color: rgb(0, 0, 0),
+					});
+					lx += 90;
+				}
+			}
+
+			const pdfBytes = await pdfDoc.save();
+			return Buffer.from(pdfBytes).toString("base64");
 		}),
 });

@@ -98,7 +98,7 @@ export function normalize(data: unknown, totalDays: number): NurseState[] {
 export function addMonths(date: Date | string | number, delta: number) {
 	const d = new Date(date);
 
-	if (isNaN(d.getTime())) {
+	if (Number.isNaN(d.getTime())) {
 		throw new Error("Invalid date passed to addMonths");
 	}
 
@@ -109,7 +109,7 @@ export function addMonths(date: Date | string | number, delta: number) {
 export function formatMonth(date: Date | string | number) {
 	const d = new Date(date);
 
-	if (isNaN(d.getTime())) {
+	if (Number.isNaN(d.getTime())) {
 		throw new Error("Invalid date passed to formatMonth");
 	}
 
@@ -122,7 +122,7 @@ export function formatMonth(date: Date | string | number) {
 export function getDaysInMonth(date: Date | string | number) {
 	const d = new Date(date);
 
-	if (isNaN(d.getTime())) {
+	if (Number.isNaN(d.getTime())) {
 		throw new Error("Invalid date passed to getDaysInMonth");
 	}
 

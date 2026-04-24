@@ -1,7 +1,7 @@
 import { cn } from "@Duty-Roster/ui/lib/utils";
 import type * as React from "react";
 
-interface LabelProps extends React.HTMLAttributes<HTMLSpanElement> {
+interface LabelProps extends React.LabelHTMLAttributes<HTMLLabelElement> {
 	/**
 	 * Label style variant
 	 * - default: uppercase with tracking
@@ -12,7 +12,8 @@ interface LabelProps extends React.HTMLAttributes<HTMLSpanElement> {
 
 function Label({ className, variant = "default", ...props }: LabelProps) {
 	return (
-		<span
+		// biome-ignore lint/a11y/noLabelWithoutControl: association is the caller's responsibility
+		<label
 			data-slot="label"
 			className={cn(
 				"font-medium text-xs",

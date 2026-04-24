@@ -1,5 +1,42 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
+// Ambient declarations for vendor-prefixed / experimental browser APIs
+declare global {
+	interface Window {
+		webkitAudioContext: typeof AudioContext;
+		SpeechRecognition: typeof SpeechRecognition;
+		webkitSpeechRecognition: typeof SpeechRecognition;
+	}
+
+	interface SpeechRecognition extends EventTarget {
+		continuous: boolean;
+		interimResults: boolean;
+		lang: string;
+		onstart: (() => void) | null;
+		onend: (() => void) | null;
+		onresult: ((event: SpeechRecognitionEvent) => void) | null;
+		onerror: ((event: SpeechRecognitionErrorEvent) => void) | null;
+		start(): void;
+		stop(): void;
+		abort(): void;
+	}
+
+	interface SpeechRecognitionEvent extends Event {
+		readonly resultIndex: number;
+		readonly results: SpeechRecognitionResultList;
+	}
+
+	interface SpeechRecognitionErrorEvent extends Event {
+		readonly error: string;
+		readonly message: string;
+	}
+
+	const SpeechRecognition: {
+		prototype: SpeechRecognition;
+		new (): SpeechRecognition;
+	};
+}
+
 type Language = "en-US" | "bn-BD";
 
 interface UseVoiceSearchOptions {
@@ -17,9 +54,7 @@ interface UseVoiceSearchReturn {
 const playSound = (type: "start" | "stop") => {
 	if (typeof window === "undefined") return;
 
-	const audioContext = new (
-		window.AudioContext || (window as any).webkitAudioContext
-	)();
+	const audioContext = new (window.AudioContext || window.webkitAudioContext)();
 	const oscillator = audioContext.createOscillator();
 	const gainNode = audioContext.createGain();
 
@@ -50,7 +85,7 @@ export function useVoiceSearch({
 }: UseVoiceSearchOptions = {}): UseVoiceSearchReturn {
 	const [isListening, setIsListening] = useState(false);
 	const [isBrowserSupported, setIsBrowserSupported] = useState(true);
-	const recognitionRef = useRef<any>(null);
+	const recognitionRef = useRef<SpeechRecognition | null>(null);
 
 	useEffect(() => {
 		const SpeechRecognition =
@@ -80,7 +115,7 @@ export function useVoiceSearch({
 			playSound("start");
 		};
 
-		recognition.onresult = (event: any) => {
+		recognition.onresult = (event: SpeechRecognitionEvent) => {
 			let _interimTranscript = "";
 			finalTranscript = "";
 
@@ -94,7 +129,7 @@ export function useVoiceSearch({
 			}
 		};
 
-		recognition.onerror = (event: any) => {
+		recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
 			console.error("Speech Recognition Error:", event.error);
 			setIsListening(false);
 		};

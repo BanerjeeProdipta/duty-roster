@@ -64,7 +64,6 @@ export function NurseCard({ nurse, totalDays }: NurseCardProps) {
 						(field) => (
 							<ShiftInput
 								key={field}
-								label={shiftLabel[field]}
 								color={shiftColor[field]}
 								value={draft[field]}
 								onChange={(v) => handleFieldChange(field, v)}
@@ -101,13 +100,6 @@ export function NurseCard({ nurse, totalDays }: NurseCardProps) {
 }
 
 // ─── Small sub-components ────────────────────────────────────────────────────
-
-const shiftLabel: Record<ShiftField, string> = {
-	morning: "Day",
-	evening: "Eve",
-	night: "Ngt",
-	off: "Off",
-};
 
 const shiftColor: Record<
 	ShiftField,

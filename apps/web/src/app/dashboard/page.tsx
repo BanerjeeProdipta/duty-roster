@@ -1,5 +1,3 @@
-import { SearchInput } from "@Duty-Roster/ui/components/search-input";
-import { DownloadCSVButton } from "@/features/dashboard/components/DownloadCSVButton";
 import { ShiftCounts } from "@/features/dashboard/components/ShiftCounts";
 import { RosterHeader } from "@/features/dashboard/roster-table/RosterHeader";
 import { RosterTable } from "@/features/dashboard/roster-table/RosterTable";
@@ -22,24 +20,10 @@ export default async function DashboardPage(props: {
 		endDate,
 	});
 
-	const nurseNames =
-		initialSchedules?.nurseRows.map((row) => row.nurse.name) ?? [];
-	const nurseCount = nurseNames.length;
-
 	return (
 		<div className="flex flex-col gap-6">
-			<RosterHeader editable />
-			<div className="flex items-center justify-between">
-				<ShiftCounts initialSchedules={initialSchedules} />
-			</div>
-			<SearchInput
-				paramKey="q"
-				language="bn-BD"
-				placeholder="নার্সের নাম দিয়ে খুঁজুন..."
-				suggestions={nurseNames}
-				suggestionCount={nurseCount}
-			/>
-
+			<RosterHeader editable initialSchedules={initialSchedules} />
+			<ShiftCounts initialSchedules={initialSchedules} />
 			<RosterTable editable initialSchedules={initialSchedules} />
 		</div>
 	);

@@ -8,7 +8,7 @@ export function convertToPreferences(
 	totalDays: number,
 ): PreferenceUpdate[] {
 	const workingDays = nurse.morning + nurse.evening + nurse.night;
-	const offDays = totalDays - workingDays;
+	const _offDays = totalDays - workingDays;
 
 	return [
 		{

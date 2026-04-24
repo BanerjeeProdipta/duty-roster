@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Poppins } from "next/font/google";
+import { Noto_Sans_Bengali, Poppins } from "next/font/google";
 
 import "../index.css";
 import Header from "@/components/navbar/header";
@@ -9,6 +9,12 @@ const poppins = Poppins({
 	variable: "--font-poppins",
 	subsets: ["latin"],
 	weight: ["400", "500", "600"],
+});
+
+const notoSansBengali = Noto_Sans_Bengali({
+	variable: "--font-bengali",
+	subsets: ["bengali"],
+	weight: ["400", "700"],
 });
 
 export const metadata: Metadata = {
@@ -23,7 +29,9 @@ export default function RootLayout({
 }>) {
 	return (
 		<html lang="en" suppressHydrationWarning>
-			<body className={`${poppins.variable} font-sans antialiased`}>
+			<body
+				className={`${poppins.variable} ${notoSansBengali.variable} font-sans antialiased`}
+			>
 				<Providers>
 					<div className="flex min-h-svh flex-col bg-slate-50 dark:bg-slate-950">
 						<Header />
