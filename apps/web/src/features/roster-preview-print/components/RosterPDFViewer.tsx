@@ -2,6 +2,7 @@
 
 import { FileText } from "lucide-react";
 import { MonthNavigator } from "@/components/MonthNavigator";
+import type { SchedulesResponse } from "@/features/dashboard/roster-table/RosterMatrix.types";
 import {
 	PAGE_HEIGHT,
 	PAGE_PADDING,
@@ -11,7 +12,11 @@ import {
 import { useRosterPageData } from "../hooks/useRosterPageData";
 import { RosterPage } from "./RosterPage";
 
-export function RosterPDFViewer() {
+interface RosterPDFViewerProps {
+	initialSchedules?: SchedulesResponse | null;
+}
+
+export function RosterPDFViewer({ initialSchedules }: RosterPDFViewerProps) {
 	const {
 		pageData,
 		pageChunks,
@@ -20,7 +25,7 @@ export function RosterPDFViewer() {
 		isFetching,
 		error,
 		handlePrint,
-	} = useRosterPageData();
+	} = useRosterPageData(initialSchedules ?? undefined);
 
 	const previewPages = hasContent
 		? pageChunks.map((chunk, idx) => {

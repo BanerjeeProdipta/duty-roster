@@ -1,5 +1,6 @@
 "use client";
 
+import type { SchedulesResponse } from "@Duty-Roster/api";
 import { useCallback, useEffect, useState } from "react";
 import { useScheduleInit } from "@/hooks/useScheduleInit";
 import { NURSES_PER_PAGE } from "../constants";
@@ -16,13 +17,16 @@ interface UseRosterPageDataReturn {
 	handlePrint: () => void;
 }
 
-export function useRosterPageData(): UseRosterPageDataReturn {
+export function useRosterPageData(
+	initialSchedules?: SchedulesResponse,
+): UseRosterPageDataReturn {
 	const [pageData, setPageData] = useState<PageData | null>(null);
 	const [error, setError] = useState<string | null>(null);
 
 	// year/month come from useScheduleInit (which wraps useSchedules → useYearMonth)
 	// — no need to re-read search params here.
-	const { schedules, isFetching, year, month } = useScheduleInit();
+	const { schedules, isFetching, year, month } =
+		useScheduleInit(initialSchedules);
 
 	useEffect(() => {
 		if (!schedules?.nurseRows) return;
