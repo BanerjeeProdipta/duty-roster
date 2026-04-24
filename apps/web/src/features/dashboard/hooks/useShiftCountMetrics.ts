@@ -1,5 +1,5 @@
+import type { SchedulesResponse } from "@Duty-Roster/api";
 import { useMemo } from "react";
-import type { SchedulesResponse } from "./roster-table/RosterMatrix.types";
 
 export function useShiftCountMetrics(schedules?: SchedulesResponse) {
 	const nurseRows = schedules?.nurseRows ?? [];

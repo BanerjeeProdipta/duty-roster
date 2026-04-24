@@ -4,6 +4,7 @@ import { Button } from "@Duty-Roster/ui/components/button";
 import { MonthNavigator } from "@/components/MonthNavigator";
 import { useGenerateRoster } from "@/hooks/useGenerateRoster";
 import { useRosterHeader } from "@/hooks/useRosterHeader";
+import { DownloadCSVButton } from "../components/DownloadCSVButton";
 
 type RosterHeaderProps = {
 	editable?: boolean;
@@ -31,6 +32,7 @@ export function RosterHeader({ editable = false }: RosterHeaderProps) {
 					{generateMutation.isPending ? "Generating..." : "Generate"}
 				</Button>
 			)}
+			<DownloadCSVButton />
 		</div>
 	);
 }

@@ -3,7 +3,7 @@
 import type { SchedulesResponse } from "@Duty-Roster/api";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import type { ShiftType } from "@/features/dashboard/components/roster-table/RosterMatrix.types";
+import type { ShiftType } from "@/features/dashboard/roster-table/RosterMatrix.types";
 import { trpcClient } from "@/utils/trpc";
 
 function shiftIdToShiftType(shiftId: string | null): ShiftType {

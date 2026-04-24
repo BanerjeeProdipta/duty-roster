@@ -1,5 +1,5 @@
 import { useSearchParams } from "next/navigation";
-import type { SchedulesResponse } from "@/features/dashboard/components/roster-table/RosterMatrix.types";
+import type { SchedulesResponse } from "@/features/dashboard/roster-table/RosterMatrix.types";
 import { getDaysInMonth } from "@/utils";
 import type { NurseState } from "../types";
 

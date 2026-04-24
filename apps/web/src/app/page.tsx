@@ -1,5 +1,5 @@
 import { SearchInput } from "@Duty-Roster/ui/components/search-input";
-import { RosterTable } from "@/features/dashboard/components/roster-table/RosterTable";
+import { RosterTable } from "@/features/dashboard/roster-table/RosterTable";
 import { getMonthDateRange, getYearMonthFromSearchParams } from "@/utils";
 import { getTRPCServer } from "@/utils/trpc-server";
 

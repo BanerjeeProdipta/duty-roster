@@ -2,8 +2,8 @@
 
 import type { SchedulesResponse } from "@Duty-Roster/api";
 import { useSchedules } from "@/hooks/useSchedules";
+import { useShiftCountMetrics } from "../hooks/useShiftCountMetrics";
 import { ShiftCountCard } from "./ShiftCountCard";
-import { useShiftCountMetrics } from "./useShiftCountMetrics";
 
 type ShiftCountsProps = {
 	initialSchedules?: SchedulesResponse;

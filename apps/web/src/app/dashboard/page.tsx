@@ -1,7 +1,8 @@
 import { SearchInput } from "@Duty-Roster/ui/components/search-input";
-import { RosterHeader } from "@/features/dashboard/components/roster-table/RosterHeader";
-import { RosterTable } from "@/features/dashboard/components/roster-table/RosterTable";
+import { DownloadCSVButton } from "@/features/dashboard/components/DownloadCSVButton";
 import { ShiftCounts } from "@/features/dashboard/components/ShiftCounts";
+import { RosterHeader } from "@/features/dashboard/roster-table/RosterHeader";
+import { RosterTable } from "@/features/dashboard/roster-table/RosterTable";
 import { getMonthDateRange, getYearMonthFromSearchParams } from "@/utils";
 import { getAuthedTRPCServer } from "@/utils/trpc-server";
 
@@ -28,7 +29,9 @@ export default async function DashboardPage(props: {
 	return (
 		<div className="flex flex-col gap-6">
 			<RosterHeader editable />
-			<ShiftCounts initialSchedules={initialSchedules} />
+			<div className="flex items-center justify-between">
+				<ShiftCounts initialSchedules={initialSchedules} />
+			</div>
 			<SearchInput
 				paramKey="q"
 				language="bn-BD"
