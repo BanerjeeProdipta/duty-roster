@@ -2,6 +2,7 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { QUERY_KEYS } from "@/utils/query-keys";
 import { trpcClient } from "@/utils/trpc";
 
 interface PreferenceUpdate {
@@ -30,7 +31,7 @@ export function useUpdatePreferences(options?: { onSuccess?: () => void }) {
 
 		onSuccess: () => {
 			toast.success("Preferences saved successfully");
-			queryClient.invalidateQueries({ queryKey: ["schedules"] });
+			queryClient.invalidateQueries({ queryKey: QUERY_KEYS.schedulesBase });
 			options?.onSuccess?.();
 		},
 

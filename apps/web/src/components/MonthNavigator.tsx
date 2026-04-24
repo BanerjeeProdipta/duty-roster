@@ -2,23 +2,16 @@
 
 import { Button } from "@Duty-Roster/ui/components/button";
 import { ArrowLeft, ArrowRight } from "lucide-react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useMemo } from "react";
-import { formatMonth, type MonthNavigatorProps } from "@/utils";
+import { useRouter } from "next/navigation";
+import { useCallback } from "react";
+import { useYearMonth } from "@/hooks/useYearMonth";
+import { formatMonth } from "@/utils";
 
-export function MonthNavigator(_props: MonthNavigatorProps) {
+export function MonthNavigator() {
 	const router = useRouter();
-	const searchParams = useSearchParams();
+	const { year, month } = useYearMonth();
 
-	const now = new Date();
-	const year =
-		Number.parseInt(searchParams.get("year") ?? "", 10) || now.getFullYear();
-	const month =
-		Number.parseInt(searchParams.get("month") ?? "", 10) || now.getMonth() + 1;
-
-	const monthDate = useMemo(() => {
-		return new Date(year, month - 1);
-	}, [year, month]);
+	const monthDate = new Date(year, month - 1);
 
 	const navigateToMonth = useCallback(
 		(newYear: number, newMonth: number) => {

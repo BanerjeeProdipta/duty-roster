@@ -2,16 +2,12 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { createContext } from "react";
+import type { ShiftDefinition } from "@/features/dashboard/roster-table/RosterMatrix.types";
 import { QUERY_KEYS } from "@/utils/query-keys";
 import { trpcClient } from "@/utils/trpc";
 
-export type ShiftDefinition = {
-	id: string;
-	name: "morning" | "evening" | "night";
-	startTime: string;
-	endTime: string;
-	crossesMidnight: boolean;
-};
+// Re-exported for any consumers that import ShiftDefinition from this module.
+export type { ShiftDefinition };
 
 export const ShiftDefinitionContext = createContext<ShiftDefinition[]>([]);
 

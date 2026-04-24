@@ -1,30 +1,22 @@
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useCallback, useMemo } from "react";
 import { getMonthDates, getMonthName } from "@/utils";
+import { useYearMonth } from "./useYearMonth";
 
 export const useRosterHeader = () => {
 	const router = useRouter();
-	const searchParams = useSearchParams();
+	const { year, month } = useYearMonth();
 
-	const selectedMonth = useMemo(() => {
-		const now = new Date();
-		const yearParam = searchParams.get("year");
-		const monthParam = searchParams.get("month");
-
-		return {
-			year: yearParam ? Number.parseInt(yearParam, 10) : now.getFullYear(),
-			month: monthParam ? Number.parseInt(monthParam, 10) : now.getMonth() + 1,
-		};
-	}, [searchParams]);
+	const selectedMonth = { year, month };
 
 	const updateUrl = useCallback(
-		(year: number, month: number) => {
-			const params = new URLSearchParams(searchParams.toString());
-			params.set("year", year.toString());
-			params.set("month", month.toString());
+		(y: number, m: number) => {
+			const params = new URLSearchParams();
+			params.set("year", y.toString());
+			params.set("month", m.toString());
 			router.push(`?${params.toString()}`);
 		},
-		[router, searchParams],
+		[router],
 	);
 
 	const goToPreviousMonth = useCallback(() => {

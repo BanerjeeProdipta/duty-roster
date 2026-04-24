@@ -1,5 +1,6 @@
 import { useSearchParams } from "next/navigation";
 import type { SchedulesResponse } from "@/features/dashboard/roster-table/RosterMatrix.types";
+import { useYearMonth } from "@/hooks/useYearMonth";
 import { getDaysInMonth } from "@/utils";
 import type { NurseState } from "../types";
 
@@ -9,16 +10,10 @@ export function useShiftAllocations(
 ) {
 	const nurseRows = schedules?.nurseRows ?? [];
 
+	const { year, month } = useYearMonth();
 	const searchParams = useSearchParams();
-	const yearParam = searchParams.get("year");
-	const monthParam = searchParams.get("month");
 	const qParam = searchParams.get("q") ?? "";
 
-	const now = new Date();
-	const year = yearParam ? Number.parseInt(yearParam, 10) : now.getFullYear();
-	const month = monthParam
-		? Number.parseInt(monthParam, 10)
-		: now.getMonth() + 1;
 	const totalDays =
 		externalTotalDays ?? getDaysInMonth(new Date(year, month - 1));
 

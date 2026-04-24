@@ -24,7 +24,6 @@ export function RosterHeader({
 		initialSchedules?.nurseRows.map((row) => row.nurse.name) ?? [];
 	const nurseCount = nurseNames.length;
 
-	console.log({ initialSchedules });
 	return (
 		<div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
 			<SearchInput

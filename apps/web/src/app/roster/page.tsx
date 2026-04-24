@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { RosterPDFViewer } from "@/features/dashboard/components/RosterViewer";
+import { RosterPDFViewer } from "@/features/roster-preview-print";
 
 export default function RosterPage() {
 	return (

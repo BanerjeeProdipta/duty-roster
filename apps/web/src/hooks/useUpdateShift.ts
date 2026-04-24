@@ -4,6 +4,7 @@ import type { SchedulesResponse } from "@Duty-Roster/api";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import type { ShiftType } from "@/features/dashboard/roster-table/RosterMatrix.types";
+import { QUERY_KEYS } from "@/utils/query-keys";
 import { trpcClient } from "@/utils/trpc";
 
 function shiftIdToShiftType(shiftId: string | null): ShiftType {
@@ -67,7 +68,7 @@ export function useUpdateShift() {
 
 		onMutate: async ({ nurseId, dateKey, shiftId }) => {
 			const { year, month } = extractYearMonth(dateKey);
-			const queryKey = ["schedules", year, month];
+			const queryKey = QUERY_KEYS.schedules(year, month);
 
 			await queryClient.cancelQueries({ queryKey });
 			const previous = queryClient.getQueryData<SchedulesResponse>(queryKey);
@@ -138,7 +139,10 @@ export function useUpdateShift() {
 		onError: (_err, vars, context) => {
 			if (context?.previous) {
 				const { year, month } = extractYearMonth(vars.dateKey);
-				queryClient.setQueryData(["schedules", year, month], context.previous);
+				queryClient.setQueryData(
+					QUERY_KEYS.schedules(year, month),
+					context.previous,
+				);
 			}
 
 			toast.error("Failed to update shift");
