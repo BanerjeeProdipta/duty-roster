@@ -56,6 +56,9 @@ export const schedulesResponseSchema = z.object({
 		}),
 	),
 	dailyShiftCounts: z.record(z.string(), shiftCountsSchema),
+	shiftRequirements: shiftCountsSchema,
+	assignedShiftCounts: shiftCountsSchema,
+	preferenceCapacity: shiftCountsSchema,
 });
 
 export type SchedulesResponse = z.infer<typeof schedulesResponseSchema>;

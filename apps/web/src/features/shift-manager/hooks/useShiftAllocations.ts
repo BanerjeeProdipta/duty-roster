@@ -1,5 +1,5 @@
+import type { SchedulesResponse } from "@Duty-Roster/api";
 import { useSearchParams } from "next/navigation";
-import type { SchedulesResponse } from "@/features/dashboard/roster-table/RosterMatrix.types";
 import { useYearMonth } from "@/hooks/useYearMonth";
 import { getDaysInMonth } from "@/utils";
 import type { NurseState } from "../types";

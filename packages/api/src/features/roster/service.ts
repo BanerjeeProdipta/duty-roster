@@ -71,6 +71,14 @@ export async function getShifts() {
 	return rosterDb.findAllShifts();
 }
 
+function isFriday(dateStr: string): boolean {
+	const parts = dateStr.split("-").map(Number);
+	const y = parts[0]!;
+	const m = parts[1]!;
+	const d = parts[2]!;
+	return new Date(Date.UTC(y, m - 1, d)).getUTCDay() === 5;
+}
+
 export async function getSchedulesByDateRange(
 	startDate: Date,
 	endDate: Date,
@@ -139,7 +147,62 @@ export async function getSchedulesByDateRange(
 		};
 	});
 
-	return { nurseRows, dailyShiftCounts };
+	const assignedShiftCounts = {
+		morning: 0,
+		evening: 0,
+		night: 0,
+		total: 0,
+	};
+	const preferenceCapacity = {
+		morning: 0,
+		evening: 0,
+		night: 0,
+		total: 0,
+	};
+
+	for (const [, counts] of Object.entries(dailyShiftCounts)) {
+		assignedShiftCounts.morning += counts.morning ?? 0;
+		assignedShiftCounts.evening += counts.evening ?? 0;
+		assignedShiftCounts.night += counts.night ?? 0;
+	}
+
+	for (const row of nurseRows) {
+		const pref = row.preferenceWiseShiftMetrics;
+		preferenceCapacity.morning += pref.morning ?? 0;
+		preferenceCapacity.evening += pref.evening ?? 0;
+		preferenceCapacity.night += pref.night ?? 0;
+	}
+
+	let fridayCount = 0;
+	let weekdayCount = 0;
+
+	for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+		const dateStr = d.toISOString().split("T")[0] ?? "";
+		if (isFriday(dateStr)) {
+			fridayCount++;
+		} else {
+			weekdayCount++;
+		}
+	}
+
+	const shiftRequirements = {
+		morning: weekdayCount * 20 + fridayCount * 3,
+		evening: (weekdayCount + fridayCount) * 3,
+		night: (weekdayCount + fridayCount) * 2,
+		total:
+			weekdayCount * 20 +
+			fridayCount * 3 +
+			(weekdayCount + fridayCount) * 3 +
+			(weekdayCount + fridayCount) * 2,
+	};
+
+	return {
+		nurseRows,
+		dailyShiftCounts,
+		shiftRequirements,
+		assignedShiftCounts,
+		preferenceCapacity,
+	};
 }
 
 export async function upsertSchedule(

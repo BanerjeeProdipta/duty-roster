@@ -1,4 +1,4 @@
-import type { SchedulesResponse } from "@/features/dashboard/roster-table/RosterMatrix.types";
+import type { SchedulesResponse } from "@Duty-Roster/api";
 import { SHIFT_LETTER_MAP } from "./constants";
 import type { DateInfo, NurseRow } from "./types";
 

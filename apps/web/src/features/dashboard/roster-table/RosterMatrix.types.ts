@@ -21,20 +21,6 @@ export type ShiftCounts = {
 	total: number;
 };
 
-export type SchedulesResponse = {
-	nurseRows: {
-		nurse: {
-			id: string;
-			name: string;
-			active?: boolean;
-		};
-		assignments: Record<string, { id: string; shiftType: ShiftType } | null>;
-		preferenceWiseShiftMetrics: ShiftCounts;
-		assignedShiftMetrics: ShiftCounts;
-	}[];
-	dailyShiftCounts: Record<string, ShiftCounts>;
-};
-
 export type ShiftPreferences = {
 	nurseId: string;
 	name: string;
@@ -50,3 +36,5 @@ export type ShiftDefinition = {
 	endTime: string;
 	crossesMidnight: boolean;
 };
+
+export type { SchedulesResponse } from "@Duty-Roster/api";
