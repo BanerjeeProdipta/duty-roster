@@ -79,6 +79,39 @@ function isFriday(dateStr: string): boolean {
 	return new Date(Date.UTC(y, m - 1, d)).getUTCDay() === 5;
 }
 
+function normalizeDateKey(dateStr: string): string {
+	const date = new Date(dateStr);
+	return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}-${String(date.getUTCDate()).padStart(2, "0")}`;
+}
+
+/**
+ * Fetches schedules and preferences for a date range and computes aggregated metrics.
+ *
+ * Response Properties:
+ * ─────────────────────────────────────────────────────────────────────────────────
+ * nurseRows              : Array of all nurses with their shift assignments for
+ *                        each day in the range. Each row contains:
+ *   - nurse             : { id, name, active } - Nurse info
+ *   - assignments       : { [dateKey]: { id, shiftType } | null } - Shifts per day
+ *   - preferenceWiseShiftMetrics : How many shifts this nurse prefers (calculated from %)
+ *   - assignedShiftMetrics       : How many shifts this nurse actually worked
+ *
+ * dailyShiftCounts      : Aggregated count of shifts per day across all nurses.
+ *                        Used by UI to show today's staffing levels.
+ *   - Key: "YYYY-MM-DD" (UTC normalized date)
+ *   - Value: { morning, evening, night, total } number of nurses assigned
+ *
+ * shiftRequirements     : Target staffing levels based on coverage config.
+ *                        - Weekdays: 20 morning, 3 evening, 2 night
+ *                        - Fridays:  3 morning, 3 evening, 2 night
+ *
+ * assignedShiftCounts   : Actual total shifts assigned across entire date range.
+ *                        Used by UI cards to show "X assigned / Y required"
+ *
+ * preferenceCapacity    : Sum of all nurses' preferred shift counts.
+ *                        Represents total shift capacity based on preferences.
+ * ─────────────────────────────────────────────────────────────────────────────────
+ */
 export async function getSchedulesByDateRange(
 	startDate: Date,
 	endDate: Date,
@@ -90,31 +123,51 @@ export async function getSchedulesByDateRange(
 
 	const totalDays = getDaysCountFromStartAndEndDate(startDate, endDate);
 
+	// dailyShiftCounts: Tracks how many nurses are working each shift type per day
+	// Key: "YYYY-MM-DD", Value: { morning, evening, night, total }
+	// Example: { "2026-04-01": { morning: 18, evening: 3, night: 2, total: 23 } }
 	const dailyShiftCounts: Record<
 		string,
 		{ morning: number; evening: number; night: number; total: number }
 	> = {};
 
 	const nurseRows = rows.map((row) => {
-		const assignments = (row.assignments ?? {}) as Record<string, Assignment>;
+		const rawAssignments = (row.assignments ?? {}) as Record<
+			string,
+			Assignment
+		>;
+		const assignments: Record<string, Assignment> = {};
 
-		for (const [date, assignment] of Object.entries(assignments)) {
+		for (const [date, assignment] of Object.entries(rawAssignments)) {
+			// Normalize date keys to UTC to ensure consistency
+			const normalizedDate = normalizeDateKey(date);
+			assignments[normalizedDate] = assignment;
+
 			if (!assignment) continue;
-			if (!dailyShiftCounts[date]) {
-				dailyShiftCounts[date] = {
+
+			// Initialize day entry if not exists
+			if (!dailyShiftCounts[normalizedDate]) {
+				dailyShiftCounts[normalizedDate] = {
 					morning: 0,
 					evening: 0,
 					night: 0,
 					total: 0,
 				};
 			}
-			if (assignment.shiftType === "morning") dailyShiftCounts[date].morning++;
+
+			// Increment the appropriate shift type counter
+			if (assignment.shiftType === "morning")
+				dailyShiftCounts[normalizedDate].morning++;
 			else if (assignment.shiftType === "evening")
-				dailyShiftCounts[date].evening++;
-			else if (assignment.shiftType === "night") dailyShiftCounts[date].night++;
-			if (assignment.shiftType !== "off") dailyShiftCounts[date].total++;
+				dailyShiftCounts[normalizedDate].evening++;
+			else if (assignment.shiftType === "night")
+				dailyShiftCounts[normalizedDate].night++;
+			if (assignment.shiftType !== "off")
+				dailyShiftCounts[normalizedDate].total++;
 		}
 
+		// Calculate preference-based shift counts for this nurse
+		// Example: 30% morning preference on 30-day month = 9 morning shifts preferred
 		const preferenceMorning = Math.round(
 			((Number(row.prefMorning) || 0) / 100) * totalDays,
 		);
@@ -147,12 +200,17 @@ export async function getSchedulesByDateRange(
 		};
 	});
 
+	// assignedShiftCounts: Total shifts actually worked across all nurses
+	// Aggregated from dailyShiftCounts - used in UI cards
 	const assignedShiftCounts = {
 		morning: 0,
 		evening: 0,
 		night: 0,
 		total: 0,
 	};
+
+	// preferenceCapacity: Sum of all nurses' preferred shift counts
+	// Represents theoretical maximum capacity based on preferences
 	const preferenceCapacity = {
 		morning: 0,
 		evening: 0,
@@ -160,19 +218,24 @@ export async function getSchedulesByDateRange(
 		total: 0,
 	};
 
+	// Sum up actual assigned shifts from daily counts
 	for (const [, counts] of Object.entries(dailyShiftCounts)) {
 		assignedShiftCounts.morning += counts.morning ?? 0;
 		assignedShiftCounts.evening += counts.evening ?? 0;
 		assignedShiftCounts.night += counts.night ?? 0;
+		assignedShiftCounts.total += counts.total ?? 0;
 	}
 
+	// Sum up preference-based capacity from each nurse's metrics
 	for (const row of nurseRows) {
 		const pref = row.preferenceWiseShiftMetrics;
 		preferenceCapacity.morning += pref.morning ?? 0;
 		preferenceCapacity.evening += pref.evening ?? 0;
 		preferenceCapacity.night += pref.night ?? 0;
+		preferenceCapacity.total += pref.total ?? 0;
 	}
 
+	// Count weekdays and Fridays to calculate coverage requirements
 	let fridayCount = 0;
 	let weekdayCount = 0;
 
@@ -185,6 +248,9 @@ export async function getSchedulesByDateRange(
 		}
 	}
 
+	// shiftRequirements: Target staffing based on coverage config
+	// - Weekdays: 20 morning, 3 evening, 2 night
+	// - Fridays: 3 morning (reduced), 3 evening, 2 night
 	const shiftRequirements = {
 		morning: weekdayCount * 20 + fridayCount * 3,
 		evening: (weekdayCount + fridayCount) * 3,

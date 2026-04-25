@@ -15,6 +15,16 @@ export type NormalizedDate = {
 	key: number;
 };
 
+function getUTCDayName(dayIndex: number): string {
+	const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+	return days[dayIndex];
+}
+
+function getUTCTodayStr(): string {
+	const now = new Date();
+	return `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}-${String(now.getUTCDate()).padStart(2, "0")}`;
+}
+
 export function useRosterDates() {
 	const searchParams = useSearchParams();
 
@@ -32,33 +42,29 @@ export function useRosterDates() {
 		[monthDates],
 	);
 
-	const todayStr = useMemo(() => new Date().toDateString(), []);
+	const todayStr = useMemo(() => getUTCTodayStr(), []);
 
 	const normalizedDates = useMemo((): NormalizedDate[] => {
-		return weekDates.map((date) => {
-			const isToday = date.toDateString() === todayStr;
-			const dayOfWeek = date.toLocaleDateString("en-US", { weekday: "short" });
-			const dateStr = date.toISOString().split("T")[0];
+		return monthDates.map((dateStr, idx) => {
+			const date = weekDates[idx];
+			const isToday = dateStr === todayStr;
+			const dayIndex = date.getUTCDay();
+			const label = getUTCDayName(dayIndex);
+			const month = date.getUTCMonth() + 1;
+			const day = date.getUTCDate();
 
 			return {
 				date,
 				dateStr,
 				time: date.getTime(),
 				isToday,
-				label: dayOfWeek,
-				formatted: date.toLocaleDateString("en-US", {
-					month: "short",
-					day: "numeric",
-				}),
-				shortLabel: date.toLocaleDateString("en-US", {
-					weekday: "short",
-					month: "short",
-					day: "numeric",
-				}),
+				label,
+				formatted: `${month}/${day}`,
+				shortLabel: `${label} ${month}/${day}`,
 				key: date.getTime(),
 			};
 		});
-	}, [weekDates, todayStr]);
+	}, [monthDates, weekDates, todayStr]);
 
 	return { weekDates, normalizedDates, monthDates };
 }
