@@ -1,9 +1,8 @@
 "use client";
 
-import { useVirtualizer } from "@tanstack/react-virtual";
+import type { SchedulesResponse } from "@Duty-Roster/api";
 import { Loader2 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
-import { useRef } from "react";
 import { useShifts } from "@/hooks/useGetShifts";
 import { useRosterDates } from "@/hooks/useRosterDates";
 import { useScheduleInit } from "@/hooks/useScheduleInit";
@@ -11,25 +10,21 @@ import { DayHeaderCell } from "./DayHeaderCell";
 import { LAYOUT } from "./Layout";
 import { NurseIdentityCell } from "./NurseIdentityCell";
 import { NurseRow } from "./NurseRow";
-import type { SchedulesResponse } from "./RosterMatrix.types";
 
-type RosterTableProps = {
+interface RosterTableProps {
 	editable?: boolean;
 	initialSchedules?: SchedulesResponse;
-};
+}
 
 export function RosterTable({
 	editable = false,
 	initialSchedules,
 }: RosterTableProps) {
 	const { schedules, isFetching } = useScheduleInit(initialSchedules);
-
 	const searchParams = useSearchParams();
 	const qParam = searchParams.get("q") ?? "";
-	const parentRef = useRef<HTMLDivElement>(null);
 
 	const shifts = useShifts();
-
 	const { weekDates, normalizedDates } = useRosterDates();
 
 	let nurseRows = schedules?.nurseRows ?? [];
@@ -39,18 +34,8 @@ export function RosterTable({
 			row.nurse.name.toLowerCase().includes(qParam.toLowerCase()),
 		);
 	}
+
 	const dailyShiftCounts = schedules?.dailyShiftCounts ?? {};
-
-	// Initialize virtualizer for rows
-	const rowVirtualizer = useVirtualizer({
-		count: nurseRows?.length ?? 0,
-		getScrollElement: () => parentRef.current,
-		estimateSize: () => LAYOUT.rowHeight,
-		overscan: 10,
-	});
-
-	const virtualItems = rowVirtualizer.getVirtualItems();
-	const totalSize = rowVirtualizer.getTotalSize();
 
 	if (isFetching && !nurseRows?.length) {
 		return (
@@ -67,10 +52,7 @@ export function RosterTable({
 	return (
 		<div className="flex flex-col gap-4">
 			<div className="relative flex h-[calc(100vh-200px)] animate-fade-in flex-col overflow-hidden rounded-2xl border border-slate-200/60 bg-white/80 shadow-[0_8px_30px_rgb(0,0,0,0.04)] backdrop-blur-sm">
-				<div
-					ref={parentRef}
-					className="scrollbar-hide min-h-0 flex-1 overflow-auto"
-				>
+				<div className="scrollbar-hide min-h-0 flex-1 overflow-auto">
 					<table className="w-full table-fixed border-separate border-spacing-0">
 						<thead>
 							<tr>
@@ -83,52 +65,32 @@ export function RosterTable({
 								>
 									Nurses
 								</th>
-
-								{normalizedDates.map((date) => {
-									const counts = dailyShiftCounts[date.dateStr];
-
-									return (
-										<th
-											key={date.key}
-											className="sticky top-0 z-[10] bg-[#f2f2f2]"
-											style={{
-												width: LAYOUT.cellWidth,
-												height: LAYOUT.headerHeight,
-											}}
-										>
-											<DayHeaderCell date={date} counts={counts} />
-										</th>
-									);
-								})}
+								{normalizedDates.map((date) => (
+									<th
+										key={date.key}
+										className="sticky top-0 z-[10] bg-[#f2f2f2]"
+										style={{
+											width: LAYOUT.cellWidth,
+											height: LAYOUT.headerHeight,
+										}}
+									>
+										<DayHeaderCell
+											date={date}
+											counts={dailyShiftCounts[date.dateStr]}
+										/>
+									</th>
+								))}
 							</tr>
 						</thead>
-
-						<tbody
-							style={{
-								height: `${totalSize}px`,
-								position: "relative",
-							}}
-						>
-							{virtualItems.map((virtualItem) => {
-								const nurseRowData = nurseRows[virtualItem.index];
-								const {
+						<tbody>
+							{nurseRows.map(
+								({
 									nurse,
 									assignments,
 									preferenceWiseShiftMetrics,
 									assignedShiftMetrics,
-								} = nurseRowData;
-
-								return (
-									<tr
-										key={nurse.id}
-										style={{
-											position: "absolute",
-											top: `${virtualItem.start}px`,
-											left: 0,
-											height: `${virtualItem.size}px`,
-											width: "100%",
-										}}
-									>
+								}) => (
+									<tr key={nurse.id}>
 										<td
 											className="sticky left-0 z-20 border-slate-200 border-b bg-white"
 											style={{
@@ -144,7 +106,6 @@ export function RosterTable({
 												editable={editable}
 											/>
 										</td>
-
 										<td
 											className="border-slate-200 border-b"
 											style={{ height: LAYOUT.rowHeight }}
@@ -158,8 +119,8 @@ export function RosterTable({
 											/>
 										</td>
 									</tr>
-								);
-							})}
+								),
+							)}
 						</tbody>
 					</table>
 				</div>
