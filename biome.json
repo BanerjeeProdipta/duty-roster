@@ -29,7 +29,8 @@
 			"!**/.source",
 			"!**/convex/_generated",
 			"!**/sw.js",
-			"!**/workbox-*.js"
+			"!**/workbox-*.js",
+			"!**/.cloudflare"
 		]
 	},
 	"formatter": {
