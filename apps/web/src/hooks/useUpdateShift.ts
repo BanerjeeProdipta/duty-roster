@@ -37,28 +37,6 @@ const emptyCounts = {
 	total: 0,
 };
 
-function incrementShiftCount(
-	counts: { morning: number; evening: number; night: number; total: number },
-	shiftType: ShiftType,
-) {
-	if (shiftType === "off") return counts;
-	return {
-		...counts,
-		[shiftType]: counts[shiftType] + 1,
-	};
-}
-
-function decrementShiftCount(
-	counts: { morning: number; evening: number; night: number; total: number },
-	shiftType: ShiftType,
-) {
-	if (shiftType === "off") return counts;
-	return {
-		...counts,
-		[shiftType]: Math.max(0, counts[shiftType] - 1),
-	};
-}
-
 export function useUpdateShift() {
 	const queryClient = useQueryClient();
 
@@ -82,23 +60,27 @@ export function useUpdateShift() {
 				const current = old as SchedulesResponse | undefined;
 				if (!current) return current;
 
-				const targetRow = current.nurseRows.find(
-					(row) => row.nurse.id === nurseId,
-				);
-				if (!targetRow) return current;
-
-				const wasOff = oldShiftType === "off";
-				const isNowOff = newShiftType === "off";
-				const previousCounts = current.dailyShiftCounts[dateKey] ?? emptyCounts;
-
 				return {
 					...current,
 					nurseRows: current.nurseRows.map((row) => {
 						if (row.nurse.id !== nurseId) return row;
-						const metricCounts = incrementShiftCount(
-							decrementShiftCount(row.assignedShiftMetrics, oldShiftType),
-							newShiftType,
-						);
+
+						const newMetrics = { ...row.assignedShiftMetrics };
+
+						if (oldShiftType !== "off") {
+							newMetrics[oldShiftType] = Math.max(
+								0,
+								newMetrics[oldShiftType] - 1,
+							);
+						}
+						if (newShiftType !== "off") {
+							newMetrics[newShiftType] = (newMetrics[newShiftType] || 0) + 1;
+						}
+						newMetrics.total =
+							(newMetrics.morning || 0) +
+							(newMetrics.evening || 0) +
+							(newMetrics.night || 0);
+
 						return {
 							...row,
 							assignments: {
@@ -108,27 +90,30 @@ export function useUpdateShift() {
 									shiftType: newShiftType,
 								},
 							},
-							assignedShiftMetrics: {
-								...metricCounts,
-								total:
-									row.assignedShiftMetrics.total +
-									(wasOff && !isNowOff ? 1 : 0) +
-									(!wasOff && isNowOff ? -1 : 0),
-							},
+							assignedShiftMetrics: newMetrics,
 						};
 					}),
 					dailyShiftCounts: {
 						...current.dailyShiftCounts,
-						[dateKey]: {
-							...incrementShiftCount(
-								decrementShiftCount(previousCounts, oldShiftType),
-								newShiftType,
-							),
-							total:
-								previousCounts.total +
-								(wasOff && !isNowOff ? 1 : 0) +
-								(!wasOff && isNowOff ? -1 : 0),
-						},
+						[dateKey]: (() => {
+							const prev = current.dailyShiftCounts[dateKey] ?? emptyCounts;
+							const updated = { ...prev };
+							if (oldShiftType !== "off") {
+								updated[oldShiftType] = Math.max(
+									0,
+									(updated[oldShiftType] || 0) - 1,
+								);
+							}
+							if (newShiftType !== "off") {
+								updated[newShiftType] =
+									((updated[newShiftType] as number) || 0) + 1;
+							}
+							updated.total =
+								((updated.morning as number) || 0) +
+								((updated.evening as number) || 0) +
+								((updated.night as number) || 0);
+							return updated;
+						})(),
 					},
 				};
 			});
@@ -148,7 +133,11 @@ export function useUpdateShift() {
 			toast.error("Failed to update shift");
 		},
 
-		onSuccess: () => {
+		onSuccess: (_data, vars) => {
+			const { year, month } = extractYearMonth(vars.dateKey);
+			queryClient.invalidateQueries({
+				queryKey: QUERY_KEYS.schedules(year, month),
+			});
 			toast.success("Shift updated successfully");
 		},
 	});
