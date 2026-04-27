@@ -5,7 +5,7 @@
 	"scripts": {
 		"dev": "next dev --port 3001",
 		"build": "next build",
-		"build:cf": "bunx @cloudflare/next-on-pages/build",
+		"build:cf": "bunx @cloudflare/next-on-pages build",
 		"deploy": "bun run build:cf && bunx wrangler pages deploy .output"
 	},
 	"dependencies": {
