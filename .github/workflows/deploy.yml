@@ -34,3 +34,5 @@ jobs:
 
       - name: Deploy Frontend
         run: bun run deploy:web
+        env:
+          NEXT_PUBLIC_SERVER_URL: "https://duty-roster-server.duty-roster.workers.dev"
