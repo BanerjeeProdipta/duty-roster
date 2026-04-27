@@ -27,7 +27,9 @@
 			"!**/.svelte-kit",
 			"!**/wrangler.jsonc",
 			"!**/.source",
-			"!**/convex/_generated"
+			"!**/convex/_generated",
+			"!**/sw.js",
+			"!**/workbox-*.js"
 		]
 	},
 	"formatter": {
