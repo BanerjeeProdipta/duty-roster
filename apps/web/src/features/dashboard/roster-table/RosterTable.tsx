@@ -26,13 +26,14 @@ export function RosterTable({
 
 	const searchParams = useSearchParams();
 	const qParam = searchParams.get("q") ?? "";
-
 	const parentRef = useRef<HTMLDivElement>(null);
+
 	const shifts = useShifts();
 
 	const { weekDates, normalizedDates } = useRosterDates();
 
 	let nurseRows = schedules?.nurseRows ?? [];
+
 	if (qParam.trim()) {
 		nurseRows = nurseRows.filter((row) =>
 			row.nurse.name.toLowerCase().includes(qParam.toLowerCase()),
@@ -45,7 +46,7 @@ export function RosterTable({
 		count: nurseRows?.length ?? 0,
 		getScrollElement: () => parentRef.current,
 		estimateSize: () => LAYOUT.rowHeight,
-		overscan: 5, // Render extra rows outside viewport for smooth scrolling
+		overscan: 10,
 	});
 
 	const virtualItems = rowVirtualizer.getVirtualItems();
@@ -119,10 +120,11 @@ export function RosterTable({
 
 								return (
 									<tr
-										key={`${nurse.id}-${virtualItem.index}`}
+										key={nurse.id}
 										style={{
 											position: "absolute",
 											top: `${virtualItem.start}px`,
+											left: 0,
 											height: `${virtualItem.size}px`,
 											width: "100%",
 										}}
@@ -145,7 +147,7 @@ export function RosterTable({
 
 										<td
 											className="border-slate-200 border-b"
-											style={{ height: "100%" }}
+											style={{ height: LAYOUT.rowHeight }}
 										>
 											<NurseRow
 												nurse={nurse}

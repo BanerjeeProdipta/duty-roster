@@ -33,7 +33,7 @@ export function RosterPDFViewer({ initialSchedules }: RosterPDFViewerProps) {
 				return (
 					<div
 						key={`preview-${pageKey}`}
-						className="mx-auto h-300 flex-shrink-0 bg-white shadow-lg"
+						className="mx-auto flex-shrink-0 bg-white shadow-lg"
 						style={{
 							width: PAGE_WIDTH,
 							height: PAGE_HEIGHT,
@@ -76,10 +76,15 @@ export function RosterPDFViewer({ initialSchedules }: RosterPDFViewerProps) {
 
 			{/* Controls */}
 			<div className="flex flex-col justify-between gap-3 rounded-lg border border-slate-200 bg-white p-4 lg:flex-row">
-				{hasContent && (
+				{hasContent && totalNurses > 0 && (
 					<div className="py-3 text-slate-500 text-sm">
 						{totalNurses} nurses across {pageChunks.length} page
 						{pageChunks.length !== 1 ? "s" : ""}
+					</div>
+				)}
+				{hasContent && totalNurses === 0 && (
+					<div className="py-3 font-medium text-amber-600 text-sm italic">
+						No nurses assigned to this month.
 					</div>
 				)}
 				<div className="flex flex-col items-center gap-2 lg:flex-row">

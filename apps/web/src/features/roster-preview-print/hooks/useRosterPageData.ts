@@ -1,7 +1,7 @@
 "use client";
 
 import type { SchedulesResponse } from "@Duty-Roster/api";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useMemo } from "react";
 import { useScheduleInit } from "@/hooks/useScheduleInit";
 import { NURSES_PER_PAGE } from "../constants";
 import type { NurseRow, PageData } from "../types";
@@ -20,19 +20,13 @@ interface UseRosterPageDataReturn {
 export function useRosterPageData(
 	initialSchedules?: SchedulesResponse,
 ): UseRosterPageDataReturn {
-	const [pageData, setPageData] = useState<PageData | null>(null);
-	const [error, setError] = useState<string | null>(null);
-
-	// year/month come from useScheduleInit (which wraps useSchedules → useYearMonth)
-	// — no need to re-read search params here.
 	const { schedules, isFetching, year, month } =
 		useScheduleInit(initialSchedules);
 
-	useEffect(() => {
-		if (!schedules?.nurseRows) return;
+	const pageData = useMemo<PageData | null>(() => {
+		if (!schedules?.nurseRows) return null;
 
 		try {
-			// Build date range directly from year/month — no string round-trip needed.
 			const start = new Date(year, month - 1, 1);
 			const end = new Date(year, month, 0); // last day of month
 
@@ -45,12 +39,29 @@ export function useRosterPageData(
 				monthIndex,
 			);
 
-			setPageData({ nurses: nurseRows, dates, monthName });
-			setError(null);
+			return { nurses: nurseRows, dates, monthName };
 		} catch (err) {
-			setError(err instanceof Error ? err.message : "Failed to process roster");
+			console.error("Failed to process roster data:", err);
+			return null;
 		}
 	}, [schedules, year, month]);
+
+	const pageChunks = useMemo<NurseRow[][]>(() => {
+		if (!pageData) return [];
+
+		const chunks: NurseRow[][] = [];
+		const totalNurses = pageData.nurses.length;
+
+		if (totalNurses === 0) {
+			// Always return at least one empty chunk to show the page layout/headers
+			return [[]];
+		}
+
+		for (let i = 0; i < totalNurses; i += NURSES_PER_PAGE) {
+			chunks.push(pageData.nurses.slice(i, i + NURSES_PER_PAGE));
+		}
+		return chunks;
+	}, [pageData]);
 
 	const debugPrintPages = useCallback(() => {
 		const printRoot = document.getElementById("roster-print-root");
@@ -75,15 +86,7 @@ export function useRosterPageData(
 		setTimeout(() => window.print(), 100);
 	}, [debugPrintPages]);
 
-	const pageChunks: NurseRow[][] = pageData
-		? Array.from(
-				{ length: Math.ceil(pageData.nurses.length / NURSES_PER_PAGE) },
-				(_, i) =>
-					pageData.nurses.slice(i * NURSES_PER_PAGE, (i + 1) * NURSES_PER_PAGE),
-			)
-		: [];
-
-	const hasContent = pageData !== null && pageChunks.length > 0;
+	const hasContent = pageData !== null;
 	const totalNurses = pageData?.nurses.length ?? 0;
 
 	return {
@@ -92,7 +95,7 @@ export function useRosterPageData(
 		hasContent,
 		totalNurses,
 		isFetching,
-		error,
+		error: null, // Error handling simplified as we derive data now
 		handlePrint,
 	};
 }
