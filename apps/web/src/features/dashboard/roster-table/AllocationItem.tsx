@@ -1,4 +1,13 @@
 import { cn } from "@Duty-Roster/ui/lib/utils";
+import { Coffee, FileUser, Moon, Sun, Sunset } from "lucide-react";
+
+const shiftIcons = {
+	morning: Sun,
+	evening: Sunset,
+	night: Moon,
+	off: Coffee,
+	total: FileUser,
+};
 
 export function AllocationItem({
 	current,
@@ -6,13 +15,17 @@ export function AllocationItem({
 	color,
 	label,
 	min,
+	shiftType = "total",
 }: {
 	current: number;
 	target: number;
 	color: string;
 	label: string;
 	min?: number;
+	shiftType?: keyof typeof shiftIcons;
 }) {
+	const Icon = shiftIcons[shiftType] ?? FileUser;
+
 	const isUnderMin = min !== undefined && current < min;
 	const isOver = current > target;
 	const isCorrect = current === target;
@@ -48,9 +61,7 @@ export function AllocationItem({
 			{/* Screen reader support (optional but recommended) */}
 			<span className="sr-only">{tooltip}</span>
 
-			<div
-				className={cn("h-1.5 w-1.5 shrink-0 rounded-full shadow-sm", color)}
-			/>
+			<Icon className={cn("h-3 w-3 shrink-0", color)} />
 
 			<span className={textClass}>
 				{current}/{target}

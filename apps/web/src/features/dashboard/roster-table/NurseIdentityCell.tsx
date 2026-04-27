@@ -71,18 +71,21 @@ export function NurseIdentityCell({
 						target={pref?.morning || 0}
 						color="bg-[#FDE68A]"
 						label="M"
+						shiftType="morning"
 					/>
 					<AllocationItem
 						current={counts?.evening || 0}
 						target={pref?.evening || 0}
 						color="bg-[#BFDBFE]"
 						label="E"
+						shiftType="evening"
 					/>
 					<AllocationItem
 						current={counts?.night || 0}
 						target={pref?.night || 0}
 						color="bg-[#C4B5FD]"
 						label="N"
+						shiftType="night"
 					/>
 				</div>
 			</div>

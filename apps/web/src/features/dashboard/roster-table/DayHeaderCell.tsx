@@ -38,6 +38,7 @@ export function DayHeaderCell({
 					color="bg-[#FDE68A]"
 					label="M"
 					min={isFriday ? 3 : 20}
+					shiftType="morning"
 				/>
 				<AllocationItem
 					current={counts?.evening || 0}
@@ -45,6 +46,7 @@ export function DayHeaderCell({
 					color="bg-[#BFDBFE]"
 					label="E"
 					min={3}
+					shiftType="evening"
 				/>
 				<AllocationItem
 					current={counts?.night || 0}
@@ -52,6 +54,7 @@ export function DayHeaderCell({
 					color="bg-[#C4B5FD]"
 					label="N"
 					min={2}
+					shiftType="night"
 				/>
 			</div>
 		</div>
