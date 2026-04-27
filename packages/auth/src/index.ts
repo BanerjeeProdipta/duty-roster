@@ -5,6 +5,75 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { env } from "./env";
 
+/**
+ * Fast password hashing for Cloudflare Workers Free Tier (10ms limit).
+ * Uses native crypto.subtle for performance.
+ */
+const fastHasher = {
+	hash: async (password: string) => {
+		const salt = crypto.getRandomValues(new Uint8Array(16));
+		const encoder = new TextEncoder();
+		const baseKey = await crypto.subtle.importKey(
+			"raw",
+			encoder.encode(password),
+			"PBKDF2",
+			false,
+			["deriveBits"],
+		);
+		const hashBuffer = await crypto.subtle.deriveBits(
+			{
+				name: "PBKDF2",
+				salt: salt,
+				iterations: 1000, // Balanced for 10ms limit
+				hash: "SHA-256",
+			},
+			baseKey,
+			256,
+		);
+
+		const combined = new Uint8Array(16 + 32);
+		combined.set(salt);
+		combined.set(new Uint8Array(hashBuffer), 16);
+		return btoa(String.fromCharCode(...combined));
+	},
+	verify: async (password: string, hash: string) => {
+		try {
+			const combined = new Uint8Array(
+				atob(hash)
+					.split("")
+					.map((c) => c.charCodeAt(0)),
+			);
+			const salt = combined.slice(0, 16);
+			const originalHash = combined.slice(16);
+
+			const encoder = new TextEncoder();
+			const baseKey = await crypto.subtle.importKey(
+				"raw",
+				encoder.encode(password),
+				"PBKDF2",
+				false,
+				["deriveBits"],
+			);
+			const hashBuffer = await crypto.subtle.deriveBits(
+				{
+					name: "PBKDF2",
+					salt: salt,
+					iterations: 1000,
+					hash: "SHA-256",
+				},
+				baseKey,
+				256,
+			);
+
+			const currentHash = new Uint8Array(hashBuffer);
+			if (currentHash.length !== originalHash.length) return false;
+			return currentHash.every((b, i) => b === originalHash[i]);
+		} catch (e) {
+			return false;
+		}
+	},
+};
+
 export function createAuth() {
 	const db = createDb();
 
@@ -31,6 +100,7 @@ export function createAuth() {
 		emailAndPassword: {
 			enabled: true,
 			minPasswordLength: 1,
+			password: fastHasher,
 		},
 		user: {},
 		secret: env.BETTER_AUTH_SECRET,
