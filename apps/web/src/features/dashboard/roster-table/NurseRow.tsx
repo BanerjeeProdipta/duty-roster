@@ -1,5 +1,4 @@
 import { cn } from "@Duty-Roster/ui/lib/utils";
-import React from "react";
 import type { ShiftDefinition } from "@/hooks/useGetShifts";
 import { LAYOUT } from "./Layout";
 import type { ShiftType } from "./RosterMatrix.types";
@@ -13,7 +12,7 @@ interface NurseRowProps {
 	editable?: boolean;
 }
 
-export const NurseRow = React.memo(function NurseRow({
+export function NurseRow({
 	nurse,
 	dates,
 	assignments,
@@ -55,4 +54,4 @@ export const NurseRow = React.memo(function NurseRow({
 			})}
 		</div>
 	);
-});
+}

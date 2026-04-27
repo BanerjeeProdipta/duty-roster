@@ -56,7 +56,7 @@ export function AllocationItem({
       <span className="sr-only">{tooltip}</span>
 
       <Icon className={cn("h-4 w-4 shrink-0", iconColor)} />
-      <span className={textClass}>{Math.abs(needed)}</span>
+      <span className={textClass} suppressHydrationWarning>{Math.abs(needed)}</span>
     </div>
   );
 }

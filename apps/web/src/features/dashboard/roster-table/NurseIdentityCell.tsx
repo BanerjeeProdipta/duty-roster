@@ -25,7 +25,7 @@ function ShiftBadge({ current, target, shiftType }: ShiftBadgeProps) {
 					<span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-red-500" />
 				</span>
 			)}
-			<span>
+			<span suppressHydrationWarning>
 				{current}/{target}
 			</span>
 		</span>
@@ -90,6 +90,7 @@ export function NurseIdentityCell({
 									: "border-slate-200 bg-slate-50 text-slate-600",
 						)}
 						title={`Total assigned: ${totalAssigned} / Goal: ${targetWorkedDays}`}
+						suppressHydrationWarning
 					>
 						{totalAssigned}/{targetWorkedDays}
 					</div>
