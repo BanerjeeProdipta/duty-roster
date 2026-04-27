@@ -1,4 +1,4 @@
-import "dotenv/config";
+// import "dotenv/config";
 import { env as authEnv } from "./auth";
 import { env as dbEnv } from "./db";
 

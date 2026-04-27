@@ -36,6 +36,8 @@
 		"db:generate": "turbo -F @Duty-Roster/db db:generate",
 		"db:migrate": "turbo -F @Duty-Roster/db db:migrate",
 		"db:seed": "turbo -F @Duty-Roster/db db:seed",
+		"deploy:server": "turbo -F server deploy",
+		"deploy:web": "turbo -F web deploy",
 		"check": "biome check --write .",
 		"prepare": "husky"
 	},
@@ -54,6 +56,7 @@
 	"devDependencies": {
 		"@Duty-Roster/config": "workspace:*",
 		"@biomejs/biome": "^2.2.0",
+		"@cloudflare/next-on-pages": "^1.13.16",
 		"@types/bun": "catalog:",
 		"husky": "^9.1.7",
 		"lint-staged": "^16.1.2",

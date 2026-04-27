@@ -2,6 +2,16 @@ import { getSessionCookie } from "better-auth/cookies";
 import { type NextRequest, NextResponse } from "next/server";
 
 export async function middleware(request: NextRequest) {
+	// Populate globalThis._CF_ENV for other server-side code
+	// On Cloudflare Pages, environment variables are available on the request context
+	const ctx = (
+		request as unknown as { context: { env: Record<string, string> } }
+	).context;
+	if (ctx?.env) {
+		(globalThis as unknown as { _CF_ENV: Record<string, string> })._CF_ENV =
+			ctx.env;
+	}
+
 	const sessionCookie = getSessionCookie(request);
 	const { pathname } = request.nextUrl;
 
@@ -22,5 +32,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-	matcher: ["/dashboard/:path*", "/manage-users/:path*", "/auth/:path*"],
+	matcher: ["/dashboard/:path*", "/manage-users/:path*", "/auth/:path*", "/"],
 };

@@ -7,7 +7,7 @@ export const useRosterHeader = () => {
 	const router = useRouter();
 	const { year, month } = useYearMonth();
 
-	const selectedMonth = { year, month };
+	const selectedMonth = useMemo(() => ({ year, month }), [year, month]);
 
 	const updateUrl = useCallback(
 		(y: number, m: number) => {
@@ -47,12 +47,12 @@ export const useRosterHeader = () => {
 
 	const monthName = useMemo(
 		() => getMonthName(selectedMonth.year, selectedMonth.month),
-		[selectedMonth],
+		[selectedMonth.year, selectedMonth.month],
 	);
 
 	const monthDates = useMemo(
 		() => getMonthDates(selectedMonth.year, selectedMonth.month),
-		[selectedMonth],
+		[selectedMonth.year, selectedMonth.month],
 	);
 
 	const monthOptions = useMemo(() => {
@@ -68,7 +68,7 @@ export const useRosterHeader = () => {
 			});
 		}
 		return options;
-	}, [selectedMonth]);
+	}, [selectedMonth.year, selectedMonth.month]);
 
 	return {
 		selectedMonth,

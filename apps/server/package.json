@@ -4,10 +4,12 @@
 	"main": "src/index.ts",
 	"scripts": {
 		"build": "tsdown",
+		"build:cf": "bun build ./src/index.ts --minify --target=browser --outfile=dist/index.js",
 		"check-types": "tsc -b",
 		"compile": "bun build --compile --minify --sourcemap --bytecode ./src/index.ts --outfile server",
 		"dev": "bun run --hot src/index.ts",
-		"start": "bun run dist/index.mjs"
+		"start": "bun run dist/index.mjs",
+		"deploy": "wrangler deploy"
 	},
 	"dependencies": {
 		"@Duty-Roster/api": "workspace:*",
@@ -25,6 +27,7 @@
 		"@Duty-Roster/config": "workspace:*",
 		"@types/bun": "catalog:",
 		"tsdown": "^0.16.5",
-		"typescript": "^5"
+		"typescript": "^5",
+		"wrangler": "^4.85.0"
 	}
 }

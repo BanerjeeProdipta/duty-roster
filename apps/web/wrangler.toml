@@ -1,0 +1,8 @@
+name = "duty-roster"
+pages_build_output_dir = ".vercel/output/static"
+compatibility_date = "2024-10-22"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+NEXT_PUBLIC_SERVER_URL = "https://duty-roster-server.duty-roster.workers.dev"
+BETTER_AUTH_URL = "https://duty-roster-server.duty-roster.workers.dev"

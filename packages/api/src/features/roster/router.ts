@@ -1,5 +1,5 @@
 import "regenerator-runtime";
-import * as fs from "node:fs";
+// import * as fs from "node:fs";
 import fontkit from "@pdf-lib/fontkit";
 import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 import { z } from "zod";
@@ -132,16 +132,12 @@ export const rosterRouter = router({
 				return rowData;
 			});
 
-			// Load a font that supports Bangla — place NotoSansBengali-Regular.ttf in public/fonts/
-			const fontPath =
-				"/Users/prodiptabanerjee/Projects/duty-roster/apps/web/public/fonts/NotoSansBengali-Regular.ttf";
-			const fontBytes = fs.readFileSync(fontPath);
-
 			const pdfDoc = await PDFDocument.create();
 			pdfDoc.registerFontkit(fontkit);
-			const banglaFont = await pdfDoc.embedFont(fontBytes);
+			// const banglaFont = await pdfDoc.embedFont(fontBytes);
 			const regularFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
 			const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+			const banglaFont = boldFont; // Fallback to bold for now
 
 			// A4 landscape: 841.89 x 595.28 pts
 			const PAGE_WIDTH = 841.89;

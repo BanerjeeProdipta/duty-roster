@@ -4,6 +4,7 @@ import { getMonthDateRange, getYearMonthFromSearchParams } from "@/utils";
 import { getTRPCServer } from "@/utils/trpc-server";
 
 export const revalidate = 0;
+export const runtime = "edge";
 
 export default async function Home(props: {
 	searchParams: Promise<{ year?: string; month?: string }>;
@@ -14,7 +15,7 @@ export default async function Home(props: {
 
 	const { startDate, endDate } = getMonthDateRange(year, month);
 	const trpcServer = await getTRPCServer();
-	const initialSchedules = await trpcServer.roster.getSchedules({
+	const initialSchedules = await trpcServer.roster.getSchedules.query({
 		startDate,
 		endDate,
 	});

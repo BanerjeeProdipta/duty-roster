@@ -5,12 +5,13 @@ import { Input } from "@Duty-Roster/ui/components/input";
 import { Label } from "@Duty-Roster/ui/components/label";
 import { useForm } from "@tanstack/react-form";
 import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 import { toast } from "sonner";
 import z from "zod";
 
 import { authClient } from "@/lib/auth-client";
 
-export default function ResetPasswordPage() {
+function ResetPasswordForm() {
 	const router = useRouter();
 	const searchParams = useSearchParams();
 	const token = searchParams.get("token");
@@ -151,5 +152,13 @@ export default function ResetPasswordPage() {
 				</form.Subscribe>
 			</form>
 		</div>
+	);
+}
+
+export default function ResetPasswordPage() {
+	return (
+		<Suspense fallback={<div className="text-center">Loading...</div>}>
+			<ResetPasswordForm />
+		</Suspense>
 	);
 }

@@ -46,4 +46,15 @@ export function createAuth() {
 	});
 }
 
-export const auth = createAuth();
+type AuthClient = ReturnType<typeof createAuth>;
+
+let _auth: AuthClient | null = null;
+
+export const auth = new Proxy({} as AuthClient, {
+	get(_, prop) {
+		if (!_auth) {
+			_auth = createAuth();
+		}
+		return (_auth as any)[prop];
+	},
+});
