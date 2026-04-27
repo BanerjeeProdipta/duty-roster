@@ -155,10 +155,12 @@ export async function createSchedules(
 }
 
 export async function updateScheduleShift(id: string, shiftId: string | null) {
-	return db
+	const [row] = await db
 		.update(nurseSchedule)
 		.set({ shiftId })
-		.where(eq(nurseSchedule.id, id));
+		.where(eq(nurseSchedule.id, id))
+		.returning();
+	return row;
 }
 
 export async function findShiftCountsByMonth(year: number, month: number) {

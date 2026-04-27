@@ -297,11 +297,7 @@ export async function upsertSchedule(
 	let oldShiftType: ShiftTypeKey | null = null;
 
 	if (id === "new" && nurseId && dateKey) {
-		await rosterDb.createSchedule(
-			nurseId,
-			new Date(dateKey),
-			shiftId,
-		);
+		await rosterDb.createSchedule(nurseId, new Date(dateKey), shiftId);
 		return {
 			dateKey: dateKey,
 			nurseId,
@@ -317,8 +313,8 @@ export async function upsertSchedule(
 		id,
 		shiftId === "off" ? null : shiftId,
 	);
-	if (updated?.shiftType) {
-		oldShiftType = shiftIdToShiftType(updated.shiftType as string);
+	if (updated?.shiftId) {
+		oldShiftType = shiftIdToShiftType(updated.shiftId as string);
 	}
 
 	const resultShiftType = shiftIdToShiftType(shiftId);

@@ -17,7 +17,7 @@ export const db = new Proxy({} as DbClient, {
 		if (!_db) {
 			_db = createDb();
 		}
-		return (_db as any)[prop];
+		return _db[prop as keyof DbClient];
 	},
 });
 

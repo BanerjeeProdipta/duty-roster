@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 
 test.describe("Shift Update", () => {
 	test.beforeEach(async ({ page }) => {
@@ -6,7 +6,9 @@ test.describe("Shift Update", () => {
 	});
 
 	test("should update shift and reflect in counters", async ({ page }) => {
-		await page.waitForSelector('[data-testid="roster-table"]', { timeout: 10000 });
+		await page.waitForSelector('[data-testid="roster-table"]', {
+			timeout: 10000,
+		});
 
 		const firstShiftCell = page.locator('[data-testid="shift-cell"]').first();
 		await firstShiftCell.click();
@@ -16,12 +18,14 @@ test.describe("Shift Update", () => {
 
 		await page.waitForTimeout(1000);
 
-		const toast = page.locator('[data-sonner-toast]');
+		const toast = page.locator("[data-sonner-toast]");
 		await expect(toast).toBeVisible({ timeout: 5000 });
 	});
 
 	test("should update multiple shifts in sequence", async ({ page }) => {
-		await page.waitForSelector('[data-testid="roster-table"]', { timeout: 10000 });
+		await page.waitForSelector('[data-testid="roster-table"]', {
+			timeout: 10000,
+		});
 
 		const cells = page.locator('[data-testid="shift-cell"]');
 

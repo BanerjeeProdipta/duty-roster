@@ -92,19 +92,28 @@ export function ShiftCountCard({
 			<div className="grid grid-cols-3 gap-2">
 				<div className="flex flex-col items-center rounded-lg bg-white/60 p-2">
 					<Label className="text-[10px]">Required</Label>
-					<span className={cn("font-bold text-lg", config.text)} suppressHydrationWarning>
+					<span
+						className={cn("font-bold text-lg", config.text)}
+						suppressHydrationWarning
+					>
 						{required}
 					</span>
 				</div>
 				<div className="flex flex-col items-center rounded-lg bg-white/60 p-2">
 					<Label className="text-[10px]">Assigned</Label>
-					<span className={cn("font-bold text-lg", config.text)} suppressHydrationWarning>
+					<span
+						className={cn("font-bold text-lg", config.text)}
+						suppressHydrationWarning
+					>
 						{assigned}
 					</span>
 				</div>
 				<div className="flex flex-col items-center rounded-lg bg-white/60 p-2">
 					<Label className="text-[10px]">Preference</Label>
-					<span className={cn("font-bold text-lg", config.text)} suppressHydrationWarning>
+					<span
+						className={cn("font-bold text-lg", config.text)}
+						suppressHydrationWarning
+					>
 						{Math.round(capacity)}
 					</span>
 				</div>

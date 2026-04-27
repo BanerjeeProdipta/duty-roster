@@ -3,9 +3,9 @@
 import type { SchedulesResponse } from "@Duty-Roster/api";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import type { ShiftType } from "@/features/dashboard/roster-table/RosterMatrix.types";
 import { QUERY_KEYS } from "@/utils/query-keys";
 import { trpcClient } from "@/utils/trpc";
-import type { ShiftType } from "@/features/dashboard/roster-table/RosterMatrix.types";
 
 function extractYearMonth(dateKey: string): { year: number; month: number } {
 	const [yearStr, monthStr] = dateKey.split("-");
@@ -112,8 +112,8 @@ export function useUpdateShift() {
 							(newShiftType === "night" ? 1 : 0),
 						total:
 							(old.assignedShiftCounts?.total || 0) +
-							((!oldShiftType || oldShiftType === "off") ? 0 : -1) +
-							((!newShiftType || newShiftType === "off") ? 0 : 1),
+							(!oldShiftType || oldShiftType === "off" ? 0 : -1) +
+							(!newShiftType || newShiftType === "off" ? 0 : 1),
 					},
 					dailyShiftCounts: {
 						...old.dailyShiftCounts,
@@ -122,7 +122,10 @@ export function useUpdateShift() {
 							const updated: ShiftMetrics = { ...prev };
 
 							if (oldShiftType && oldShiftType !== "off") {
-								updated[oldShiftType] = Math.max(0, (updated[oldShiftType] || 0) - 1);
+								updated[oldShiftType] = Math.max(
+									0,
+									(updated[oldShiftType] || 0) - 1,
+								);
 							}
 							if (newShiftType && newShiftType !== "off") {
 								updated[newShiftType] = (updated[newShiftType] || 0) + 1;

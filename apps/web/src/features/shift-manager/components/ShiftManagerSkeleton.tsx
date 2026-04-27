@@ -15,7 +15,7 @@ export function ShiftManagerSkeleton() {
 			<div className="grid grid-cols-1 gap-6 lg:grid-cols-2 xl:grid-cols-3">
 				{Array.from({ length: 6 }).map((_, i) => (
 					<div
-						key={i}
+						key={`shift-card-${i}`}
 						className="flex flex-col gap-3 rounded-lg border p-4"
 					>
 						<div className="flex items-center justify-between">
@@ -30,7 +30,7 @@ export function ShiftManagerSkeleton() {
 						</div>
 						<div className="flex flex-wrap gap-2">
 							{Array.from({ length: 3 }).map((_, j) => (
-								<Skeleton key={j} className="h-8 w-20 rounded-lg" />
+								<Skeleton key={`tag-${j}`} className="h-8 w-20 rounded-lg" />
 							))}
 						</div>
 						<div className="flex gap-2">

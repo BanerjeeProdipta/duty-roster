@@ -21,7 +21,7 @@ export function RosterTableSkeleton() {
 								</th>
 								{Array.from({ length: HEADER_COUNT }).map((_, i) => (
 									<th
-										key={i}
+										key={`header-${i}`}
 										className="sticky top-0 z-[10] bg-[#f2f2f2]"
 										style={{ width: "140px", height: "80px" }}
 									>
@@ -35,10 +35,14 @@ export function RosterTableSkeleton() {
 						</thead>
 						<tbody>
 							{Array.from({ length: NURSE_ROW_COUNT }).map((_, rowIndex) => (
-								<tr key={rowIndex}>
+								<tr key={`row-${rowIndex}`}>
 									<td
 										className="sticky left-0 z-20 border-slate-200 border-b bg-white"
-										style={{ width: "180px", minWidth: "180px", height: "80px" }}
+										style={{
+											width: "180px",
+											minWidth: "180px",
+											height: "80px",
+										}}
 									>
 										<div className="h-full w-full border-r border-b bg-white px-3 py-3">
 											<div className="flex h-full flex-col justify-center gap-2">
@@ -61,7 +65,7 @@ export function RosterTableSkeleton() {
 										<div className="flex h-full items-center justify-center gap-2">
 											{Array.from({ length: 7 }).map((_, i) => (
 												<Skeleton
-													key={i}
+													key={`skeleton-${i}`}
 													className="h-12 w-12 rounded-lg"
 												/>
 											))}

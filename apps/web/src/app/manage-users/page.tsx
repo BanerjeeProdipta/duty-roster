@@ -2,8 +2,8 @@ import { Suspense } from "react";
 import { MonthNavigator } from "@/components/MonthNavigator";
 import { ShiftCounts } from "@/features/dashboard/components/ShiftCounts";
 import { ShiftCountsSkeleton } from "@/features/dashboard/components/ShiftCountsSkeleton";
-import ShiftAllocationsClient from "@/features/shift-manager/ShiftAllocationsClient";
 import { ShiftManagerSkeleton } from "@/features/shift-manager/components/ShiftManagerSkeleton";
+import ShiftAllocationsClient from "@/features/shift-manager/ShiftAllocationsClient";
 import { getMonthDateRange, getYearMonthFromSearchParams } from "@/utils";
 import { getAuthedTRPCServer } from "@/utils/trpc-server";
 
