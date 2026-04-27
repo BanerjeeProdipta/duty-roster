@@ -5,8 +5,8 @@
 	"scripts": {
 		"dev": "next dev --port 3001",
 		"build": "next build",
-		"build:cf": "bunx @cloudflare/next-on-pages build",
-		"deploy": "bun run build:cf && bunx wrangler pages deploy .output"
+		"build:cf": "bunx @cloudflare/next-on-pages -s",
+		"deploy": "bunx wrangler pages deploy .vercel/output/static"
 	},
 	"dependencies": {
 		"@Duty-Roster/api": "workspace:*",
