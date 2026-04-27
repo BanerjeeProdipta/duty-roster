@@ -1,12 +1,14 @@
+import { Suspense } from "react";
 import { RosterHeader } from "@/features/dashboard/roster-table/RosterHeader";
 import { RosterTable } from "@/features/dashboard/roster-table/RosterTable";
+import { RosterTableSkeleton } from "@/features/dashboard/roster-table/RosterTableSkeleton";
 import { getMonthDateRange, getYearMonthFromSearchParams } from "@/utils";
 import { getTRPCServer } from "@/utils/trpc-server";
 
 export const revalidate = 0;
 export const runtime = "edge";
 
-export default async function Home(props: {
+async function HomeContent(props: {
 	searchParams: Promise<{ year?: string; month?: string }>;
 }) {
 	const { year, month } = await getYearMonthFromSearchParams(
@@ -25,5 +27,27 @@ export default async function Home(props: {
 			<RosterHeader initialSchedules={initialSchedules} />
 			<RosterTable initialSchedules={initialSchedules} />
 		</div>
+	);
+}
+
+function HomeLoading() {
+	return (
+		<div className="flex flex-col gap-6">
+			<div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+				<div className="h-10 w-full max-w-md animate-pulse rounded-lg bg-slate-200" />
+				<div className="h-10 w-32 animate-pulse rounded-lg bg-slate-200" />
+			</div>
+			<RosterTableSkeleton />
+		</div>
+	);
+}
+
+export default function Home(props: {
+	searchParams: Promise<{ year?: string; month?: string }>;
+}) {
+	return (
+		<Suspense fallback={<HomeLoading />}>
+			<HomeContent searchParams={props.searchParams} />
+		</Suspense>
 	);
 }

@@ -1,13 +1,16 @@
+import { Suspense } from "react";
 import { MonthNavigator } from "@/components/MonthNavigator";
 import { ShiftCounts } from "@/features/dashboard/components/ShiftCounts";
+import { ShiftCountsSkeleton } from "@/features/dashboard/components/ShiftCountsSkeleton";
 import ShiftAllocationsClient from "@/features/shift-manager/ShiftAllocationsClient";
+import { ShiftManagerSkeleton } from "@/features/shift-manager/components/ShiftManagerSkeleton";
 import { getMonthDateRange, getYearMonthFromSearchParams } from "@/utils";
 import { getAuthedTRPCServer } from "@/utils/trpc-server";
 
 export const revalidate = 0;
 export const runtime = "edge";
 
-export default async function ShiftAllocationsPage(props: {
+async function ShiftAllocationsContent(props: {
 	searchParams: Promise<{ year?: string; month?: string; days?: string }>;
 }) {
 	const { year, month } = await getYearMonthFromSearchParams(
@@ -26,5 +29,25 @@ export default async function ShiftAllocationsPage(props: {
 			<ShiftCounts initialSchedules={initialSchedules} />
 			<ShiftAllocationsClient initialSchedules={initialSchedules} />
 		</div>
+	);
+}
+
+function ShiftAllocationsLoading() {
+	return (
+		<div className="flex flex-col gap-6">
+			<div className="flex h-10 w-48 animate-pulse rounded-lg bg-slate-200" />
+			<ShiftCountsSkeleton />
+			<ShiftManagerSkeleton />
+		</div>
+	);
+}
+
+export default function ShiftAllocationsPage(props: {
+	searchParams: Promise<{ year?: string; month?: string; days?: string }>;
+}) {
+	return (
+		<Suspense fallback={<ShiftAllocationsLoading />}>
+			<ShiftAllocationsContent searchParams={props.searchParams} />
+		</Suspense>
 	);
 }

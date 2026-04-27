@@ -1,7 +1,6 @@
 "use client";
 
 import type { SchedulesResponse } from "@Duty-Roster/api";
-import { Loader2 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useShifts } from "@/hooks/useGetShifts";
 import { useRosterDates } from "@/hooks/useRosterDates";
@@ -10,6 +9,7 @@ import { DayHeaderCell } from "./DayHeaderCell";
 import { LAYOUT } from "./Layout";
 import { NurseIdentityCell } from "./NurseIdentityCell";
 import { NurseRow } from "./NurseRow";
+import { RosterTableSkeleton } from "./RosterTableSkeleton";
 
 interface RosterTableProps {
 	editable?: boolean;
@@ -38,11 +38,7 @@ export function RosterTable({
 	const dailyShiftCounts = schedules?.dailyShiftCounts ?? {};
 
 	if (isFetching && !nurseRows?.length) {
-		return (
-			<div className="flex items-center justify-center py-12">
-				<Loader2 className="h-6 w-6 animate-spin text-slate-400" />
-			</div>
-		);
+		return <RosterTableSkeleton />;
 	}
 
 	if (!nurseRows?.length) {

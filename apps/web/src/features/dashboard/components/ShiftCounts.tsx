@@ -3,13 +3,18 @@
 import type { SchedulesResponse } from "@Duty-Roster/api";
 import { useSchedules } from "@/hooks/useSchedules";
 import { ShiftCountCard } from "./ShiftCountCard";
+import { ShiftCountsSkeleton } from "./ShiftCountsSkeleton";
 
 type ShiftCountsProps = {
 	initialSchedules?: SchedulesResponse;
 };
 
 export function ShiftCounts({ initialSchedules }: ShiftCountsProps) {
-	const { schedules } = useSchedules(initialSchedules);
+	const { schedules, isLoading } = useSchedules(initialSchedules);
+
+	if (isLoading) {
+		return <ShiftCountsSkeleton />;
+	}
 
 	const schedulesData = schedules ?? initialSchedules;
 	const { shiftRequirements, assignedShiftCounts, preferenceCapacity } =
