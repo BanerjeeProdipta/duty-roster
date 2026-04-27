@@ -1,6 +1,36 @@
 import { cn } from "@Duty-Roster/ui/lib/utils";
 import Link from "next/link";
-import { AllocationItem } from "./AllocationItem";
+import { SHIFT_BADGE_STYLES } from "./RosterMatrix.constants";
+
+interface ShiftBadgeProps {
+	current: number;
+	target: number;
+	shiftType: "morning" | "evening" | "night";
+}
+
+function ShiftBadge({ current, target, shiftType }: ShiftBadgeProps) {
+	const isOver = current > target;
+
+	return (
+		<span
+			className={cn(
+				"relative inline-flex items-center gap-1 rounded px-1.5 py-0.5 font-medium text-[10px] opacity-70",
+				SHIFT_BADGE_STYLES[shiftType],
+			)}
+			title={`${shiftType.charAt(0).toUpperCase() + shiftType.slice(1)}: ${current} / ${target}`}
+		>
+			{isOver && (
+				<span className="relative flex h-1.5 w-1.5">
+					<span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />
+					<span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-red-500" />
+				</span>
+			)}
+			<span>
+				{current}/{target}
+			</span>
+		</span>
+	);
+}
 
 export function NurseIdentityCell({
 	nurse,
@@ -25,7 +55,7 @@ export function NurseIdentityCell({
 	return (
 		<div
 			className={cn(
-				"h-full w-full border-r border-b bg-white px-3 py-3 transition-colors duration-200 hover:bg-slate-50/80",
+				"relative h-full w-full border-r border-b bg-white px-3 py-3 transition-colors duration-200 hover:bg-slate-50/80",
 				nurse.active === false && "opacity-60 grayscale",
 			)}
 		>
@@ -65,26 +95,20 @@ export function NurseIdentityCell({
 					</div>
 				</div>
 
-				<div className="flex items-center justify-between gap-1">
-					<AllocationItem
+				<div className="flex items-center justify-between gap-2">
+					<ShiftBadge
 						current={counts?.morning || 0}
 						target={pref?.morning || 0}
-						color="bg-[#FDE68A]"
-						label="M"
 						shiftType="morning"
 					/>
-					<AllocationItem
+					<ShiftBadge
 						current={counts?.evening || 0}
 						target={pref?.evening || 0}
-						color="bg-[#BFDBFE]"
-						label="E"
 						shiftType="evening"
 					/>
-					<AllocationItem
+					<ShiftBadge
 						current={counts?.night || 0}
 						target={pref?.night || 0}
-						color="bg-[#C4B5FD]"
-						label="N"
 						shiftType="night"
 					/>
 				</div>

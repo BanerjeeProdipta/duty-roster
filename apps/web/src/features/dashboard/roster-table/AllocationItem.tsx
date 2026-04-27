@@ -9,10 +9,22 @@ const shiftIcons = {
   total: FileUser,
 };
 
+const iconColors = {
+  under: "text-red-500",
+  exact: "text-gray-400",
+  over: "text-blue-500",
+};
+
+const textColors = {
+  under: "text-red-700",
+  exact: "text-slate-700",
+  over: "text-blue-600",
+};
+
 export function AllocationItem({
   current,
   target,
-  color,
+  color: _color,
   label,
   min,
   shiftType = "total",
@@ -24,42 +36,27 @@ export function AllocationItem({
   min?: number;
   shiftType?: keyof typeof shiftIcons;
 }) {
-const Icon = shiftIcons[shiftType] ?? FileUser;
+  const Icon = shiftIcons[shiftType] ?? FileUser;
 
-	const needed = target - current;
-	const isNegative = needed <= 0;
-	const isOver = current > target;
-	const isCorrect = needed === 0;
+  const needed = target - current;
+  const status = needed < 0 ? "under" : needed === 0 ? "exact" : "over";
 
-	const containerClass = cn(
-		"flex items-center gap-1 whitespace-nowrap rounded p-0.5 transition-colors",
-		isNegative
-			? "bg-red-50"
-			: isCorrect
-				? "bg-green-50"
-				: "bg-slate-50",
-	);
+  const containerClass =
+    "flex items-center gap-1 whitespace-nowrap rounded p-0.5 transition-colors";
 
-	const textClass = cn(
-		"font-medium text-xs",
-		isNegative
-			? "text-red-700"
-			: isCorrect
-				? "text-green-700"
-				: "text-slate-600",
-	);
+  const iconColor = iconColors[status];
+  const textClass = cn("font-medium text-xs", textColors[status]);
 
-	const tooltip = `${label} Shift: ${current} assigned / ${target} target${
-		min !== undefined ? ` (min ${min})` : ""
-	}`;
+  const tooltip = `${label} Shift: ${current} assigned / ${target} target${
+    min !== undefined ? ` (min ${min})` : ""
+  }`;
 
-return (
-		<div className={containerClass} title={tooltip}>
-			<span className="sr-only">{tooltip}</span>
+  return (
+    <div className={containerClass} title={tooltip}>
+      <span className="sr-only">{tooltip}</span>
 
-			<Icon className={cn("h-3 w-3 shrink-0", color)} />
-
-			<span className={textClass}>{needed}</span>
-		</div>
-	);
+      <Icon className={cn("h-4 w-4 shrink-0", iconColor)} />
+      <span className={textClass}>{Math.abs(needed)}</span>
+    </div>
+  );
 }

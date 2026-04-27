@@ -24,14 +24,12 @@ interface ShiftBadgeProps {
 	editable?: boolean;
 }
 
-const shiftIconBg = (value: ShiftType) =>
-	value === "morning"
-		? "bg-amber-200 text-amber-900"
-		: value === "evening"
-			? "bg-blue-200 text-blue-900"
-			: value === "night"
-				? "bg-violet-200 text-violet-900"
-				: "bg-slate-200 text-slate-500";
+const shiftIconBg: Record<ShiftType, string> = {
+	morning: "bg-amber-200 text-amber-900",
+	evening: "bg-blue-200 text-blue-900",
+	night: "bg-violet-200 text-violet-900",
+	off: "bg-slate-200 text-slate-500",
+};
 
 const defaultLabel: Record<ShiftType, string> = {
 	morning: "Morning",
@@ -156,7 +154,7 @@ export function ShiftBadge({
 							<div
 								className={cn(
 									"flex h-10 w-10 items-center justify-center rounded-md text-lg transition-colors duration-200",
-									shiftIconBg(item.value),
+									shiftIconBg[item.value as ShiftType],
 								)}
 							>
 								{SHIFT_ICONS[item.value]}

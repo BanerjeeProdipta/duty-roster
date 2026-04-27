@@ -1,6 +1,12 @@
 import { Coffee, Moon, Sun, Sunset } from "lucide-react";
 import type { ShiftType } from "./RosterMatrix.types";
 
+export const SHIFT_BADGE_STYLES: Record<string, string> = {
+  morning: "bg-amber-200 text-amber-900",
+  evening: "bg-blue-200 text-blue-900",
+  night: "bg-violet-200 text-violet-900",
+};
+
 export const SHIFT_STYLES: Record<ShiftType, string> = {
 	morning:
 		"bg-gradient-to-br from-[#FDE68A] to-[#FCD34D] text-amber-900 border-amber-300 shadow-sm shadow-amber-200/50",
