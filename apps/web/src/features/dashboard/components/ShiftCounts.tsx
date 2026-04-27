@@ -1,6 +1,7 @@
 "use client";
 
 import type { SchedulesResponse } from "@Duty-Roster/api";
+import { useMutationState } from "@tanstack/react-query";
 import { useSchedules } from "@/hooks/useSchedules";
 import { ShiftCountCard } from "./ShiftCountCard";
 import { ShiftCountsSkeleton } from "./ShiftCountsSkeleton";
@@ -12,7 +13,14 @@ type ShiftCountsProps = {
 export function ShiftCounts({ initialSchedules }: ShiftCountsProps) {
 	const { schedules, isLoading } = useSchedules(initialSchedules);
 
-	if (isLoading) {
+	// Track generation mutation state
+	const generatingState = useMutationState({
+		filters: { mutationKey: ["generate-roster"], status: "pending" },
+		select: (mutation) => mutation.state.status,
+	});
+	const isGenerating = generatingState.length > 0;
+
+	if (isLoading || isGenerating) {
 		return <ShiftCountsSkeleton />;
 	}
 

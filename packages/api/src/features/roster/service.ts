@@ -274,6 +274,7 @@ export async function getSchedulesByDateRange(
 export type ShiftTypeKey = "morning" | "evening" | "night" | "off";
 
 export interface ShiftUpdateResult {
+	id: string;
 	dateKey: string;
 	nurseId: string;
 	oldShiftType: ShiftTypeKey | null;
@@ -297,29 +298,33 @@ export async function upsertSchedule(
 	let oldShiftType: ShiftTypeKey | null = null;
 
 	if (id === "new" && nurseId && dateKey) {
+		const createdId = `schedule_${nurseId}_${dateKey}`;
 		await rosterDb.createSchedule(nurseId, new Date(dateKey), shiftId);
 		return {
+			id: createdId,
 			dateKey: dateKey,
 			nurseId,
 			oldShiftType: null,
 			newShiftType: shiftIdToShiftType(shiftId),
 		};
 	}
+
 	if (!id || id === "new") {
 		return null;
 	}
 
-	const updated = await rosterDb.updateScheduleShift(
-		id,
-		shiftId === "off" ? null : shiftId,
-	);
-	if (updated?.shiftId) {
-		oldShiftType = shiftIdToShiftType(updated.shiftId as string);
+	// Fetch current state before update to get oldShiftType
+	const existing = await rosterDb.findScheduleById(id);
+	if (existing?.shiftId) {
+		oldShiftType = shiftIdToShiftType(existing.shiftId as string);
 	}
+
+	await rosterDb.updateScheduleShift(id, shiftId === "off" ? null : shiftId);
 
 	const resultShiftType = shiftIdToShiftType(shiftId);
 
 	return {
+		id,
 		dateKey: dateKey || "",
 		nurseId: nurseId || "",
 		oldShiftType,

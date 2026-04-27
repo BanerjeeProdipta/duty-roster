@@ -7,18 +7,23 @@ export const useGenerateRoster = () => {
 	const queryClient = useQueryClient();
 
 	return useMutation({
+		mutationKey: ["generate-roster"],
 		mutationFn: ({ year, month }: { year: number; month: number }) =>
 			trpcClient.roster.generateRoster.mutate({ year, month }),
 
 		onSuccess: async (_result, { year, month }) => {
-			toast.success("Generated schedules");
+			toast.success("Roster generated successfully", {
+				description: `Schedule for ${month}/${year} has been created.`,
+			});
 			await queryClient.invalidateQueries({
 				queryKey: QUERY_KEYS.schedules(year, month),
 			});
 		},
 
-		onError: () => {
-			toast.error("Failed to generate schedule");
+		onError: (error) => {
+			toast.error("Failed to generate roster", {
+				description: error instanceof Error ? error.message : "Unknown error",
+			});
 		},
 	});
 };

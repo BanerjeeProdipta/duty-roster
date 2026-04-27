@@ -23,6 +23,7 @@ type UpdateShiftVariables = {
 };
 
 type ShiftUpdateResult = {
+	id: string;
 	dateKey: string;
 	nurseId: string;
 	oldShiftType: ShiftType | null;
@@ -51,6 +52,9 @@ export function useUpdateShift() {
 			trpcClient.roster.updateShift.mutate({ id, shiftId, nurseId, dateKey }),
 
 		onSuccess: (result, vars) => {
+			console.log("Shift update success:", { result, vars });
+			toast.success("Shift updated successfully");
+
 			if (!result) return;
 
 			const { year, month } = extractYearMonth(vars.dateKey);
@@ -59,8 +63,13 @@ export function useUpdateShift() {
 			queryClient.setQueryData<SchedulesResponse>(queryKey, (old) => {
 				if (!old) return old;
 
-				const { dateKey, nurseId, oldShiftType, newShiftType } =
-					result as ShiftUpdateResult;
+				const {
+					id: updatedId,
+					dateKey,
+					nurseId,
+					oldShiftType,
+					newShiftType,
+				} = result as ShiftUpdateResult;
 
 				return {
 					...old,
@@ -90,7 +99,7 @@ export function useUpdateShift() {
 							assignments: {
 								...row.assignments,
 								[dateKey]: {
-									id: row.assignments[dateKey]?.id || "",
+									id: updatedId,
 									shiftType: newShiftType || "off",
 								},
 							},
@@ -140,8 +149,6 @@ export function useUpdateShift() {
 					},
 				};
 			});
-
-			toast.success("Shift updated");
 		},
 
 		onError: (error) => {

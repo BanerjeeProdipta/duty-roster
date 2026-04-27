@@ -1,6 +1,7 @@
 "use client";
 
 import type { SchedulesResponse } from "@Duty-Roster/api";
+import { useMutationState } from "@tanstack/react-query";
 import { useSearchParams } from "next/navigation";
 import { useShifts } from "@/hooks/useGetShifts";
 import { useRosterDates } from "@/hooks/useRosterDates";
@@ -24,6 +25,13 @@ export function RosterTable({
 	const searchParams = useSearchParams();
 	const qParam = searchParams.get("q") ?? "";
 
+	// Track generation mutation state
+	const generatingState = useMutationState({
+		filters: { mutationKey: ["generate-roster"], status: "pending" },
+		select: (mutation) => mutation.state.status,
+	});
+	const isGenerating = generatingState.length > 0;
+
 	const shifts = useShifts();
 	const { weekDates, normalizedDates } = useRosterDates();
 
@@ -37,7 +45,7 @@ export function RosterTable({
 
 	const dailyShiftCounts = schedules?.dailyShiftCounts ?? {};
 
-	if (isFetching && !nurseRows?.length) {
+	if ((isFetching && !nurseRows?.length) || isGenerating) {
 		return <RosterTableSkeleton />;
 	}
 

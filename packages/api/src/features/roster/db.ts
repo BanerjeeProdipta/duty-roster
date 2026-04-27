@@ -76,16 +76,16 @@ export async function findSchedulesAndPreferencesByDateRange(
         COALESCE(
           json_object_agg(
             TO_CHAR(ns.date, 'YYYY-MM-DD'),
-            json_build_object('id', ns.id, 'shiftType', REPLACE(s.id, 'shift_', ''))
+            json_build_object('id', ns.id, 'shiftType', COALESCE(REPLACE(s.id, 'shift_', ''), 'off'))
           ),
           '{}'::json
         )                                                           AS assignments,
         COUNT(*) FILTER (WHERE s.id = 'shift_morning')             AS morning_count,
         COUNT(*) FILTER (WHERE s.id = 'shift_evening')             AS evening_count,
         COUNT(*) FILTER (WHERE s.id = 'shift_night')               AS night_count,
-        COUNT(*)                                                    AS total_assigned
+        COUNT(*) FILTER (WHERE s.id IS NOT NULL)                    AS total_assigned
       FROM nurse_schedule ns
-      JOIN shift s ON s.id = ns.shift_id
+      LEFT JOIN shift s ON s.id = ns.shift_id
       WHERE ns.date >= ${start}
         AND ns.date <= ${end}
       GROUP BY ns.nurse_id
@@ -160,6 +160,15 @@ export async function updateScheduleShift(id: string, shiftId: string | null) {
 		.set({ shiftId })
 		.where(eq(nurseSchedule.id, id))
 		.returning();
+	return row;
+}
+
+export async function findScheduleById(id: string) {
+	const [row] = await db
+		.select()
+		.from(nurseSchedule)
+		.where(eq(nurseSchedule.id, id))
+		.limit(1);
 	return row;
 }
 
