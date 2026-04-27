@@ -85,6 +85,7 @@ export function createAuth() {
 		}),
 		trustedOrigins: [
 			env.CORS_ORIGIN,
+			"https://*.pages.dev",
 			"http://localhost:3000",
 			"http://localhost:3001",
 			"Duty-Roster://",
