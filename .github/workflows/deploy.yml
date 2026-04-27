@@ -5,6 +5,9 @@ on:
     branches:
       - main
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -28,3 +31,6 @@ jobs:
           BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
           BETTER_AUTH_URL: "https://duty-roster-server.duty-roster.workers.dev/api/auth"
           CORS_ORIGIN: "https://duty-roster-8cw.pages.dev"
+
+      - name: Deploy Frontend
+        run: bun run deploy:web
