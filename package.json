@@ -38,7 +38,7 @@
 		"db:migrate": "turbo -F @Duty-Roster/db db:migrate",
 		"db:seed": "turbo -F @Duty-Roster/db db:seed",
 		"deploy:server": "turbo -F server deploy",
-		"deploy:web": "turbo -F web build:cf && turbo -F web deploy",
+		"deploy:web": "cd apps/web && bun run build:cf && bun run deploy",
 		"check": "biome check --write .",
 		"prepare": "husky"
 	},
