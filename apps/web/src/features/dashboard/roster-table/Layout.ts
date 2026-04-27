@@ -1,5 +1,5 @@
 export const LAYOUT = {
-  nameColWidth: 150,
+  nameColWidth: 160,
   headerHeight: 90,
   cellWidth: 140,
   rowHeight: 80,

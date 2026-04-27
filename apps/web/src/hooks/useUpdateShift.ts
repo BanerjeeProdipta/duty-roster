@@ -5,6 +5,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { QUERY_KEYS } from "@/utils/query-keys";
 import { trpcClient } from "@/utils/trpc";
+import type { ShiftType } from "@/features/dashboard/roster-table/RosterMatrix.types";
 
 function extractYearMonth(dateKey: string): { year: number; month: number } {
 	const [yearStr, monthStr] = dateKey.split("-");
@@ -24,11 +25,18 @@ type UpdateShiftVariables = {
 type ShiftUpdateResult = {
 	dateKey: string;
 	nurseId: string;
-	oldShiftType: string | null;
-	newShiftType: string | null;
+	oldShiftType: ShiftType | null;
+	newShiftType: ShiftType | null;
 };
 
-const emptyCounts = {
+type ShiftMetrics = {
+	morning: number;
+	evening: number;
+	night: number;
+	total: number;
+};
+
+const emptyCounts: ShiftMetrics = {
 	morning: 0,
 	evening: 0,
 	night: 0,
@@ -59,7 +67,9 @@ export function useUpdateShift() {
 					nurseRows: old.nurseRows.map((row) => {
 						if (row.nurse.id !== nurseId) return row;
 
-						const newMetrics = { ...row.assignedShiftMetrics };
+						const newMetrics: ShiftMetrics = {
+							...row.assignedShiftMetrics,
+						};
 
 						if (oldShiftType && oldShiftType !== "off") {
 							newMetrics[oldShiftType] = Math.max(
@@ -102,29 +112,25 @@ export function useUpdateShift() {
 							(newShiftType === "night" ? 1 : 0),
 						total:
 							(old.assignedShiftCounts?.total || 0) +
-							(oldShiftType === "off" || !oldShiftType ? 0 : -1) +
-							(newShiftType === "off" || !newShiftType ? -1 : 1),
+							((!oldShiftType || oldShiftType === "off") ? 0 : -1) +
+							((!newShiftType || newShiftType === "off") ? 0 : 1),
 					},
 					dailyShiftCounts: {
 						...old.dailyShiftCounts,
 						[dateKey]: (() => {
 							const prev = old.dailyShiftCounts[dateKey] || emptyCounts;
-							const updated = { ...prev };
+							const updated: ShiftMetrics = { ...prev };
 
 							if (oldShiftType && oldShiftType !== "off") {
-								updated[oldShiftType] = Math.max(
-									0,
-									(updated[oldShiftType] || 0) - 1,
-								);
+								updated[oldShiftType] = Math.max(0, (updated[oldShiftType] || 0) - 1);
 							}
 							if (newShiftType && newShiftType !== "off") {
-								updated[newShiftType] =
-									((updated[newShiftType] as number) || 0) + 1;
+								updated[newShiftType] = (updated[newShiftType] || 0) + 1;
 							}
 							updated.total =
-								((updated.morning as number) || 0) +
-								((updated.evening as number) || 0) +
-								((updated.night as number) || 0);
+								(updated.morning || 0) +
+								(updated.evening || 0) +
+								(updated.night || 0);
 
 							return updated;
 						})(),
