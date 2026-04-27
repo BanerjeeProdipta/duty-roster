@@ -36,7 +36,7 @@ const fastHasher = {
 		combined.set(new Uint8Array(hashBuffer), 16);
 		return btoa(String.fromCharCode(...combined));
 	},
-	verify: async (password: string, hash: string) => {
+	verify: async ({ password, hash }: { password: string; hash: string }) => {
 		try {
 			const combined = new Uint8Array(
 				atob(hash)

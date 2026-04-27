@@ -38,7 +38,18 @@ app.use("/*", async (c, next) => {
 	console.log("CORS_ORIGIN Binding:", c.env.CORS_ORIGIN);
 
 	const corsMiddleware = cors({
-		origin: c.env.CORS_ORIGIN || "*", // Fallback to * if undefined
+		origin: (origin) => {
+			if (!origin) return c.env.CORS_ORIGIN || "*";
+			if (
+				origin.endsWith(".duty-roster-8cw.pages.dev") ||
+				origin === "https://duty-roster-8cw.pages.dev" ||
+				origin === "http://localhost:3000" ||
+				origin === "http://localhost:3001"
+			) {
+				return origin;
+			}
+			return c.env.CORS_ORIGIN || "*";
+		},
 		allowMethods: ["GET", "POST", "OPTIONS"],
 		allowHeaders: ["Content-Type", "Authorization", "Cookie", "x-trpc-source"],
 		credentials: true,

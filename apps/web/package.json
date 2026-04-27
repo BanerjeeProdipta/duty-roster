@@ -7,7 +7,7 @@
 		"build": "next build",
 		"build:cf": "next-on-pages",
 		"start": "next start",
-		"deploy": "bun run build:cf && wrangler pages deploy .vercel/output"
+		"deploy": "bun run build:cf && bunx wrangler pages deploy .vercel/output"
 	},
 	"dependencies": {
 		"@Duty-Roster/api": "workspace:*",
