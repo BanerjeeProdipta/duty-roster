@@ -1,18 +1,20 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Noto_Sans_Bengali, Poppins } from "next/font/google";
 
 import "../index.css";
-import Header from "@/components/header";
-import Providers from "@/components/providers";
+import Header from "@/components/navbar/header";
+import Providers from "@/components/provider";
 
-const geistSans = Geist({
-	variable: "--font-geist-sans",
+const poppins = Poppins({
+	variable: "--font-poppins",
 	subsets: ["latin"],
+	weight: ["400", "500", "600"],
 });
 
-const geistMono = Geist_Mono({
-	variable: "--font-geist-mono",
-	subsets: ["latin"],
+const notoSansBengali = Noto_Sans_Bengali({
+	variable: "--font-bengali",
+	subsets: ["bengali"],
+	weight: ["400", "700"],
 });
 
 export const metadata: Metadata = {
@@ -28,12 +30,12 @@ export default function RootLayout({
 	return (
 		<html lang="en" suppressHydrationWarning>
 			<body
-				className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+				className={`${poppins.variable} ${notoSansBengali.variable} font-sans antialiased`}
 			>
 				<Providers>
-					<div className="grid min-h-svh grid-rows-[auto_1fr] bg-slate-100">
+					<div className="flex min-h-svh flex-col bg-slate-50 dark:bg-slate-950">
 						<Header />
-						<div className="container mx-auto lg:py-8">{children}</div>
+						<main className="flex-1 p-4 lg:px-20 lg:py-6">{children}</main>
 					</div>
 				</Providers>
 			</body>

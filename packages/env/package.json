@@ -4,9 +4,21 @@
 	"private": true,
 	"type": "module",
 	"exports": {
-		"./server": "./src/server.ts",
-		"./web": "./src/web.ts",
-		"./native": "./src/native.ts"
+		"./auth": {
+			"default": "./src/auth.ts"
+		},
+		"./db": {
+			"default": "./src/db.ts"
+		},
+		"./server": {
+			"default": "./src/server.ts"
+		},
+		"./web": {
+			"default": "./src/web.ts"
+		},
+		"./*": {
+			"default": "./src/*.ts"
+		}
 	},
 	"dependencies": {
 		"@t3-oss/env-core": "^0.13.1",

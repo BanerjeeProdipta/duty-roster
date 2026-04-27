@@ -1,7 +1,29 @@
-"use client";
+import { RosterHeader } from "@/features/dashboard/roster-table/RosterHeader";
+import { RosterTable } from "@/features/dashboard/roster-table/RosterTable";
+import { getMonthDateRange, getYearMonthFromSearchParams } from "@/utils";
+import { getTRPCServer } from "@/utils/trpc-server";
 
-import { RosterMatrix } from "@/components/roster-matrix";
+export const revalidate = 0;
+export const runtime = "edge";
 
-export default function Home() {
-	return <RosterMatrix />;
+export default async function Home(props: {
+	searchParams: Promise<{ year?: string; month?: string }>;
+}) {
+	const { year, month } = await getYearMonthFromSearchParams(
+		props.searchParams,
+	);
+
+	const { startDate, endDate } = getMonthDateRange(year, month);
+	const trpcServer = await getTRPCServer();
+	const initialSchedules = await trpcServer.roster.getSchedules.query({
+		startDate,
+		endDate,
+	});
+
+	return (
+		<div className="flex flex-col gap-6">
+			<RosterHeader initialSchedules={initialSchedules} />
+			<RosterTable initialSchedules={initialSchedules} />
+		</div>
+	);
 }

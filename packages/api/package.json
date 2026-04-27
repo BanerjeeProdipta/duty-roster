@@ -9,14 +9,19 @@
 			"default": "./src/*.ts"
 		}
 	},
-	"scripts": {},
+	"scripts": {
+		"check-types": "tsc --noEmit"
+	},
 	"dependencies": {
 		"@Duty-Roster/auth": "workspace:*",
 		"@Duty-Roster/db": "workspace:*",
 		"@Duty-Roster/env": "workspace:*",
 		"@trpc/client": "catalog:",
 		"@trpc/server": "catalog:",
+		"@trpc/tanstack-react-query": "catalog:",
 		"dotenv": "catalog:",
+		"exceljs": "^4.4.0",
+		"xlsx": "^0.18.5",
 		"zod": "catalog:"
 	},
 	"devDependencies": {

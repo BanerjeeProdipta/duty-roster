@@ -1,5 +1,42 @@
-import { RosterMatrix } from "@/components/roster-matrix";
+import { Suspense } from "react";
+import { ShiftCounts } from "@/features/dashboard/components/ShiftCounts";
+import { RosterHeader } from "@/features/dashboard/roster-table/RosterHeader";
+import { RosterTable } from "@/features/dashboard/roster-table/RosterTable";
+import { getMonthDateRange, getYearMonthFromSearchParams } from "@/utils";
+import { getAuthedTRPCServer } from "@/utils/trpc-server";
 
-export default function DashboardPage() {
-	return <RosterMatrix editable />;
+export const revalidate = 0;
+export const runtime = "edge";
+
+async function DashboardContent(props: {
+	searchParams: Promise<{ year?: string; month?: string }>;
+}) {
+	const { year, month } = await getYearMonthFromSearchParams(
+		props.searchParams,
+	);
+
+	const trpcServer = await getAuthedTRPCServer();
+	const { startDate, endDate } = getMonthDateRange(year, month);
+	const initialSchedules = await trpcServer.roster.getSchedules.query({
+		startDate,
+		endDate,
+	});
+
+	return (
+		<div className="flex flex-col gap-6">
+			<RosterHeader editable initialSchedules={initialSchedules} />
+			<ShiftCounts initialSchedules={initialSchedules} />
+			<RosterTable editable initialSchedules={initialSchedules} />
+		</div>
+	);
+}
+
+export default function DashboardPage(props: {
+	searchParams: Promise<{ year?: string; month?: string }>;
+}) {
+	return (
+		<Suspense fallback={<div>Loading Dashboard...</div>}>
+			<DashboardContent searchParams={props.searchParams} />
+		</Suspense>
+	);
 }

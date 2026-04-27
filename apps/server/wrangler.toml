@@ -1,0 +1,7 @@
+name = "duty-roster-server"
+main = "src/index.ts"
+compatibility_date = "2024-10-22"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+NODE_ENV = "production"

@@ -1,23 +1,27 @@
 import { cn } from "@Duty-Roster/ui/lib/utils";
 import type * as React from "react";
 
-type LabelProps = React.ComponentProps<"label"> & {
-	htmlFor: string;
-};
+interface LabelProps extends React.LabelHTMLAttributes<HTMLLabelElement> {
+	/**
+	 * Label style variant
+	 * - default: uppercase with tracking
+	 * - inline: mixed case, no transform
+	 */
+	variant?: "default" | "inline";
+}
 
-function Label({ className, htmlFor, children, ...props }: LabelProps) {
+function Label({ className, variant = "default", ...props }: LabelProps) {
 	return (
+		// biome-ignore lint/a11y/noLabelWithoutControl: association is the caller's responsibility
 		<label
 			data-slot="label"
-			htmlFor={htmlFor}
 			className={cn(
-				"font-medium text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70",
+				"font-medium text-xs",
+				variant === "default" && "text-slate-500 uppercase tracking-wide",
 				className,
 			)}
 			{...props}
-		>
-			{children}
-		</label>
+		/>
 	);
 }
 

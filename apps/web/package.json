@@ -5,7 +5,9 @@
 	"scripts": {
 		"dev": "next dev --port 3001",
 		"build": "next build",
-		"start": "next start"
+		"build:cf": "next-on-pages",
+		"start": "next start",
+		"deploy": "bun run build:cf && bunx wrangler pages deploy .vercel/output"
 	},
 	"dependencies": {
 		"@Duty-Roster/api": "workspace:*",
@@ -14,6 +16,7 @@
 		"@Duty-Roster/ui": "workspace:*",
 		"@tanstack/react-form": "catalog:",
 		"@tanstack/react-query": "catalog:",
+		"@tanstack/react-virtual": "^3.13.24",
 		"@trpc/client": "catalog:",
 		"@trpc/server": "catalog:",
 		"@trpc/tanstack-react-query": "catalog:",
@@ -21,12 +24,13 @@
 		"better-auth": "catalog:",
 		"dotenv": "catalog:",
 		"lucide-react": "catalog:",
-		"next": "^16.2.0",
+		"next": "15.1.0",
 		"next-themes": "catalog:",
-		"react": "^19.2.3",
-		"react-dom": "^19.2.3",
+		"react": "19.0.0",
+		"react-dom": "19.0.0",
 		"sonner": "catalog:",
-		"zod": "catalog:"
+		"zod": "catalog:",
+		"zustand": "^5.0.3"
 	},
 	"devDependencies": {
 		"@Duty-Roster/config": "workspace:*",

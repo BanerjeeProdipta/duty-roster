@@ -1,7 +1,6 @@
-import { env } from "@Duty-Roster/env/server";
 import { neon } from "@neondatabase/serverless";
 import { drizzle } from "drizzle-orm/neon-http";
-
+import { env } from "./env";
 import * as schema from "./schema";
 
 export function createDb() {
@@ -9,4 +8,17 @@ export function createDb() {
 	return drizzle(sql, { schema });
 }
 
-export const db = createDb();
+type DbClient = ReturnType<typeof createDb>;
+
+let _db: DbClient | null = null;
+
+export const db = new Proxy({} as DbClient, {
+	get(_, prop) {
+		if (!_db) {
+			_db = createDb();
+		}
+		return (_db as any)[prop];
+	},
+});
+
+export { schema };
