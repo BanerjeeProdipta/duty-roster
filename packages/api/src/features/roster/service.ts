@@ -271,19 +271,64 @@ export async function getSchedulesByDateRange(
 	};
 }
 
+export type ShiftTypeKey = "morning" | "evening" | "night" | "off";
+
+export interface ShiftUpdateResult {
+	dateKey: string;
+	nurseId: string;
+	oldShiftType: ShiftTypeKey | null;
+	newShiftType: ShiftTypeKey | null;
+}
+
+function shiftIdToShiftType(shiftId: string | null): ShiftTypeKey {
+	if (!shiftId) return "off";
+	if (shiftId.endsWith("morning")) return "morning";
+	if (shiftId.endsWith("evening")) return "evening";
+	if (shiftId.endsWith("night")) return "night";
+	return "off";
+}
+
 export async function upsertSchedule(
 	id: string,
 	shiftId: string | null,
 	nurseId?: string,
 	dateKey?: string,
-) {
+): Promise<ShiftUpdateResult | null> {
+	let oldShiftType: ShiftTypeKey | null = null;
+
 	if (id === "new" && nurseId && dateKey) {
-		return rosterDb.createSchedule(nurseId, new Date(dateKey), shiftId);
+		await rosterDb.createSchedule(
+			nurseId,
+			new Date(dateKey),
+			shiftId,
+		);
+		return {
+			dateKey: dateKey,
+			nurseId,
+			oldShiftType: null,
+			newShiftType: shiftIdToShiftType(shiftId),
+		};
 	}
 	if (!id || id === "new") {
-		return;
+		return null;
 	}
-	return rosterDb.updateScheduleShift(id, shiftId === "off" ? null : shiftId);
+
+	const updated = await rosterDb.updateScheduleShift(
+		id,
+		shiftId === "off" ? null : shiftId,
+	);
+	if (updated?.shiftType) {
+		oldShiftType = shiftIdToShiftType(updated.shiftType as string);
+	}
+
+	const resultShiftType = shiftIdToShiftType(shiftId);
+
+	return {
+		dateKey: dateKey || "",
+		nurseId: nurseId || "",
+		oldShiftType,
+		newShiftType: resultShiftType,
+	};
 }
 
 // ───────────── GENERATE ROSTER ─────────────

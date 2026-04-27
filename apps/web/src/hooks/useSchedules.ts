@@ -20,7 +20,6 @@ export function useSchedules(initialData?: SchedulesResponse) {
 			});
 		},
 		initialData,
-		staleTime: 5 * 60 * 1000,
 	});
 
 	return {

@@ -10,21 +10,20 @@ const shiftIcons = {
 };
 
 const iconColors = {
-  under: "text-red-500",
+  under: "text-green-500",
   exact: "text-gray-400",
-  over: "text-blue-500",
+  over: "text-red-500",
 };
 
 const textColors = {
-  under: "text-red-700",
+  under: "text-green-700",
   exact: "text-slate-700",
-  over: "text-blue-600",
+  over: "text-red-600",
 };
 
 export function AllocationItem({
   current,
   target,
-  color: _color,
   label,
   min,
   shiftType = "total",
@@ -56,7 +55,9 @@ export function AllocationItem({
       <span className="sr-only">{tooltip}</span>
 
       <Icon className={cn("h-4 w-4 shrink-0", iconColor)} />
-      <span className={textClass}>{Math.abs(needed)}</span>
+      <span className={textClass} suppressHydrationWarning>
+        {Math.abs(needed)}
+      </span>
     </div>
   );
 }

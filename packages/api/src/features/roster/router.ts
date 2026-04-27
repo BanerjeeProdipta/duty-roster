@@ -75,14 +75,15 @@ export const rosterRouter = router({
 				dateKey: z.string(),
 			}),
 		)
-		.mutation(({ input }) =>
-			rosterService.upsertSchedule(
+		.mutation(async ({ input }) => {
+			const result = await rosterService.upsertSchedule(
 				input.id,
 				input.shiftId,
 				input.nurseId,
 				input.dateKey,
-			),
-		),
+			);
+			return result;
+		}),
 
 	downloadPDF: publicProcedure
 		.input(z.object({ startDate: z.string(), endDate: z.string() }))
