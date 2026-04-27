@@ -8,7 +8,7 @@ import {
 	DropdownMenuTrigger,
 } from "@Duty-Roster/ui/components/dropdown-menu";
 import { cn } from "@Duty-Roster/ui/lib/utils";
-import { startTransition, useOptimistic, useState } from "react";
+import { useState } from "react";
 import type { ShiftDefinition } from "@/hooks/useGetShifts";
 import { useUpdateShift } from "@/hooks/useUpdateShift";
 import { SHIFT_ICONS, SHIFT_STYLES } from "./RosterMatrix.constants";
@@ -67,27 +67,23 @@ export function ShiftBadge({
 	const [open, setOpen] = useState(false);
 	const updateMutation = useUpdateShift();
 
-	const [optimisticType, setOptimisticType] = useOptimistic(type);
-
 	const handleChange = (value: ShiftType) => {
 		setOpen(false);
 		if (!assignmentId && value === "off") return;
 
-		startTransition(() => {
-			setOptimisticType(value);
-			updateMutation.mutate({
-				id: assignmentId || "new",
-				shiftId: value === "off" ? null : `shift_${value}`,
-				nurseId,
-				dateKey: date,
-			});
+		updateMutation.mutate({
+			id: assignmentId || "new",
+			shiftId: value === "off" ? null : `shift_${value}`,
+			nurseId,
+			dateKey: date,
 		});
 	};
 
-	const shiftDef = shifts.find((s) => s.name === optimisticType);
-	const label = defaultLabel[optimisticType];
+	const isPending = updateMutation.isPending;
+	const shiftDef = shifts.find((s) => s.name === type);
+	const label = defaultLabel[type];
 	const timeRange =
-		optimisticType !== "off" && shiftDef
+		type !== "off" && shiftDef
 			? `${formatTime12h(shiftDef.startTime)} - ${formatTime12h(shiftDef.endTime)}`
 			: "No shift";
 
@@ -95,14 +91,15 @@ export function ShiftBadge({
 		<div
 			className={cn(
 				"flex h-12 w-12 items-center justify-center rounded-lg font-bold text-lg shadow-sm",
+				isPending && "animate-pulse opacity-70",
 				editable &&
 					"cursor-pointer transition-all duration-200 hover:translate-y-[1px] hover:scale-105",
 				!assignmentId && "border-2 border-slate-300 border-dashed",
-				SHIFT_STYLES[optimisticType],
+				SHIFT_STYLES[type],
 			)}
 			title={`${nurseName} - ${formatDateDMY(date)}: ${label} (${timeRange})`}
 		>
-			{SHIFT_ICONS[optimisticType]}
+			{SHIFT_ICONS[type]}
 		</div>
 	);
 
@@ -136,7 +133,7 @@ export function ShiftBadge({
 				</div>
 
 				<DropdownMenuRadioGroup
-					value={optimisticType}
+					value={type}
 					onValueChange={handleChange}
 					className="-mt-1"
 				>
@@ -146,9 +143,7 @@ export function ShiftBadge({
 							value={item.value}
 							className={cn(
 								"mb-2 flex cursor-pointer items-center gap-3 rounded-md px-2 py-1 transition-all duration-200 ease-out",
-								optimisticType === item.value
-									? "bg-primary/10"
-									: "hover:bg-slate-50",
+								type === item.value ? "bg-primary/10" : "hover:bg-slate-50",
 							)}
 						>
 							<div
