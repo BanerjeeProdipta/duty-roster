@@ -19,12 +19,23 @@ export async function createSchedule(
 	shiftId: string | null,
 ) {
 	const id = `schedule_${nurseId}_${date.toISOString().split("T")[0]}`;
-	return db.insert(nurseSchedule).values({
-		id,
-		nurseId,
-		date,
-		shiftId: shiftId === "off" ? null : shiftId,
-	});
+	const targetDate = new Date(date);
+	targetDate.setUTCHours(0, 0, 0, 0);
+
+	return db
+		.insert(nurseSchedule)
+		.values({
+			id,
+			nurseId,
+			date: targetDate,
+			shiftId: shiftId === "off" ? null : shiftId,
+		})
+		.onConflictDoUpdate({
+			target: [nurseSchedule.nurseId, nurseSchedule.date],
+			set: {
+				shiftId: shiftId === "off" ? null : shiftId,
+			},
+		});
 }
 
 // ─────────────── SHIFTS ───────────────
