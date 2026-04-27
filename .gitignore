@@ -7,6 +7,9 @@ node_modules
 dist
 build
 *.tsbuildinfo
+.next
+.vercel
+.cloudflare
 
 # Environment variables
 .env

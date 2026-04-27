@@ -28,7 +28,7 @@
 	"type": "module",
 	"scripts": {
 		"dev": "turbo dev",
-		"build": "turbo build",
+		"build": "turbo -F web build",
 		"check-types": "turbo check-types",
 		"dev:web": "turbo -F web dev",
 		"dev:server": "turbo -F server dev",

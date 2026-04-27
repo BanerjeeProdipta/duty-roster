@@ -5,8 +5,8 @@
 	"scripts": {
 		"dev": "next dev --port 3001",
 		"build": "next build",
-		"build:cf": "bunx @cloudflare/next-on-pages -s",
-		"deploy": "bunx wrangler pages deploy .vercel/output/static"
+		"build:cf": "bunx @cloudflare/next-on-pages -o .cloudflare",
+		"deploy": "bunx wrangler pages deploy .cloudflare --project-name=duty-roster"
 	},
 	"dependencies": {
 		"@Duty-Roster/api": "workspace:*",
@@ -40,6 +40,7 @@
 		"@types/react": "^19.2.10",
 		"@types/react-dom": "catalog:",
 		"tailwindcss": "^4.1.18",
-		"typescript": "^5"
+		"typescript": "^5",
+		"vercel": "^52.0.0"
 	}
 }
