@@ -32,15 +32,15 @@ export default function Header() {
 	return (
 		<header className="sticky top-0 z-[100] w-full border-border/50 border-b bg-white backdrop-blur-md dark:bg-slate-950/80">
 			<div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6">
-				<Link href="/" className="flex items-center gap-2">
+				<Link href="/" className="flex h-10 w-10 items-center">
 					<Image
-						src="/logo.jpg"
+						src="/logo.png"
 						alt="logo"
-						height={22}
-						width={32}
+						height={100}
+						width={100}
 						className="rounded-sm"
 					/>
-					<p className="font-semibold text-lg tracking-tight">
+					<p className="font-semibold text-xl tracking-tight">
 						<span className="text-slate-900 dark:text-slate-100">simple</span>
 						<span className="text-slate-500 dark:text-slate-400">roster</span>
 					</p>

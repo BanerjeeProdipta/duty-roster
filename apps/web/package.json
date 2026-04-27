@@ -34,6 +34,7 @@
 	},
 	"devDependencies": {
 		"@Duty-Roster/config": "workspace:*",
+		"@ducanh2912/next-pwa": "^10.2.8",
 		"@tailwindcss/postcss": "^4.1.18",
 		"@tanstack/react-query-devtools": "^5.91.1",
 		"@types/node": "^20",

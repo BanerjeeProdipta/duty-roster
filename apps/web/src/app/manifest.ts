@@ -4,21 +4,38 @@ export default function manifest(): MetadataRoute.Manifest {
 	return {
 		name: "Duty-Roster",
 		short_name: "Duty-Roster",
-		description: "my pwa app",
-		start_url: "/new",
+		description: "Manage duty rosters efficiently",
+		start_url: "/dashboard",
+		scope: "/",
 		display: "standalone",
-		background_color: "#ffffff",
-		theme_color: "#000000",
+		orientation: "portrait-primary",
+		categories: ["business", "productivity"],
+		background_color: "#f8fafc",
+		theme_color: "#0f172a",
 		icons: [
 			{
 				src: "/favicon/web-app-manifest-192x192.png",
 				sizes: "192x192",
 				type: "image/png",
+				purpose: "any",
+			},
+			{
+				src: "/favicon/web-app-manifest-192x192.png",
+				sizes: "192x192",
+				type: "image/png",
+				purpose: "maskable",
 			},
 			{
 				src: "/favicon/web-app-manifest-512x512.png",
 				sizes: "512x512",
 				type: "image/png",
+				purpose: "any",
+			},
+			{
+				src: "/favicon/web-app-manifest-512x512.png",
+				sizes: "512x512",
+				type: "image/png",
+				purpose: "maskable",
 			},
 		],
 	};
