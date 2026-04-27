@@ -5,7 +5,7 @@ if (typeof process === "undefined") {
 
 import { createContext } from "@Duty-Roster/api/context";
 import { appRouter } from "@Duty-Roster/api/routers/index";
-import { auth } from "@Duty-Roster/auth";
+import { auth, createAuth } from "@Duty-Roster/auth";
 import { trpcServer } from "@hono/trpc-server";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
@@ -58,7 +58,17 @@ app.use("/*", async (c, next) => {
 	return corsMiddleware(c, next);
 });
 
-app.on(["POST", "GET"], "/api/auth/*", (c) => auth.handler(c.req.raw));
+app.on(["POST", "GET"], "/api/auth/*", (c) => {
+	const xForwardedHost = c.req.header("x-forwarded-host");
+	const xForwardedProto = c.req.header("x-forwarded-proto") || "https";
+	let baseURL = c.env.BETTER_AUTH_URL;
+
+	if (xForwardedHost) {
+		baseURL = `${xForwardedProto}://${xForwardedHost}/api/auth`;
+	}
+
+	return createAuth({ baseURL }).handler(c.req.raw);
+});
 
 app.use(
 	"/trpc/*",

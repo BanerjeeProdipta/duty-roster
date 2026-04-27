@@ -25,6 +25,8 @@ async function handleProxy(request: NextRequest) {
 	const headers = new Headers(request.headers);
 	// We don't want to pass the host header to the target
 	headers.delete("host");
+	headers.set("x-forwarded-host", url.host);
+	headers.set("x-forwarded-proto", url.protocol.replace(":", ""));
 
 	const response = await fetch(targetUrl.toString(), {
 		method: request.method,

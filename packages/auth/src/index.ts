@@ -74,7 +74,7 @@ const fastHasher = {
 	},
 };
 
-export function createAuth() {
+export function createAuth(options?: { baseURL?: string }) {
 	const db = createDb();
 
 	return betterAuth({
@@ -105,7 +105,7 @@ export function createAuth() {
 		},
 		user: {},
 		secret: env.BETTER_AUTH_SECRET,
-		baseURL: env.BETTER_AUTH_URL,
+		baseURL: options?.baseURL || env.BETTER_AUTH_URL,
 		advanced: {
 			defaultCookieAttributes: {
 				sameSite: env.NODE_ENV === "production" ? "none" : "lax",
