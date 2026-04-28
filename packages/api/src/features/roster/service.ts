@@ -350,6 +350,7 @@ type NursePreferenceProfile = {
 	consecutiveDays: number;
 	consecutiveNights: number;
 	nightShiftCooldown: number;
+	needsSecondNight: boolean;
 };
 
 function getCoverageForDay(dayType: DayType): ShiftCounts {
@@ -405,6 +406,7 @@ function buildNurseProfiles(
 			consecutiveDays: 0,
 			consecutiveNights: 0,
 			nightShiftCooldown: 0,
+			needsSecondNight: false,
 		});
 	}
 
@@ -456,6 +458,11 @@ function canAssignShift(
 		}
 	}
 
+	// If on cooldown from 2 consecutive nights, cannot work ANY shift
+	if (profile.nightShiftCooldown > 0) {
+		return false;
+	}
+
 	return true;
 }
 
@@ -484,6 +491,12 @@ function getEligibleNurses(
 		const totalB = b.assigned.morning + b.assigned.evening + b.assigned.night;
 		if (totalA !== totalB) return totalA - totalB;
 
+		// For night shifts: prioritize nurses who need their 2nd consecutive night
+		if (shiftType === "night") {
+			if (a.needsSecondNight && !b.needsSecondNight) return -1;
+			if (!a.needsSecondNight && b.needsSecondNight) return 1;
+		}
+
 		// Secondary: largest gap from preference limit for this shift type
 		const gapA = a.maxShifts[shiftType] - a.assigned[shiftType];
 		const gapB = b.maxShifts[shiftType] - b.assigned[shiftType];
@@ -502,12 +515,21 @@ function recordShift(
 
 	if (shiftType === "night") {
 		profile.consecutiveNights++;
+		// After 1 night, flag that nurse needs 2nd consecutive night
+		if (profile.consecutiveNights === 1) {
+			profile.needsSecondNight = true;
+		}
 		// After 2 consecutive nights, enforce cooldown
 		if (profile.consecutiveNights >= ROSTER_CONFIG.CONSTRAINTS.MAX_CONSECUTIVE_NIGHTS) {
 			profile.nightShiftCooldown = 1;
+			profile.needsSecondNight = false;
 		}
 	} else {
 		profile.consecutiveNights = 0;
+		// If nurse had 1 night but got different shift, reset flag
+		if (profile.needsSecondNight && shiftType !== "night") {
+			profile.needsSecondNight = false;
+		}
 	}
 }
 
@@ -518,10 +540,10 @@ function resetConsecutiveDays(
 	for (const profile of profiles.values()) {
 		if (!assignedToday.has(profile.nurseId)) {
 			profile.consecutiveDays = 0;
-		}
-		// Decrement night shift cooldown
-		if (profile.nightShiftCooldown > 0) {
-			profile.nightShiftCooldown--;
+			// Decrement night shift cooldown only on days off
+			if (profile.nightShiftCooldown > 0) {
+				profile.nightShiftCooldown--;
+			}
 		}
 	}
 }
