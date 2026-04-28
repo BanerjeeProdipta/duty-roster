@@ -98,10 +98,27 @@ Duty-Roster/
 │   └── db/          # Database schema & queries
 ```
 
+## Deployment
+
+### Web App (Cloudflare Pages)
+```bash
+bun run deploy:web
+```
+
+This runs `build:cf` (Cloudflare build) then deploys to Cloudflare Pages.
+
+### Server (Cloudflare Workers)
+```bash
+bun run deploy:server
+```
+
 ## Available Scripts
 
 - `bun run dev`: Start all applications in development mode
 - `bun run build`: Build all applications
+- `bun run build:cf`: Build web app for Cloudflare Pages
+- `bun run deploy:web`: Deploy web app to Cloudflare Pages
+- `bun run deploy:server`: Deploy server to Cloudflare Workers
 - `bun run dev:web`: Start only the web application
 - `bun run dev:server`: Start only the server
 - `bun run check-types`: Check TypeScript types across all apps
