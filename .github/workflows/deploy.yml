@@ -31,4 +31,4 @@ jobs:
         run: bun run deploy:server
 
       - name: Deploy Frontend
-        run: bun run deploy:web
+        run: export CLOUDFLARE_ACCOUNT_ID=${{ secrets.CLOUDFLARE_ACCOUNT_ID }} && bun run deploy:web

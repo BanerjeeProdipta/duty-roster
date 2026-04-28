@@ -1,5 +1,4 @@
 name = "duty-roster"
-account_id = "bd9bb5ff93ae67f993cd3123e1eb02ec"
 pages_build_output_dir = ".cloudflare"
 compatibility_date = "2024-10-22"
 compatibility_flags = ["nodejs_compat"]
