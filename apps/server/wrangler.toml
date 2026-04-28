@@ -5,3 +5,5 @@ compatibility_flags = ["nodejs_compat"]
 
 [vars]
 NODE_ENV = "production"
+BETTER_AUTH_URL = "https://duty-roster-server.duty-roster.workers.dev/api/auth"
+CORS_ORIGIN = "https://duty-roster-8cw.pages.dev"
