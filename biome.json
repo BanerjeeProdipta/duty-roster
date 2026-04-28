@@ -10,7 +10,6 @@
 		"includes": [
 			"**",
 			"!**/.next",
-			"!**/.vercel",
 			"!**/dist",
 			"!**/.turbo",
 			"!**/.nx",
