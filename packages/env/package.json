@@ -16,6 +16,9 @@
 		"./web": {
 			"default": "./src/web.ts"
 		},
+		"./loader": {
+			"default": "./src/loader.ts"
+		},
 		"./*": {
 			"default": "./src/*.ts"
 		}

@@ -1,6 +1,8 @@
-// import "dotenv/config";
+import { initDbEnv } from "./loader";
 import { createEnv } from "@t3-oss/env-core";
 import { z } from "zod";
+
+initDbEnv();
 
 const config = {
 	server: {

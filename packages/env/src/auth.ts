@@ -1,6 +1,8 @@
-// import "dotenv/config";
+import { initAuthEnv } from "./loader";
 import { createEnv } from "@t3-oss/env-core";
 import { z } from "zod";
+
+initAuthEnv();
 
 const config = {
 	server: {
