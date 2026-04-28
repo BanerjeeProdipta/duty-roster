@@ -11,6 +11,7 @@ env:
   CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
   DATABASE_URL: ${{ secrets.DATABASE_URL }}
   BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
+  NEXT_PUBLIC_SERVER_URL: "https://duty-roster-server.duty-roster.workers.dev"
 
 jobs:
   deploy:
