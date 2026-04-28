@@ -18,8 +18,12 @@ export default function Header() {
 
 	const links = [
 		{ to: "/", label: "Home" },
-		{ to: "/dashboard", label: "Dashboard" },
-		{ to: "/manage-users", label: "Manage" },
+		...(session?.user
+			? [
+					{ to: "/dashboard", label: "Dashboard" },
+					{ to: "/manage-users", label: "Manage" },
+				]
+			: []),
 	] as const;
 
 	const handleSignOut = async () => {
@@ -65,15 +69,24 @@ export default function Header() {
 							</Link>
 						);
 					})}
-					{!isPending && session?.user && (
-						<Button
-							variant="secondary"
-							onClick={handleSignOut}
-							className="ml-1"
-						>
-							Sign Out
-						</Button>
-					)}
+					{!isPending &&
+						(session?.user ? (
+							<Button
+								variant="secondary"
+								onClick={handleSignOut}
+								className="ml-1"
+							>
+								Sign Out
+							</Button>
+						) : (
+							<Button
+								variant="secondary"
+								onClick={() => router.push("/auth")}
+								className="ml-1"
+							>
+								Sign In
+							</Button>
+						))}
 				</nav>
 
 				{/* Mobile Menu Button */}
@@ -110,18 +123,30 @@ export default function Header() {
 								</Link>
 							);
 						})}
-						{!isPending && session?.user && (
-							<Button
-								variant="ghost"
-								className="mt-2 w-full justify-start"
-								onClick={() => {
-									handleSignOut();
-									setIsMenuOpen(false);
-								}}
-							>
-								Sign Out
-							</Button>
-						)}
+						{!isPending &&
+							(session?.user ? (
+								<Button
+									variant="ghost"
+									className="mt-2 w-full justify-start"
+									onClick={() => {
+										handleSignOut();
+										setIsMenuOpen(false);
+									}}
+								>
+									Sign Out
+								</Button>
+							) : (
+								<Button
+									variant="ghost"
+									className="mt-2 w-full justify-start"
+									onClick={() => {
+										router.push("/auth");
+										setIsMenuOpen(false);
+									}}
+								>
+									Sign In
+								</Button>
+							))}
 					</div>
 				</div>
 			)}
