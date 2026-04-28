@@ -349,6 +349,7 @@ type NursePreferenceProfile = {
 	hardConstraintShift: ShiftType | null;
 	consecutiveDays: number;
 	consecutiveNights: number;
+	nightShiftCooldown: number;
 };
 
 function getCoverageForDay(dayType: DayType): ShiftCounts {
@@ -403,6 +404,7 @@ function buildNurseProfiles(
 			hardConstraintShift,
 			consecutiveDays: 0,
 			consecutiveNights: 0,
+			nightShiftCooldown: 0,
 		});
 	}
 
@@ -446,6 +448,10 @@ function canAssignShift(
 			profile.consecutiveNights >=
 			ROSTER_CONFIG.CONSTRAINTS.MAX_CONSECUTIVE_NIGHTS
 		) {
+			return false;
+		}
+		// Must have cooldown day after 2 consecutive nights
+		if (profile.nightShiftCooldown > 0) {
 			return false;
 		}
 	}
@@ -496,6 +502,10 @@ function recordShift(
 
 	if (shiftType === "night") {
 		profile.consecutiveNights++;
+		// After 2 consecutive nights, enforce cooldown
+		if (profile.consecutiveNights >= ROSTER_CONFIG.CONSTRAINTS.MAX_CONSECUTIVE_NIGHTS) {
+			profile.nightShiftCooldown = 1;
+		}
 	} else {
 		profile.consecutiveNights = 0;
 	}
@@ -508,6 +518,10 @@ function resetConsecutiveDays(
 	for (const profile of profiles.values()) {
 		if (!assignedToday.has(profile.nurseId)) {
 			profile.consecutiveDays = 0;
+		}
+		// Decrement night shift cooldown
+		if (profile.nightShiftCooldown > 0) {
+			profile.nightShiftCooldown--;
 		}
 	}
 }
