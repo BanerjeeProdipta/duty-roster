@@ -1,8 +1,6 @@
 import dotenv from "dotenv";
+import { existsSync } from "fs";
 import path from "path";
-import { fileURLToPath } from "url";
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 interface LoadEnvOptions {
 	/** Base directory to search for .env files */
@@ -24,7 +22,15 @@ interface LoadEnvOptions {
  * 4. .env.<mode>.local (environment-specific local overrides)
  */
 export function loadEnv(options: LoadEnvOptions = {}) {
-	const { baseDir = process.cwd(), mode = process.env.NODE_ENV as any ?? "development", customPaths = [] } = options;
+	if (typeof process === "undefined" || typeof process.cwd !== "function") {
+		return;
+	}
+
+	const {
+		baseDir = process.cwd(),
+		mode = process.env.NODE_ENV as any ?? "development",
+		customPaths = [],
+	} = options;
 
 	const envFiles = [
 		path.resolve(baseDir, ".env"),
@@ -58,12 +64,36 @@ export function loadWorkerEnv() {
 	}
 }
 
+function getWorkspaceRoot() {
+	if (typeof process === "undefined" || typeof process.cwd !== "function") {
+		return null;
+	}
+
+	const cwd = process.cwd();
+	const candidates = [
+		cwd,
+		path.resolve(cwd, ".."),
+		path.resolve(cwd, "../.."),
+		path.resolve(cwd, "../../.."),
+	];
+
+	for (const candidate of candidates) {
+		if (existsSync(path.resolve(candidate, ".env"))) {
+			return candidate;
+		}
+	}
+
+	return cwd;
+}
+
 /**
  * Initialize environment for web (Next.js) applications.
  * Loads from root .env first, then app-specific .env.<mode> overrides.
  */
 export function initWebEnv() {
-	const rootDir = path.resolve(__dirname, "../../..");
+	const rootDir = getWorkspaceRoot();
+	if (!rootDir) return;
+
 	const webDir = path.resolve(rootDir, "apps/web");
 	const mode = (process.env.NODE_ENV as any) ?? "production";
 
@@ -75,7 +105,9 @@ export function initWebEnv() {
  * Initialize environment for server (Hono/Cloudflare) applications.
  */
 export function initServerEnv() {
-	const rootDir = path.resolve(__dirname, "../../..");
+	const rootDir = getWorkspaceRoot();
+	if (!rootDir) return;
+
 	const serverDir = path.resolve(rootDir, "apps/server");
 	const mode = (process.env.NODE_ENV as any) ?? "production";
 
@@ -87,7 +119,8 @@ export function initServerEnv() {
  * Initialize environment for database package.
  */
 export function initDbEnv() {
-	const rootDir = path.resolve(__dirname, "../../..");
+	const rootDir = getWorkspaceRoot();
+	if (!rootDir) return;
 	loadEnv({ baseDir: rootDir, mode: process.env.NODE_ENV as any });
 }
 
@@ -95,6 +128,7 @@ export function initDbEnv() {
  * Initialize environment for auth package.
  */
 export function initAuthEnv() {
-	const rootDir = path.resolve(__dirname, "../../..");
+	const rootDir = getWorkspaceRoot();
+	if (!rootDir) return;
 	loadEnv({ baseDir: rootDir, mode: process.env.NODE_ENV as any });
 }

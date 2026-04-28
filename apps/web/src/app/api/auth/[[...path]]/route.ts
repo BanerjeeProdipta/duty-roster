@@ -16,10 +16,14 @@ export async function OPTIONS(request: NextRequest) {
 
 async function handleProxy(request: NextRequest) {
 	const url = new URL(request.url);
+	const targetBaseUrl =
+		process.env.NODE_ENV === "development"
+			? `http://localhost:${process.env.SERVER_PORT ?? 3000}`
+			: process.env.NEXT_PUBLIC_SERVER_URL ||
+				"https://duty-roster-server.duty-roster.workers.dev";
 	const targetUrl = new URL(
 		url.pathname + url.search,
-		process.env.NEXT_PUBLIC_SERVER_URL ||
-			"https://duty-roster-server.duty-roster.workers.dev",
+		targetBaseUrl,
 	);
 
 	const headers = new Headers(request.headers);

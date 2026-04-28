@@ -5,6 +5,10 @@ import { headers } from "next/headers";
 import { cache } from "react";
 
 const getBaseUrl = () => {
+	if (process.env.NODE_ENV === "development") {
+		return `http://localhost:${process.env.SERVER_PORT ?? 3000}`;
+	}
+
 	// Try to get from Cloudflare Request Context
 	try {
 		const ctx = getOptionalRequestContext();
