@@ -1,8 +1,8 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
 import { useMemo } from "react";
 import { getMonthDates } from "@/utils";
+import { useYearMonth } from "./useYearMonth";
 
 export type NormalizedDate = {
 	date: Date;
@@ -26,16 +26,11 @@ function getUTCTodayStr(): string {
 }
 
 export function useRosterDates() {
-	const searchParams = useSearchParams();
+	const { year, month } = useYearMonth();
 
 	const monthDates = useMemo(() => {
-		const y = searchParams.get("year");
-		const m = searchParams.get("month");
-		return getMonthDates(
-			y ? Number.parseInt(y, 10) : undefined,
-			m ? Number.parseInt(m, 10) : undefined,
-		);
-	}, [searchParams]);
+		return getMonthDates(year, month);
+	}, [year, month]);
 
 	const weekDates = useMemo(
 		() => monthDates.map((d) => new Date(`${d}T12:00:00Z`)),

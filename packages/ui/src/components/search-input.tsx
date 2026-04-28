@@ -5,7 +5,7 @@ import { cn } from "@Duty-Roster/ui/lib/utils";
 import { Mic, Search, X } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import type { ComponentProps } from "react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 interface SearchInputProps
 	extends Omit<ComponentProps<"input">, "value" | "onChange"> {
@@ -43,8 +43,18 @@ function SearchInput({
 	const [highlightedIndex, setHighlightedIndex] = useState(-1);
 	const containerRef = useRef<HTMLDivElement>(null);
 	const listRef = useRef<HTMLDivElement>(null);
+	const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
 	const ui = language === "bn-BD" ? banglaUI : englishUI;
+
+	// Cleanup debounce timer on unmount
+	useEffect(() => {
+		return () => {
+			if (debounceTimerRef.current) {
+				clearTimeout(debounceTimerRef.current);
+			}
+		};
+	}, []);
 
 	useEffect(() => {
 		setValue(searchParams.get(paramKey) ?? "");
@@ -75,21 +85,37 @@ function SearchInput({
 			},
 		});
 
+	const updateURL = useCallback(
+		(newValue: string) => {
+			const params = new URLSearchParams(window.location.search);
+			if (newValue) {
+				params.set(paramKey, newValue);
+			} else {
+				params.delete(paramKey);
+			}
+			window.history.pushState(
+				null,
+				"",
+				params.toString() ? `?${params.toString()}` : window.location.pathname,
+			);
+		},
+		[paramKey],
+	);
+
 	const handleChange = (newValue: string) => {
 		setValue(newValue);
 		setShowSuggestions(newValue.length > 0 && filteredSuggestions.length > 0);
 		setHighlightedIndex(-1);
-		const params = new URLSearchParams(window.location.search);
-		if (newValue) {
-			params.set(paramKey, newValue);
-		} else {
-			params.delete(paramKey);
+
+		// Clear existing timer
+		if (debounceTimerRef.current) {
+			clearTimeout(debounceTimerRef.current);
 		}
-		window.history.pushState(
-			null,
-			"",
-			params.toString() ? `?${params.toString()}` : window.location.pathname,
-		);
+
+		// Debounce URL update to prevent cascading re-renders
+		debounceTimerRef.current = setTimeout(() => {
+			updateURL(newValue);
+		}, 300);
 	};
 
 	const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -124,17 +150,25 @@ function SearchInput({
 	};
 
 	const handleSelectSuggestion = (suggestion: string) => {
-		handleChange(suggestion);
+		// Clear debounce timer since we're updating immediately
+		if (debounceTimerRef.current) {
+			clearTimeout(debounceTimerRef.current);
+		}
+		setValue(suggestion);
 		setShowSuggestions(false);
+		setHighlightedIndex(-1);
+		updateURL(suggestion);
 	};
 
 	const handleClear = () => {
+		// Clear debounce timer since we're updating immediately
+		if (debounceTimerRef.current) {
+			clearTimeout(debounceTimerRef.current);
+		}
 		setValue("");
 		setShowSuggestions(false);
 		setHighlightedIndex(-1);
-		const params = new URLSearchParams(window.location.search);
-		params.delete(paramKey);
-		window.history.pushState(null, "", window.location.pathname);
+		updateURL("");
 	};
 
 	return (

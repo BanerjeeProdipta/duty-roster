@@ -1,7 +1,7 @@
 "use client";
 
 import type { SchedulesResponse } from "@Duty-Roster/api";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { QUERY_KEYS } from "@/utils/query-keys";
 import { trpcClient } from "@/utils/trpc";
 import { useYearMonth } from "./useYearMonth";
@@ -20,6 +20,9 @@ export function useSchedules(initialData?: SchedulesResponse) {
 			});
 		},
 		initialData,
+		staleTime: 5 * 60 * 1000,
+		gcTime: 10 * 60 * 1000,
+		placeholderData: keepPreviousData,
 	});
 
 	return {

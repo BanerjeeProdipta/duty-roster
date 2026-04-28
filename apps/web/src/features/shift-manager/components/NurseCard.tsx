@@ -28,7 +28,7 @@ export function NurseCard({ nurse, totalDays }: NurseCardProps) {
 	return (
 		<div
 			className={cn(
-				"animate-slide-up rounded-xl border bg-white p-4 transition-all duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)]",
+				"animate-slide-up rounded-xl border bg-white p-4 hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)]",
 				isInvalid ? "border-red-200 bg-red-50/20" : "border-slate-100/80",
 			)}
 		>
@@ -155,7 +155,7 @@ function SaveButton({
 			type="button"
 			onClick={onClick}
 			disabled={disabled || loading}
-			className="inline-flex items-center gap-1 rounded-md bg-lime-100 px-2 py-1 font-medium text-lime-700 text-xs transition duration-300 hover:bg-lime-200 disabled:opacity-50"
+			className="inline-flex items-center gap-1 rounded-md bg-lime-100 px-2 py-1 font-medium text-lime-700 text-xs hover:bg-lime-200 disabled:opacity-50"
 		>
 			{loading ? (
 				<Loader2 className="mr-1 h-5 w-5 animate-spin" />

@@ -20,7 +20,7 @@ export function ShiftCounts({ initialSchedules }: ShiftCountsProps) {
 	});
 	const isGenerating = generatingState.length > 0;
 
-	if (isLoading || isGenerating) {
+	if ((isLoading || isGenerating) && !schedules) {
 		return <ShiftCountsSkeleton />;
 	}
 

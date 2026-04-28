@@ -21,7 +21,7 @@ export function RosterTable({
 	editable = false,
 	initialSchedules,
 }: RosterTableProps) {
-	const { schedules, isFetching } = useScheduleInit(initialSchedules);
+	const { schedules, isLoading, isFetching } = useScheduleInit(initialSchedules);
 	const searchParams = useSearchParams();
 	const qParam = searchParams.get("q") ?? "";
 
@@ -45,7 +45,7 @@ export function RosterTable({
 
 	const dailyShiftCounts = schedules?.dailyShiftCounts ?? {};
 
-	if ((isFetching && !nurseRows?.length) || isGenerating) {
+	if ((isLoading || isGenerating) && !schedules?.nurseRows?.length) {
 		return <RosterTableSkeleton />;
 	}
 
@@ -55,7 +55,7 @@ export function RosterTable({
 
 	return (
 		<div className="flex flex-col gap-4">
-			<div className="relative flex h-[calc(100vh-98px)] animate-fade-in flex-col overflow-hidden rounded-2xl border border-slate-200/60 bg-white/80 shadow-[0_8px_30px_rgb(0,0,0,0.04)] backdrop-blur-sm">
+			<div className="relative flex h-[calc(100vh-98px)] flex-col overflow-hidden rounded-2xl border border-slate-200/60 bg-white/80 shadow-[0_8px_30px_rgb(0,0,0,0.04)] backdrop-blur-sm">
 				<div className="scrollbar-hide min-h-0 flex-1 overflow-auto">
 					<table
 						data-testid="roster-table"

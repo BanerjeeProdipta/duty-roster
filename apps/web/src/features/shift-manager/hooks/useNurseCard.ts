@@ -23,6 +23,7 @@ export function useNurseCard({ nurse, totalDays }: UseNurseCardOptions) {
 			...nurse,
 			off: Math.max(0, totalDays - nurse.morning - nurse.evening - nurse.night),
 		});
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [
 		nurse.nurseId,
 		nurse.name,
@@ -31,7 +32,6 @@ export function useNurseCard({ nurse, totalDays }: UseNurseCardOptions) {
 		nurse.night,
 		nurse.active,
 		totalDays,
-		nurse,
 	]);
 
 	const updatePrefsMutation = useUpdatePreferences();

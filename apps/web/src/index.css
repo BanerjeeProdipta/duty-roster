@@ -1,4 +1,5 @@
 @import "@Duty-Roster/ui/globals.css";
+@import "sonner/dist/styles.css";
 
 @layer utilities {
 	.scrollbar-hide::-webkit-scrollbar {

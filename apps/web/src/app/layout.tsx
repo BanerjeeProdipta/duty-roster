@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Noto_Sans_Bengali, Poppins } from "next/font/google";
 
 import "../index.css";
+import ToasterWrapper from "@/components/ToasterWrapper";
 import Header from "@/components/navbar/header";
 import Providers from "@/components/provider";
 import ServiceWorkerRegistration from "@/components/service-worker";
@@ -70,6 +71,7 @@ export default function RootLayout({
 						<main className="flex-1 p-4 lg:px-20 lg:py-6">{children}</main>
 					</div>
 				</Providers>
+				<ToasterWrapper />
 			</body>
 		</html>
 	);
