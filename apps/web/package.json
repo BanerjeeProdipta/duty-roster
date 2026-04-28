@@ -6,7 +6,7 @@
 		"dev": "next dev --port 3001",
 		"build": "next build",
 		"build:cf": "bunx @cloudflare/next-on-pages -o .cloudflare",
-		"deploy": "bunx wrangler pages deploy .cloudflare --project-name=duty-roster --account-id bd9bb5ff93ae67f993cd3123e1eb02ec"
+		"deploy": "bunx wrangler pages deploy .cloudflare --project-name=duty-roster"
 	},
 	"dependencies": {
 		"@Duty-Roster/api": "workspace:*",
