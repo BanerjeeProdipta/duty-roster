@@ -38,15 +38,6 @@ export function loadEnv(options: LoadEnvOptions = {}) {
 	for (const envFile of envFiles) {
 		dotenv.config({ path: envFile, override: true, quiet: true });
 	}
-
-	// Also check root .env if we're in a subdirectory (for monorepo setups)
-	if (baseDir.includes("/apps/") || baseDir.includes("/packages/")) {
-		const rootDir = path.resolve(baseDir, "../..");
-		const rootEnvPath = path.resolve(rootDir, ".env");
-		if (rootEnvPath) {
-			dotenv.config({ path: rootEnvPath, override: false, quiet: true }); // Root env has lower priority
-		}
-	}
 }
 
 /**
@@ -72,30 +63,30 @@ export function loadWorkerEnv() {
  * Loads .env files before any validation occurs.
  */
 export function initWebEnv() {
-	const webDir = path.resolve(__dirname, "../../apps/web");
-	loadEnv({ baseDir: webDir, mode: process.env.NODE_ENV as any });
+	const rootDir = path.resolve(__dirname, "../../..");
+	loadEnv({ baseDir: rootDir, mode: process.env.NODE_ENV as any });
 }
 
 /**
  * Initialize environment for server (Hono/Cloudflare) applications.
  */
 export function initServerEnv() {
-	const serverDir = path.resolve(__dirname, "../../apps/server");
-	loadEnv({ baseDir: serverDir, mode: process.env.NODE_ENV as any });
+	const rootDir = path.resolve(__dirname, "../../..");
+	loadEnv({ baseDir: rootDir, mode: process.env.NODE_ENV as any });
 }
 
 /**
  * Initialize environment for database package.
  */
 export function initDbEnv() {
-	const dbDir = path.resolve(__dirname, "../../packages/db");
-	loadEnv({ baseDir: dbDir, mode: process.env.NODE_ENV as any });
+	const rootDir = path.resolve(__dirname, "../../..");
+	loadEnv({ baseDir: rootDir, mode: process.env.NODE_ENV as any });
 }
 
 /**
  * Initialize environment for auth package.
  */
 export function initAuthEnv() {
-	const authDir = path.resolve(__dirname, "../../packages/auth");
-	loadEnv({ baseDir: authDir, mode: process.env.NODE_ENV as any });
+	const rootDir = path.resolve(__dirname, "../../..");
+	loadEnv({ baseDir: rootDir, mode: process.env.NODE_ENV as any });
 }

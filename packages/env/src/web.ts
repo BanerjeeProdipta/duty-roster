@@ -4,9 +4,11 @@ import { z } from "zod";
 
 initWebEnv();
 
+const DEFAULT_SERVER_URL = "https://duty-roster-server.duty-roster.workers.dev";
+
 export const env = createEnv({
 	client: {
-		NEXT_PUBLIC_SERVER_URL: z.string().url(),
+		NEXT_PUBLIC_SERVER_URL: z.string().url().default(DEFAULT_SERVER_URL),
 	},
 	runtimeEnv: {
 		NEXT_PUBLIC_SERVER_URL: process.env.NEXT_PUBLIC_SERVER_URL,
