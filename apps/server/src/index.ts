@@ -3,6 +3,7 @@ if (typeof process === "undefined") {
 	(globalThis as any).process = { env: {} };
 }
 
+import "@Duty-Roster/env/server";
 import { createContext } from "@Duty-Roster/api/context";
 import { appRouter } from "@Duty-Roster/api/routers/index";
 import { createAuth } from "@Duty-Roster/auth";

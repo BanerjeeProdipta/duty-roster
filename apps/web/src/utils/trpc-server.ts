@@ -1,5 +1,5 @@
 import type { appRouter } from "@Duty-Roster/api";
-import { getRequestContext } from "@cloudflare/next-on-pages";
+import { getOptionalRequestContext } from "@cloudflare/next-on-pages";
 import { createTRPCClient, httpBatchLink } from "@trpc/client";
 import { headers } from "next/headers";
 import { cache } from "react";
@@ -7,7 +7,8 @@ import { cache } from "react";
 const getBaseUrl = () => {
 	// Try to get from Cloudflare Request Context
 	try {
-		const ctx = getRequestContext();
+		const ctx = getOptionalRequestContext();
+		if (!ctx) throw new Error("No Cloudflare request context");
 		const env = ctx.env as Record<string, string>;
 		if (env.NEXT_PUBLIC_SERVER_URL) return env.NEXT_PUBLIC_SERVER_URL;
 	} catch (_e) {

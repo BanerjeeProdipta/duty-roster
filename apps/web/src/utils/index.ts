@@ -113,9 +113,11 @@ export function formatMonth(date: Date | string | number) {
 		throw new Error("Invalid date passed to formatMonth");
 	}
 
-	return d.toLocaleString("default", {
+	// Use a fixed locale so SSR and client hydration render the same label.
+	return d.toLocaleString("en-US", {
 		month: "long",
 		year: "numeric",
+		timeZone: "UTC",
 	});
 }
 

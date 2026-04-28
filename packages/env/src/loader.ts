@@ -60,11 +60,15 @@ export function loadWorkerEnv() {
 
 /**
  * Initialize environment for web (Next.js) applications.
- * Loads .env files before any validation occurs.
+ * Loads from root .env first, then app-specific .env.<mode> overrides.
  */
 export function initWebEnv() {
 	const rootDir = path.resolve(__dirname, "../../..");
-	loadEnv({ baseDir: rootDir, mode: process.env.NODE_ENV as any });
+	const webDir = path.resolve(rootDir, "apps/web");
+	const mode = (process.env.NODE_ENV as any) ?? "production";
+
+	loadEnv({ baseDir: rootDir, mode });
+	loadEnv({ baseDir: webDir, mode });
 }
 
 /**
@@ -72,7 +76,11 @@ export function initWebEnv() {
  */
 export function initServerEnv() {
 	const rootDir = path.resolve(__dirname, "../../..");
-	loadEnv({ baseDir: rootDir, mode: process.env.NODE_ENV as any });
+	const serverDir = path.resolve(rootDir, "apps/server");
+	const mode = (process.env.NODE_ENV as any) ?? "production";
+
+	loadEnv({ baseDir: rootDir, mode });
+	loadEnv({ baseDir: serverDir, mode });
 }
 
 /**

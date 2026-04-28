@@ -13,11 +13,18 @@ export async function createContextFromHeaders(
 	headers: Headers,
 ): Promise<Context> {
 	try {
+		const hasCookie = headers.has("cookie");
+		if (!hasCookie) {
+			return {
+				auth: null,
+				session: null,
+			};
+		}
+
 		const { auth } = await import("@Duty-Roster/auth");
 		const session = await auth.api.getSession({ headers });
 
 		if (!session) {
-			const hasCookie = headers.has("cookie");
 			console.warn(
 				`tRPC Context (Headers): No session found. (Cookie present: ${hasCookie})`,
 			);
@@ -40,6 +47,14 @@ export async function createContextFromRequest(
 	request: Request,
 ): Promise<Context> {
 	try {
+		const hasCookie = request.headers.has("cookie");
+		if (!hasCookie) {
+			return {
+				auth: null,
+				session: null,
+			};
+		}
+
 		const { auth } = await import("@Duty-Roster/auth");
 		const session = await auth.api.getSession({
 			query: Object.fromEntries(new URL(request.url).searchParams),
@@ -47,7 +62,6 @@ export async function createContextFromRequest(
 		});
 
 		if (!session) {
-			const hasCookie = request.headers.has("cookie");
 			console.warn(
 				`tRPC Context (Request): No session found for ${request.url}. (Cookie present: ${hasCookie})`,
 			);

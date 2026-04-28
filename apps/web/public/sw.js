@@ -1,7 +1,6 @@
 const CACHE_NAME = 'duty-roster-v1';
 const STATIC_ASSETS = [
   '/',
-  '/dashboard',
   '/manifest.webmanifest',
   '/favicon/web-app-manifest-192x192.png',
   '/favicon/web-app-manifest-512x512.png',
@@ -26,6 +25,10 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
+  const url = new URL(event.request.url);
+  if (url.pathname.startsWith('/_next/') || url.pathname.startsWith('/api/')) {
+    return;
+  }
   
   event.respondWith(
     caches.match(event.request).then((cached) => {
@@ -33,7 +36,9 @@ self.addEventListener('fetch', (event) => {
         .then((response) => {
           const clone = response.clone();
           if (response.ok) {
-            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+            caches.open(CACHE_NAME)
+              .then((cache) => cache.put(event.request, clone))
+              .catch(() => undefined);
           }
           return response;
         })

@@ -1,5 +1,8 @@
 // import "dotenv/config";
+import { initAuthEnv } from "@Duty-Roster/env/loader";
 import { z } from "zod";
+
+initAuthEnv();
 
 const authEnvSchema = z.object({
 	BETTER_AUTH_SECRET: z
