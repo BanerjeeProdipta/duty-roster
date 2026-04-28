@@ -2,10 +2,10 @@ import type { Metadata } from "next";
 import { Noto_Sans_Bengali, Poppins } from "next/font/google";
 
 import "../index.css";
-import ToasterWrapper from "@/components/ToasterWrapper";
 import Header from "@/components/navbar/header";
 import Providers from "@/components/provider";
 import ServiceWorkerRegistration from "@/components/service-worker";
+import ToasterWrapper from "@/components/ToasterWrapper";
 
 const poppins = Poppins({
 	variable: "--font-poppins",

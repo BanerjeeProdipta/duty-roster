@@ -520,14 +520,17 @@ function recordShift(
 			profile.needsSecondNight = true;
 		}
 		// After 2 consecutive nights, enforce cooldown
-		if (profile.consecutiveNights >= ROSTER_CONFIG.CONSTRAINTS.MAX_CONSECUTIVE_NIGHTS) {
+		if (
+			profile.consecutiveNights >=
+			ROSTER_CONFIG.CONSTRAINTS.MAX_CONSECUTIVE_NIGHTS
+		) {
 			profile.nightShiftCooldown = 1;
 			profile.needsSecondNight = false;
 		}
 	} else {
 		profile.consecutiveNights = 0;
 		// If nurse had 1 night but got different shift, reset flag
-		if (profile.needsSecondNight && shiftType !== "night") {
+		if (profile.needsSecondNight) {
 			profile.needsSecondNight = false;
 		}
 	}

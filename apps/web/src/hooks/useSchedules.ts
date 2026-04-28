@@ -1,7 +1,7 @@
 "use client";
 
 import type { SchedulesResponse } from "@Duty-Roster/api";
-import { useQuery, keepPreviousData } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { QUERY_KEYS } from "@/utils/query-keys";
 import { trpcClient } from "@/utils/trpc";
 import { useYearMonth } from "./useYearMonth";

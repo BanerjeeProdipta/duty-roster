@@ -68,7 +68,7 @@ const fastHasher = {
 			const currentHash = new Uint8Array(hashBuffer);
 			if (currentHash.length !== originalHash.length) return false;
 			return currentHash.every((b, i) => b === originalHash[i]);
-		} catch (e) {
+		} catch (_e) {
 			return false;
 		}
 	},

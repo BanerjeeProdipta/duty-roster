@@ -5,7 +5,7 @@ if (typeof process === "undefined") {
 
 import { createContext } from "@Duty-Roster/api/context";
 import { appRouter } from "@Duty-Roster/api/routers/index";
-import { auth, createAuth } from "@Duty-Roster/auth";
+import { createAuth } from "@Duty-Roster/auth";
 import { trpcServer } from "@hono/trpc-server";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
