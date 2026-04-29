@@ -5,7 +5,7 @@
 	"scripts": {
 		"dev": "next dev --port 3001",
 		"build": "next build",
-		"build:cf": "PATH=./scripts:./node_modules/.bin:../../node_modules/.bin:$PATH npm_config_user_agent=npm/10.0.0 ../../node_modules/.bin/next-on-pages -o .cloudflare",
+		"build:cf": "npm_config_user_agent=npm/10.0.0 npx @cloudflare/next-on-pages -o .cloudflare",
 		"deploy": "bunx wrangler pages deploy .cloudflare --project-name=duty-roster"
 	},
 	"dependencies": {
