@@ -265,8 +265,8 @@ export async function upsertNurseShiftPreferences(
 		.onConflictDoUpdate({
 			target: [nurseShiftPreference.nurseId, nurseShiftPreference.shiftId],
 			set: {
-				weight: sql`excluded.weight`,
-				active: sql`excluded.active`,
+				weight: sql`EXCLUDED.weight`,
+				active: sql`EXCLUDED.active`,
 			},
 		});
 }

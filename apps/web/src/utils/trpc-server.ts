@@ -1,4 +1,4 @@
-import type { appRouter } from "@Duty-Roster/api";
+import type { AppRouter } from "@Duty-Roster/api";
 import { getOptionalRequestContext } from "@cloudflare/next-on-pages";
 import { createTRPCClient, httpBatchLink } from "@trpc/client";
 import { headers } from "next/headers";
@@ -28,7 +28,7 @@ const getBaseUrl = () => {
 const getClient = cache(() => {
 	const url = getBaseUrl();
 	console.log("tRPC Client URL:", url);
-	return createTRPCClient<typeof appRouter>({
+	return createTRPCClient<AppRouter>({
 		links: [
 			httpBatchLink({
 				url: `${url}/trpc`,

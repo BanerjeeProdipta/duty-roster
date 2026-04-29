@@ -3,7 +3,8 @@ import "regenerator-runtime";
 import fontkit from "@pdf-lib/fontkit";
 import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 import { z } from "zod";
-import { protectedProcedure, publicProcedure, router } from "../../trpc";
+
+import { protectedProcedure, publicProcedure, router } from "../trpc";
 import { schedulesResponseSchema, shiftSchema } from "./schema";
 import * as rosterService from "./service";
 
