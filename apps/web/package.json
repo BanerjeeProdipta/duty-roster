@@ -23,10 +23,10 @@
 		"better-auth": "catalog:",
 		"dotenv": "catalog:",
 		"lucide-react": "catalog:",
-		"next": "15.1.0",
+		"next": "^15.1.0",
 		"next-themes": "catalog:",
-		"react": "19.0.0",
-		"react-dom": "19.0.0",
+		"react": "^19.0.0",
+		"react-dom": "^19.0.0",
 		"sonner": "catalog:",
 		"zod": "catalog:",
 		"zustand": "^5.0.3"

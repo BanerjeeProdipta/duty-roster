@@ -4,6 +4,6 @@ export default {
 	outDir: "./dist",
 	clean: true,
 	deps: {
-		alwaysBundle: [/.*/],
+		alwaysBundle: ["**/*"],
 	},
 };
