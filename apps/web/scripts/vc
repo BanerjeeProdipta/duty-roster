@@ -1,0 +1,23 @@
+#!/usr/bin/env node
+
+const { spawnSync } = require("node:child_process");
+const { join } = require("node:path");
+
+const vercelBin = join(
+	__dirname,
+	"..",
+	"..",
+	"..",
+	"node_modules",
+	".bun",
+	"vercel@47.0.4+8f6baf3214555130",
+	"node_modules",
+	"vercel",
+	"dist",
+	"vc.js",
+);
+const result = spawnSync(process.execPath, [vercelBin, ...process.argv.slice(2)], {
+	stdio: "inherit",
+});
+
+process.exit(result.status ?? 0);
