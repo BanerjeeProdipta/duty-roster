@@ -5,18 +5,32 @@ import { cn } from "@Duty-Roster/ui/lib/utils";
 import { Menu, X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
-import { PATHS } from "@/config/paths";
-import { useNavLinks } from "@/hooks/useNavLinks";
+import { ADMIN_PATHS, PATHS } from "@/config/paths";
 import { authClient } from "@/lib/auth-client";
+
+const PUBLIC_LINKS = [
+	{ to: PATHS.HOME, label: "Home" },
+	{ to: PATHS.ROSTER, label: "Roster" },
+] as const;
+
+const ADMIN_LINKS = [
+	{ to: PATHS.DASHBOARD, label: "Dashboard" },
+	{ to: PATHS.MANAGE_USERS, label: "Manage" },
+] as const;
 
 export default function Header() {
 	const router = useRouter();
+	const pathname = usePathname();
 	const [isMenuOpen, setIsMenuOpen] = useState(false);
 	const { data: session, isPending } = authClient.useSession();
-	const { links, pathname } = useNavLinks();
+	const isAdminPath = ADMIN_PATHS.some((p) => pathname.startsWith(p));
+
+	const links = session?.user
+		? [...PUBLIC_LINKS, ...(isAdminPath ? ADMIN_LINKS : [])]
+		: PUBLIC_LINKS;
 
 	const handleSignOut = async () => {
 		await authClient.signOut();
