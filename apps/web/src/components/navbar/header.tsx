@@ -8,18 +8,13 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
-import { ADMIN_PATHS, PATHS } from "@/config/paths";
+import {
+	ADMIN_NAV_LINKS,
+	ADMIN_PATHS,
+	PATHS,
+	PUBLIC_NAV_LINKS,
+} from "@/config/paths";
 import { authClient } from "@/lib/auth-client";
-
-const PUBLIC_LINKS = [
-	{ to: PATHS.HOME, label: "Home" },
-	{ to: PATHS.ROSTER, label: "Roster" },
-] as const;
-
-const ADMIN_LINKS = [
-	{ to: PATHS.DASHBOARD, label: "Dashboard" },
-	{ to: PATHS.MANAGE_USERS, label: "Manage" },
-] as const;
 
 export default function Header() {
 	const router = useRouter();
@@ -29,8 +24,8 @@ export default function Header() {
 	const isAdminPath = ADMIN_PATHS.some((p) => pathname.startsWith(p));
 
 	const links = session?.user
-		? [...PUBLIC_LINKS, ...(isAdminPath ? ADMIN_LINKS : [])]
-		: PUBLIC_LINKS;
+		? [...PUBLIC_NAV_LINKS, ...(isAdminPath ? ADMIN_NAV_LINKS : [])]
+		: PUBLIC_NAV_LINKS;
 
 	const handleSignOut = async () => {
 		await authClient.signOut();
