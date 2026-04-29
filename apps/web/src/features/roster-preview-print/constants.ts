@@ -2,7 +2,7 @@
 export const NURSES_PER_PAGE = 15;
 export const PAGE_WIDTH = "297mm";
 export const PAGE_HEIGHT = "210mm"; // A4 landscape
-export const PAGE_PADDING = "4mm 6mm";
+export const PAGE_PADDING = "8mm 10mm";
 
 // Shift letter abbreviations
 export const SHIFT_LETTER_MAP = {
@@ -70,6 +70,7 @@ export const PRINT_STYLES = `
       margin: 0;
       padding: 0;
       page-break-inside: avoid;
+      margin-bottom: 6mm;
     }
     
     table { 
@@ -102,6 +103,8 @@ export const PRINT_STYLES = `
       padding: 1px;
       margin: 0;
       height: 24px;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
     }
     
     th {

@@ -18,8 +18,8 @@ export function NurseCard({ nurse, totalDays }: NurseCardProps) {
 		sum,
 		isInvalid,
 		hasChanged,
-		isSaving,
-		isUpdatingActive,
+		isSavingPending,
+		isToggleActivePending,
 		handleFieldChange,
 		handleSave,
 		handleToggleActive,
@@ -38,7 +38,7 @@ export function NurseCard({ nurse, totalDays }: NurseCardProps) {
 						<ActiveToggle
 							name={nurse.name}
 							active={draft.active}
-							loading={isUpdatingActive}
+							loading={isToggleActivePending}
 							onToggle={handleToggleActive}
 						/>
 					</div>
@@ -55,7 +55,7 @@ export function NurseCard({ nurse, totalDays }: NurseCardProps) {
 				<div className="flex flex-wrap items-center gap-2">
 					{hasChanged && (
 						<SaveButton
-							loading={isSaving}
+							loading={isSavingPending}
 							disabled={!draft.active}
 							onClick={handleSave}
 						/>

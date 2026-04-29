@@ -21,6 +21,7 @@ export default function Header() {
 		...(session?.user
 			? [
 					{ to: "/dashboard", label: "Dashboard" },
+					{ to: "/roster", label: "Roster" },
 					{ to: "/manage-users", label: "Manage" },
 				]
 			: []),
@@ -61,7 +62,7 @@ export default function Header() {
 								className={cn(
 									"px-3 py-1.5 font-medium text-sm transition-colors",
 									isActive
-										? "text-foreground"
+										? "text-foreground underline underline-offset-4"
 										: "text-muted-foreground hover:text-foreground",
 								)}
 							>
