@@ -45,7 +45,6 @@
 	},
 	"dependencies": {
 		"@Duty-Roster/env": "workspace:*",
-		"@pdf-lib/fontkit": "^1.1.1",
 		"@trpc/tanstack-react-query": "^11.16.0",
 		"dotenv": "catalog:",
 		"exceljs": "^4.4.0",

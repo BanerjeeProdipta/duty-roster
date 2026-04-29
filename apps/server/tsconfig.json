@@ -9,7 +9,10 @@
 			"@Duty-Roster/api": ["../../packages/api/src"],
 			"@Duty-Roster/api/*": ["../../packages/api/src/*"],
 			"@Duty-Roster/auth": ["../../packages/auth/src"],
+			"@Duty-Roster/auth/*": ["../../packages/auth/src/*"],
 			"@Duty-Roster/db": ["../../packages/db/src"],
+			"@Duty-Roster/db/*": ["../../packages/db/src/*"],
+			"@Duty-Roster/env": ["../../packages/env/src"],
 			"@Duty-Roster/env/*": ["../../packages/env/src/*"]
 		},
 		"jsx": "react-jsx",
