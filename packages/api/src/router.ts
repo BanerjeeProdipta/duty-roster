@@ -12,6 +12,12 @@ export const appRouter = router({
 			user: session?.user ?? null,
 		};
 	}),
+	getCurrentUser: protectedProcedure.query(({ ctx }) => {
+		const session = ctx.session as {
+			user: { id: string; name?: string; email?: string; role?: string };
+		} | null;
+		return session?.user ?? null;
+	}),
 	roster: rosterRouter,
 });
 

@@ -5,31 +5,24 @@ import { cn } from "@Duty-Roster/ui/lib/utils";
 import { Menu, X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
+import { PATHS } from "@/config/paths";
+import { useNavLinks } from "@/hooks/useNavLinks";
 import { authClient } from "@/lib/auth-client";
 
 export default function Header() {
-	const pathname = usePathname();
 	const router = useRouter();
 	const [isMenuOpen, setIsMenuOpen] = useState(false);
 	const { data: session, isPending } = authClient.useSession();
-
-	const links = [
-		{ to: "/", label: "Home" },
-		...(session?.user
-			? [
-					{ to: "/dashboard", label: "Dashboard" },
-					{ to: "/roster", label: "Roster" },
-					{ to: "/manage-users", label: "Manage" },
-				]
-			: []),
-	] as const;
+	const { links, pathname } = useNavLinks();
 
 	const handleSignOut = async () => {
 		await authClient.signOut();
-		router.push("/");
+		document.cookie =
+			"user-role=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/";
+		router.push(PATHS.HOME);
 		router.refresh();
 		toast.success("Signed out successfully");
 	};
@@ -37,7 +30,7 @@ export default function Header() {
 	return (
 		<header className="sticky top-0 z-[100] w-full border-border/50 border-b bg-white backdrop-blur-md dark:bg-slate-950/80">
 			<div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6">
-				<Link href="/" className="flex h-10 w-10 items-center">
+				<Link href={PATHS.HOME} className="flex h-10 w-10 items-center">
 					<Image
 						src="/logo.png"
 						alt="logo"
@@ -82,7 +75,7 @@ export default function Header() {
 						) : (
 							<Button
 								variant="secondary"
-								onClick={() => router.push("/auth")}
+								onClick={() => router.push(PATHS.AUTH)}
 								className="ml-1"
 							>
 								Sign In
@@ -141,7 +134,7 @@ export default function Header() {
 									variant="ghost"
 									className="mt-2 w-full justify-start"
 									onClick={() => {
-										router.push("/auth");
+										router.push(PATHS.AUTH);
 										setIsMenuOpen(false);
 									}}
 								>

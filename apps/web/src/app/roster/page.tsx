@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { RosterPDFViewer } from "@/features/roster-preview-print";
 import { RosterPrintSkeleton } from "@/features/roster-preview-print/components/RosterPrintSkeleton";
 import { getMonthDateRange, getYearMonthFromSearchParams } from "@/utils";
-import { getAuthedTRPCServer } from "@/utils/trpc-server";
+import { getTRPCServer } from "@/utils/trpc-server";
 
 export const revalidate = 0;
 export const runtime = "edge";
@@ -14,7 +14,7 @@ async function RosterContent(props: {
 		props.searchParams,
 	);
 
-	const trpcServer = await getAuthedTRPCServer();
+	const trpcServer = await getTRPCServer();
 	const { startDate, endDate } = getMonthDateRange(year, month);
 	const initialSchedules = await trpcServer.roster.getSchedules.query({
 		startDate,

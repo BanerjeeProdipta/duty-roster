@@ -1,8 +1,5 @@
-import "regenerator-runtime";
-// import * as fs from "node:fs";
 import { z } from "zod";
-
-import { protectedProcedure, publicProcedure, router } from "../trpc";
+import { adminProcedure, publicProcedure, router } from "../trpc";
 import { schedulesResponseSchema, shiftSchema } from "./schema";
 import * as rosterService from "./service";
 
@@ -35,7 +32,7 @@ export const rosterRouter = router({
 
 	// ─────────────── WRITES ───────────────
 
-	generateRoster: publicProcedure
+	generateRoster: adminProcedure
 		.input(
 			z.object({
 				year: z.number().int().min(2000).max(2100),
@@ -44,7 +41,7 @@ export const rosterRouter = router({
 		)
 		.mutation(({ input }) => rosterService.generateRoster(input)),
 
-	updateNurseShiftPreferences: protectedProcedure
+	updateNurseShiftPreferences: adminProcedure
 		.input(
 			z.object({
 				preferences: z.array(
@@ -65,7 +62,7 @@ export const rosterRouter = router({
 			),
 		),
 
-	updateShift: protectedProcedure
+	updateShift: adminProcedure
 		.input(
 			z.object({
 				id: z.string(),

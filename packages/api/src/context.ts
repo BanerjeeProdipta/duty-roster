@@ -9,6 +9,29 @@ export type CreateContextOptions = {
 	context: HonoContext;
 };
 
+async function getSessionWithRole(headers: Headers) {
+	const { auth } = await import("@Duty-Roster/auth");
+	const session = await auth.api.getSession({ headers });
+
+	if (!session?.user?.id) {
+		return session;
+	}
+
+	const { createDb } = await import("@Duty-Roster/db");
+	const db = createDb();
+	const user = await db.query.user.findFirst({
+		where: (users, { eq }) => eq(users.id, session.user.id),
+	});
+
+	return {
+		...session,
+		user: {
+			...session.user,
+			role: user?.role || "user",
+		},
+	};
+}
+
 export async function createContextFromHeaders(
 	headers: Headers,
 ): Promise<Context> {
@@ -21,8 +44,7 @@ export async function createContextFromHeaders(
 			};
 		}
 
-		const { auth } = await import("@Duty-Roster/auth");
-		const session = await auth.api.getSession({ headers });
+		const session = await getSessionWithRole(headers);
 
 		if (!session) {
 			console.warn(
@@ -55,11 +77,7 @@ export async function createContextFromRequest(
 			};
 		}
 
-		const { auth } = await import("@Duty-Roster/auth");
-		const session = await auth.api.getSession({
-			query: Object.fromEntries(new URL(request.url).searchParams),
-			headers: request.headers,
-		});
+		const session = await getSessionWithRole(request.headers);
 
 		if (!session) {
 			console.warn(
