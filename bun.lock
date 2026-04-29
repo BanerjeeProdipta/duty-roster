@@ -84,6 +84,7 @@
         "@types/react": "^19.2.10",
         "@types/react-dom": "catalog:",
         "tailwindcss": "^4.1.18",
+        "vercel": "47.0.4",
         "typescript": "^5",
       },
     },

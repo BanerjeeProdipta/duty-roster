@@ -105,7 +105,7 @@ Duty-Roster/
 bun run deploy:web
 ```
 
-This runs `build:cf` (Cloudflare build) then deploys to Cloudflare Pages.
+This runs the web app's Cloudflare Pages build in `apps/web`, then deploys the generated `.cloudflare` output.
 
 ### Server (Cloudflare Workers)
 ```bash
@@ -116,7 +116,7 @@ bun run deploy:server
 
 - `bun run dev`: Start all applications in development mode
 - `bun run build`: Build all applications
-- `bun run build:cf`: Build web app for Cloudflare Pages
+- `bun run build:cf`: Run Cloudflare builds for packages that define them, including `apps/web` and `apps/server`
 - `bun run deploy:web`: Deploy web app to Cloudflare Pages
 - `bun run deploy:server`: Deploy server to Cloudflare Workers
 - `bun run dev:web`: Start only the web application
