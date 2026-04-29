@@ -40,12 +40,12 @@ export async function middleware(request: NextRequest) {
 	const isAdminPath = ADMIN_PATHS.some((path) => pathname.startsWith(path));
 
 	if (pathname.startsWith(PATHS.AUTH)) {
-		if (!sessionCookie) {
-			return NextResponse.redirect(new URL(PATHS.HOME, request.url));
+		if (sessionCookie) {
+			const role = await getRole(request);
+			const destination = role === "admin" ? PATHS.DASHBOARD : PATHS.HOME;
+			return NextResponse.redirect(new URL(destination, request.url));
 		}
-		const role = await getRole(request);
-		const destination = role === "admin" ? PATHS.DASHBOARD : PATHS.HOME;
-		return NextResponse.redirect(new URL(destination, request.url));
+		return NextResponse.next();
 	}
 
 	if (!sessionCookie && isAdminPath) {
