@@ -103,7 +103,16 @@ export function createAuth(options?: { baseURL?: string }) {
 			minPasswordLength: 1,
 			password: fastHasher,
 		},
-		user: {},
+		user: {
+			additionalFields: {
+				role: {
+					type: "string",
+					required: false,
+					input: false,
+					defaultValue: "user",
+				},
+			},
+		},
 		secret: env.BETTER_AUTH_SECRET,
 		baseURL: options?.baseURL || env.BETTER_AUTH_URL,
 		advanced: {
