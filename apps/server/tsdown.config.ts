@@ -3,5 +3,7 @@ export default {
 	format: "esm",
 	outDir: "./dist",
 	clean: true,
-	noExternal: [/@Duty-Roster\/.*/],
+	deps: {
+		alwaysBundle: [/@Duty-Roster\/.*/],
+	},
 };
