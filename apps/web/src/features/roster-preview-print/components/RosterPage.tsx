@@ -15,7 +15,7 @@ export function RosterPage({
 		>
 			{/* Header */}
 			<div
-				className="roster-header relative mb-2 text-center"
+				className="roster-header relative mb-4 text-center"
 				style={{ flexShrink: 0 }}
 			>
 				<div
@@ -53,7 +53,7 @@ export function RosterPage({
 					}}
 				>
 					<thead>
-						<tr style={{ height: "24px" }}>
+						<tr style={{ height: "20px" }}>
 							<th
 								className="border border-slate-400 bg-slate-300 px-1 py-1 text-left font-bold"
 								style={{
@@ -75,7 +75,7 @@ export function RosterPage({
 										maxWidth: "20px",
 										fontSize: "9px",
 										padding: "2px 0",
-										height: "24px",
+										height: "20px",
 									}}
 								>
 									<div style={{ lineHeight: "1" }}>{d.dayName}</div>
@@ -91,7 +91,7 @@ export function RosterPage({
 
 							return (
 								// biome-ignore lint/suspicious/noArrayIndexKey: nurse name alone is not guaranteed unique; composite key with idx is safest
-								<tr key={`row-${name}-${idx}`} style={{ height: "24px" }}>
+								<tr key={`row-${name}-${idx}`} style={{ height: "20px" }}>
 									<td
 										className={`border border-slate-300 px-1 py-0.5 font-medium ${bgClass}`}
 										style={{
@@ -103,7 +103,7 @@ export function RosterPage({
 											overflow: "hidden",
 											textOverflow: "ellipsis",
 											maxWidth: "60px",
-											height: "24px",
+											height: "20px",
 											paddingLeft: "6px",
 										}}
 									>
@@ -121,7 +121,7 @@ export function RosterPage({
 													maxWidth: "20px",
 													fontSize: "11px",
 													padding: "1px 0",
-													height: "24px",
+													height: "20px",
 												}}
 											>
 												{nurse[cellKey] ?? ""}
@@ -142,10 +142,10 @@ export function RosterPage({
 
 							return (
 								// biome-ignore lint/suspicious/noArrayIndexKey: filler rows are anonymous placeholders with no identity
-								<tr key={`filler-${fillerIdx}`} style={{ height: "24px" }}>
+								<tr key={`filler-${fillerIdx}`} style={{ height: "20px" }}>
 									<td
 										className={`border border-slate-300 ${bgClass}`}
-										style={{ height: "24px" }}
+										style={{ height: "20px" }}
 									/>
 									{dates.map((d) => (
 										<td
@@ -154,7 +154,7 @@ export function RosterPage({
 											style={{
 												width: "20px",
 												maxWidth: "20px",
-												height: "24px",
+												height: "20px",
 											}}
 										/>
 									))}

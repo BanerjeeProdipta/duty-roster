@@ -1,7 +1,6 @@
-// Schemas & Types
-export * from "./features/roster/schema";
-export type { AppRouter } from "./routers";
-export { appRouter } from "./routers";
+export * from "./roster/schema";
+export type { AppRouter } from "./router";
+export { appRouter } from "./router";
 
 export {
 	createCallerFactory,

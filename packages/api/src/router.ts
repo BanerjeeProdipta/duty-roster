@@ -1,5 +1,5 @@
-import { rosterRouter } from "../features/roster/router";
-import { protectedProcedure, publicProcedure, router } from "../trpc";
+import { rosterRouter } from "./roster";
+import { protectedProcedure, publicProcedure, router } from "./trpc";
 
 export const appRouter = router({
 	healthCheck: publicProcedure.query(() => {
@@ -14,4 +14,5 @@ export const appRouter = router({
 	}),
 	roster: rosterRouter,
 });
+
 export type AppRouter = typeof appRouter;

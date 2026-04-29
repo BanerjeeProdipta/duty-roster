@@ -1,8 +1,8 @@
 import type { Assignment } from "@Duty-Roster/db/types/shift";
+
 import * as rosterDb from "./db";
 import type { SchedulesResponse } from "./schema";
 import {
-	createUTCDate,
 	getDaysCountFromStartAndEndDate,
 	getDaysInMonth,
 	getMonthDateRange,
@@ -98,15 +98,15 @@ function normalizeDateKey(dateStr: string): string {
  *
  * dailyShiftCounts      : Aggregated count of shifts per day across all nurses.
  *                        Used by UI to show today's staffing levels.
- *   - Key: "YYYY-MM-DD" (UTC normalized date)
- *   - Value: { morning, evening, night, total } number of nurses assigned
+ *                        - Key: "YYYY-MM-DD" (UTC normalized date)
+ *                        - Value: { morning, evening, night, total } number of nurses assigned
  *
  * shiftRequirements     : Target staffing levels based on coverage config.
  *                        - Weekdays: 20 morning, 3 evening, 2 night
  *                        - Fridays:  3 morning, 3 evening, 2 night
  *
  * assignedShiftCounts   : Actual total shifts assigned across entire date range.
- *                        Used by UI cards to show "X assigned / Y required"
+ *                        Used in UI cards to show "X assigned / Y required"
  *
  * preferenceCapacity    : Sum of all nurses' preferred shift counts.
  *                        Represents total shift capacity based on preferences.
@@ -519,171 +519,101 @@ function recordShift(
 		if (profile.consecutiveNights === 1) {
 			profile.needsSecondNight = true;
 		}
-		// After 2 consecutive nights, enforce cooldown
-		if (
+		// After 2 nights, start cooldown
+		else if (
 			profile.consecutiveNights >=
 			ROSTER_CONFIG.CONSTRAINTS.MAX_CONSECUTIVE_NIGHTS
 		) {
-			profile.nightShiftCooldown = 1;
 			profile.needsSecondNight = false;
+			profile.nightShiftCooldown = 1;
 		}
 	} else {
+		// Reset night streak if working non-night
 		profile.consecutiveNights = 0;
-		// If nurse had 1 night but got different shift, reset flag
-		if (profile.needsSecondNight) {
-			profile.needsSecondNight = false;
-		}
+		profile.needsSecondNight = false;
 	}
 }
 
-function resetConsecutiveDays(
-	profiles: Map<string, NursePreferenceProfile>,
-	assignedToday: Set<string>,
-): void {
+function resetDailyState(profiles: Map<string, NursePreferenceProfile>): void {
 	for (const profile of profiles.values()) {
-		if (!assignedToday.has(profile.nurseId)) {
-			profile.consecutiveDays = 0;
-			// Decrement night shift cooldown only on days off
-			if (profile.nightShiftCooldown > 0) {
-				profile.nightShiftCooldown--;
+		profile.consecutiveDays = 0;
+
+		// Decrement cooldown if active
+		if (profile.nightShiftCooldown > 0) {
+			profile.nightShiftCooldown--;
+			if (profile.nightShiftCooldown === 0) {
+				profile.consecutiveNights = 0;
+				profile.needsSecondNight = false;
 			}
 		}
 	}
 }
 
-/**
- * Generates perfect roster distribution
- */
-export async function generateRoster(params: GenerateRosterParams) {
-	const { year, month } = params;
-	const daysInMonth = getDaysInMonth(year, month);
+function assignRequiredShifts(
+	year: number,
+	month: number,
+	profiles: Map<string, NursePreferenceProfile>,
+	dayType: DayType,
+	day: number,
+	assignments: Map<string, { shiftType: ShiftType; nurseId: string }[]>,
+) {
+	const coverage = getCoverageForDay(dayType);
+	const isFriday = dayType === "FRIDAY";
+	const assignedToday = new Set<string>();
+
+	const shifts: ShiftType[] = ["morning", "evening", "night"];
+
+	for (const shiftType of shifts) {
+		const required = coverage[shiftType];
+		const eligible = getEligibleNurses(
+			profiles,
+			shiftType,
+			assignedToday,
+			isFriday,
+		);
+		const chosen = eligible.slice(0, required);
+
+		for (const nurse of chosen) {
+			assignedToday.add(nurse.nurseId);
+			recordShift(nurse, shiftType);
+			const dayKey = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+			const list = assignments.get(dayKey) ?? [];
+			list.push({ shiftType, nurseId: nurse.nurseId });
+			assignments.set(dayKey, list);
+		}
+	}
+}
+
+export async function generateRoster({ year, month }: GenerateRosterParams) {
 	const { startDate, endDate } = getMonthDateRange(year, month);
 	const rows = await rosterDb.findSchedulesAndPreferencesByDateRange(
 		startDate,
 		endDate,
 	);
+	const profiles = buildNurseProfiles(rows, getDaysInMonth(year, month));
+	const assignments = new Map<
+		string,
+		{ shiftType: ShiftType; nurseId: string }[]
+	>();
 
-	const profiles = buildNurseProfiles(rows, daysInMonth);
-
-	const schedules: { nurseId: string; shiftId: string | null; date: Date }[] =
-		[];
-
-	// Calculate total preference counts for sorting (highest demand first)
-	const preferenceCounts = { morning: 0, evening: 0, night: 0 };
-	for (const profile of profiles.values()) {
-		if (profile.active) {
-			if (profile.preferences.night > 0) preferenceCounts.night++;
-			if (profile.preferences.morning > 0) preferenceCounts.morning++;
-			if (profile.preferences.evening > 0) preferenceCounts.evening++;
-		}
-	}
-
-	// Sort shifts by flexibility: least flexible first (fewest preferences = harder to fill)
-	const shiftDemand: ShiftType[] = ["night", "morning", "evening"].sort(
-		(a, b) => {
-			return (
-				preferenceCounts[a as keyof typeof preferenceCounts] -
-				preferenceCounts[b as keyof typeof preferenceCounts]
-			);
-		},
-	) as ShiftType[];
-
-	// Process each day of the month
-	for (let day = 1; day <= daysInMonth; day++) {
+	for (let day = 1; day <= getDaysInMonth(year, month); day++) {
 		const dayType = getDayType(year, month, day);
-		const coverage = getCoverageForDay(dayType);
-		const isFriday = dayType === "FRIDAY";
-
-		const assignedToday = new Set<string>();
-
-		// For each shift type (in demand order), assign nurses
-		for (const shiftType of shiftDemand) {
-			const slotsNeeded = coverage[shiftType];
-			let assignedCount = 0;
-
-			// Get eligible nurses, sorted by who needs it most
-			const eligible = getEligibleNurses(
-				profiles,
-				shiftType,
-				assignedToday,
-				isFriday,
-			);
-
-			// Assign until slots filled or no more eligible
-			for (const profile of eligible) {
-				if (assignedToday.has(profile.nurseId)) continue;
-
-				// Final check before assigning
-				if (!canAssignShift(profile, shiftType, isFriday)) continue;
-
-				// Assign this nurse
-				recordShift(profile, shiftType);
-				assignedToday.add(profile.nurseId);
-
-				schedules.push({
-					nurseId: profile.nurseId,
-					shiftId: `shift_${shiftType}`,
-					date: createUTCDate(year, month, day),
-				});
-
-				assignedCount++;
-
-				if (assignedCount >= slotsNeeded) break;
-			}
-		}
-
-		// Reset consecutive days for nurses who didn't work today
-		resetConsecutiveDays(profiles, assignedToday);
+		assignRequiredShifts(year, month, profiles, dayType, day, assignments);
+		resetDailyState(profiles);
 	}
 
-	// Persist the schedules
-	if (schedules.length > 0) {
-		await rosterDb.createSchedules(schedules);
-	}
-
-	// Calculate summary
-	const totalAssigned = { morning: 0, evening: 0, night: 0 };
-	const totalNeeded = { morning: 0, evening: 0, night: 0 };
-
-	for (let d = 1; d <= daysInMonth; d++) {
-		const dt = getDayType(year, month, d);
-		const cov = getCoverageForDay(dt);
-		totalNeeded.morning += cov.morning;
-		totalNeeded.evening += cov.evening;
-		totalNeeded.night += cov.night;
-	}
-
-	for (const profile of profiles.values()) {
-		totalAssigned.morning += profile.assigned.morning;
-		totalAssigned.evening += profile.assigned.evening;
-		totalAssigned.night += profile.assigned.night;
-	}
-
-	// Build response
-	const shiftCounts: Record<string, ShiftCounts> = {};
-	const totalPerNurse: Record<string, number> = {};
-	for (const profile of profiles.values()) {
-		shiftCounts[profile.nurseName] = { ...profile.assigned };
-		totalPerNurse[profile.nurseName] =
-			profile.assigned.morning +
-			profile.assigned.evening +
-			profile.assigned.night;
-	}
-
-	const sortedNurses = Object.entries(totalPerNurse).sort(
-		(a, b) => a[1] - b[1],
+	const schedules = Array.from(assignments.entries()).flatMap(
+		([dateKey, items]) =>
+			items.map((item) => ({
+				nurseId: item.nurseId,
+				shiftId: `shift_${item.shiftType}`,
+				date: new Date(`${dateKey}T00:00:00.000Z`),
+			})),
 	);
 
+	await rosterDb.createSchedules(schedules);
 	return {
-		generated: true,
-		daysInMonth,
-		schedulesCreated: schedules.length,
-		shiftCounts,
-		sortedNurses,
-		summary: {
-			morning: { needed: totalNeeded.morning, assigned: totalAssigned.morning },
-			evening: { needed: totalNeeded.evening, assigned: totalAssigned.evening },
-			night: { needed: totalNeeded.night, assigned: totalAssigned.night },
-		},
+		success: true,
+		scheduledDays: schedules.length,
 	};
 }

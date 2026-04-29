@@ -16,6 +16,9 @@
 			"drizzle-orm": "^0.45.1",
 			"lucide-react": "^0.546.0",
 			"next-themes": "^0.4.6",
+			"next": "15.1.0",
+			"react": "19.0.0",
+			"react-dom": "19.0.0",
 			"sonner": "^2.0.5",
 			"@trpc/tanstack-react-query": "^11.13.4",
 			"@trpc/client": "^11.13.4",
@@ -28,8 +31,8 @@
 	"type": "module",
 	"scripts": {
 		"dev": "turbo dev",
-		"build": "turbo -F web build",
-		"build:cf": "bunx turbo build:cf",
+		"build": "turbo build",
+		"build:cf": "bun install && bunx turbo build:cf",
 		"check-types": "turbo check-types",
 		"dev:web": "turbo -F web dev",
 		"dev:server": "turbo -F server dev",
@@ -38,18 +41,20 @@
 		"db:generate": "turbo -F @Duty-Roster/db db:generate",
 		"db:migrate": "turbo -F @Duty-Roster/db db:migrate",
 		"db:seed": "turbo -F @Duty-Roster/db db:seed",
-		"deploy:server": "turbo -F server deploy",
+		"deploy:server": "cd apps/server && bun run build:cf && bun run deploy",
 		"deploy:web": "cd apps/web && bun run build:cf && bun run deploy",
+		"deploy": "bun install && bun run deploy:server && bun run deploy:web",
 		"check": "biome check --write .",
 		"prepare": "husky"
 	},
 	"dependencies": {
 		"@Duty-Roster/env": "workspace:*",
-		"@pdf-lib/fontkit": "^1.1.1",
 		"@trpc/tanstack-react-query": "^11.16.0",
 		"dotenv": "catalog:",
 		"exceljs": "^4.4.0",
-		"pdf-lib": "^1.17.1",
+		"next": "15.1.0",
+		"react": "19.0.0",
+		"react-dom": "19.0.0",
 		"react-window": "^2.2.7",
 		"regenerator-runtime": "^0.14.1",
 		"zod": "catalog:",
@@ -67,7 +72,7 @@
 	},
 	"lint-staged": {
 		"*.{js,ts,cjs,mjs,d.cts,d.mts,jsx,tsx,json,jsonc}": [
-			"biome check --write ."
+			"biome check --write"
 		]
 	},
 	"packageManager": "bun@1.3.5"

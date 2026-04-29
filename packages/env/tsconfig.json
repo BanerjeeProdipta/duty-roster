@@ -1,3 +1,3 @@
 {
-	"extends": "@Duty-Roster/config/tsconfig.base.json"
+	"extends": "../config/tsconfig.base.json"
 }

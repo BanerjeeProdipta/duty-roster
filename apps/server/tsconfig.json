@@ -1,11 +1,19 @@
 {
-	"extends": "@Duty-Roster/config/tsconfig.base.json",
+	"extends": "../../packages/config/tsconfig.base.json",
 	"compilerOptions": {
 		"composite": true,
 		"outDir": "dist",
 		"baseUrl": ".",
 		"paths": {
-			"@/*": ["./src/*"]
+			"@/*": ["./src/*"],
+			"@Duty-Roster/api": ["../../packages/api/src"],
+			"@Duty-Roster/api/*": ["../../packages/api/src/*"],
+			"@Duty-Roster/auth": ["../../packages/auth/src"],
+			"@Duty-Roster/auth/*": ["../../packages/auth/src/*"],
+			"@Duty-Roster/db": ["../../packages/db/src"],
+			"@Duty-Roster/db/*": ["../../packages/db/src/*"],
+			"@Duty-Roster/env": ["../../packages/env/src"],
+			"@Duty-Roster/env/*": ["../../packages/env/src/*"]
 		},
 		"jsx": "react-jsx",
 		"jsxImportSource": "hono/jsx"

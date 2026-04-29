@@ -1,4 +1,7 @@
-import { useEffect, useState } from "react";
+"use client";
+
+import { useQueryClient } from "@tanstack/react-query";
+import { useCallback, useEffect, useState } from "react";
 import {
 	useUpdateNurseActive,
 	useUpdatePreferences,
@@ -11,19 +14,40 @@ interface UseNurseCardOptions {
 	totalDays: number;
 }
 
-export function useNurseCard({ nurse, totalDays }: UseNurseCardOptions) {
-	// Each card owns its own draft state, initialised from the prop.
-	// This means editing one card never touches another card's state.
-	const [draft, setDraft] = useState<NurseState>(nurse);
-	const [isSaving, setIsSaving] = useState(false);
-	const [isUpdatingActive, setIsUpdatingActive] = useState(false);
+interface UseNurseCardReturn {
+	// State
+	draft: NurseState;
+	sum: number;
+	isInvalid: boolean;
+	hasChanged: boolean;
 
+	// Mutation states
+	isSavingPending: boolean;
+	isSavingError: boolean;
+	isToggleActivePending: boolean;
+	isToggleActiveError: boolean;
+
+	// Handlers
+	handleFieldChange: (field: ShiftField, value: number) => void;
+	handleSave: () => void;
+	handleToggleActive: () => void;
+}
+
+export function useNurseCard({
+	nurse,
+	totalDays,
+}: UseNurseCardOptions): UseNurseCardReturn {
+	const _queryClient = useQueryClient();
+
+	// Local draft state - initialized from prop, updated optimistically
+	const [draft, setDraft] = useState<NurseState>(nurse);
+
+	// Sync draft when nurse prop changes (different nurse or different base values)
 	useEffect(() => {
 		setDraft({
 			...nurse,
 			off: Math.max(0, totalDays - nurse.morning - nurse.evening - nurse.night),
 		});
-		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [
 		nurse.nurseId,
 		nurse.name,
@@ -35,67 +59,96 @@ export function useNurseCard({ nurse, totalDays }: UseNurseCardOptions) {
 		nurse,
 	]);
 
-	const updatePrefsMutation = useUpdatePreferences();
-	const updateActiveMutation = useUpdateNurseActive();
-
+	// Computed values
 	const sum = draft.morning + draft.evening + draft.night + draft.off;
 	const isInvalid = sum !== totalDays;
-	// hasChanged compares against the original prop, not a shared parent map.
 	const hasChanged = nurseHasChanged(nurse, draft);
 
-	function handleFieldChange(field: ShiftField, value: number) {
-		setDraft((prev) => {
-			const next = { ...prev, [field]: value };
-			if (field !== "off") {
-				next.off = Math.max(
-					0,
-					totalDays - next.morning - next.evening - next.night,
-				);
-			}
-			return next;
-		});
-	}
+	// Preference update mutation with optimistic updates
+	const updatePrefsMutation = useUpdatePreferences({
+		onSuccess: () => {
+			// Query invalidation is handled by useUpdatePreferences
+			// Optimistic update already applied via setDraft
+		},
+	});
 
-	async function handleSave() {
-		if (isSaving) return;
-		setIsSaving(true);
-		try {
-			const preferences = convertToPreferences(draft, totalDays);
-			await updatePrefsMutation.mutateAsync({
-				preferences,
-				daysInMonth: totalDays,
+	// Active toggle mutation with optimistic updates
+	const updateActiveMutation = useUpdateNurseActive({
+		onSuccess: () => {
+			// Query invalidation is handled by useUpdateNurseActive
+		},
+	});
+
+	// Field change handler with automatic off calculation
+	const handleFieldChange = useCallback(
+		(field: ShiftField, value: number) => {
+			setDraft((prev) => {
+				const next = { ...prev, [field]: value };
+				if (field !== "off") {
+					next.off = Math.max(
+						0,
+						totalDays - next.morning - next.evening - next.night,
+					);
+				}
+				return next;
 			});
-		} finally {
-			setIsSaving(false);
-		}
-	}
+		},
+		[totalDays],
+	);
 
-	async function handleToggleActive() {
-		if (isUpdatingActive) return;
+	// Save handler - uses mutation's pending state
+	const handleSave = useCallback(() => {
+		if (updatePrefsMutation.isPending) return;
+
+		const preferences = convertToPreferences(draft, totalDays);
+		updatePrefsMutation.mutate({
+			preferences,
+			daysInMonth: totalDays,
+		});
+	}, [draft, totalDays, updatePrefsMutation]);
+
+	// Toggle active handler with optimistic update
+	const handleToggleActive = useCallback(() => {
+		if (updateActiveMutation.isPending) return;
+
 		const nextActive = !draft.active;
-		setIsUpdatingActive(true);
-		try {
-			await updateActiveMutation.mutateAsync({
+
+		// Optimistic update - update local state immediately
+		setDraft((prev) => ({ ...prev, active: nextActive }));
+
+		// Mutate to server
+		updateActiveMutation.mutate(
+			{
 				nurseId: draft.nurseId,
 				active: nextActive,
 				morning: draft.morning,
 				evening: draft.evening,
 				night: draft.night,
 				totalDays,
-			});
-			setDraft((prev) => ({ ...prev, active: nextActive }));
-		} finally {
-			setIsUpdatingActive(false);
-		}
-	}
+			},
+			{
+				// Rollback on error
+				onError: () => {
+					setDraft((prev) => ({ ...prev, active: !nextActive }));
+				},
+			},
+		);
+	}, [draft, totalDays, updateActiveMutation]);
 
 	return {
+		// State
 		draft,
 		sum,
 		isInvalid,
 		hasChanged,
-		isSaving,
-		isUpdatingActive,
+
+		// Mutation states (replacing manual isSaving/isUpdatingActive)
+		isSavingPending: updatePrefsMutation.isPending,
+		isSavingError: updatePrefsMutation.isError,
+		isToggleActivePending: updateActiveMutation.isPending,
+		isToggleActiveError: updateActiveMutation.isError,
+
+		// Handlers
 		handleFieldChange,
 		handleSave,
 		handleToggleActive,

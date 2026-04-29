@@ -1,9 +1,9 @@
-import { defineConfig } from "tsdown";
-
-export default defineConfig({
+export default {
 	entry: "./src/index.ts",
 	format: "esm",
 	outDir: "./dist",
 	clean: true,
-	noExternal: [/@Duty-Roster\/.*/],
-});
+	deps: {
+		alwaysBundle: ["**/*"],
+	},
+};

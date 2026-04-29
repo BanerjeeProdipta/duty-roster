@@ -1,4 +1,4 @@
-import { findSchedulesAndPreferencesByDateRange } from "@Duty-Roster/api/features/roster/db";
+import { findSchedulesAndPreferencesByDateRange } from "@Duty-Roster/api/roster/db";
 
 async function run() {
 	try {
@@ -9,8 +9,11 @@ async function run() {
 		);
 		console.log("DB query finished. Rows:", res.length);
 		if (res.length > 0) {
-			console.log("First row assignments:", res[0].assignments);
-			console.log("Type of assignments:", typeof res[0].assignments);
+			const firstRow = res[0];
+			if (firstRow) {
+				console.log("First row assignments:", firstRow.assignments);
+				console.log("Type of assignments:", typeof firstRow.assignments);
+			}
 		}
 		process.exit(0);
 	} catch (err) {

@@ -29,7 +29,8 @@
 			"!**/convex/_generated",
 			"!**/sw.js",
 			"!**/workbox-*.js",
-			"!**/.cloudflare"
+			"!**/.cloudflare",
+			"!**/.vercel"
 		]
 	},
 	"formatter": {
