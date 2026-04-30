@@ -356,8 +356,17 @@ export function assignRequiredShifts(
 			totalPref += profile.preferences[st];
 		}
 
-		// Total required for the month
-		const totalRequired = coverage[st] * daysInMonth;
+		// Calculate exact total required by counting weekdays and Fridays
+		let totalRequired = 0;
+		for (let d = 1; d <= daysInMonth; d++) {
+			const date = new Date(Date.UTC(year, month - 1, d));
+			const dayType = date.getUTCDay() === 5 ? "FRIDAY" : "WEEKDAY";
+			const cov =
+				dayType === "FRIDAY"
+					? ROSTER_CONFIG.COVERAGE.FRIDAY
+					: ROSTER_CONFIG.COVERAGE.WEEKDAY;
+			totalRequired += cov[st];
+		}
 
 		// Ratio: lower = more constrained = assign first
 		const ratio = totalRequired > 0 ? totalPref / totalRequired : 999;
