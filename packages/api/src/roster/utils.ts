@@ -386,6 +386,50 @@ export function assignRequiredShifts(
 			assignedToday,
 			isFriday,
 		);
+
+		// Debug: count why nurses are not eligible
+		if (eligible.length < required) {
+			const reasons = {
+				assignedToday: 0,
+				inactive: 0,
+				fridayOff: 0,
+				maxShifts: 0,
+				hardConstraint: 0,
+				noPref: 0,
+				consecutiveDays: 0,
+				nightConstraint: 0,
+			};
+			for (const profile of profiles.values()) {
+				if (assignedToday.has(profile.nurseId)) reasons.assignedToday++;
+				else if (!profile.active) reasons.inactive++;
+				else if (isFriday && FRIDAY_OFF_NURSES.includes(profile.nurseId))
+					reasons.fridayOff++;
+				else if (profile.assigned[shiftType] >= profile.maxShifts[shiftType])
+					reasons.maxShifts++;
+				else if (
+					profile.hardConstraintShift &&
+					profile.hardConstraintShift !== shiftType
+				)
+					reasons.hardConstraint++;
+				else if (profile.preferences[shiftType] === 0) reasons.noPref++;
+				else if (
+					profile.consecutiveDays >=
+					ROSTER_CONFIG.CONSTRAINTS.MAX_CONSECUTIVE_DAYS
+				)
+					reasons.consecutiveDays++;
+				else if (
+					shiftType === "night" &&
+					profile.consecutiveNights >=
+						ROSTER_CONFIG.CONSTRAINTS.MAX_CONSECUTIVE_NIGHTS
+				)
+					reasons.nightConstraint++;
+			}
+			console.log(
+				`Day ${day} ${shiftType}: need ${required}, eligible ${eligible.length}, reasons:`,
+				reasons,
+			);
+		}
+
 		const chosen = eligible.slice(0, required);
 
 		for (const nurse of chosen) {
