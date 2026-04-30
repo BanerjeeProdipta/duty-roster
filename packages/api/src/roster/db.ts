@@ -129,13 +129,6 @@ export async function createSchedules(
 	const month = firstSchedule.date.getUTCMonth() + 1;
 	const { startDate, endDate } = getMonthDateRange(year, month);
 
-	const normalizedSchedules = schedules.map((s) => ({
-		id: `schedule_${s.nurseId}_${s.date.toISOString().split("T")[0]}`,
-		nurseId: s.nurseId,
-		shiftId: s.shiftId,
-		date: s.date,
-	}));
-
 	// 1️⃣ Clear the entire month first
 	await db
 		.delete(nurseSchedule)
@@ -146,10 +139,15 @@ export async function createSchedules(
 			),
 		);
 
-	// 2️⃣ Insert in batches
-	const BATCH_SIZE = 100;
-	for (let i = 0; i < normalizedSchedules.length; i += BATCH_SIZE) {
-		const batch = normalizedSchedules.slice(i, i + BATCH_SIZE);
+	// 2️⃣ Insert in batches using Drizzle's batch insert
+	const BATCH_SIZE = 500;
+	for (let i = 0; i < schedules.length; i += BATCH_SIZE) {
+		const batch = schedules.slice(i, i + BATCH_SIZE).map((s) => ({
+			id: `schedule_${s.nurseId}_${s.date.toISOString().split("T")[0]}`,
+			nurseId: s.nurseId,
+			date: s.date,
+			shiftId: s.shiftId,
+		}));
 		await db.insert(nurseSchedule).values(batch);
 	}
 }

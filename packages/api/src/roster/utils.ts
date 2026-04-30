@@ -238,13 +238,41 @@ export function getEligibleNurses(
 	shiftType: ShiftType,
 	assignedToday: Set<string>,
 	isFriday: boolean,
+	activeNurseIds?: Set<string>,
 ): NursePreferenceProfile[] {
 	const eligible: NursePreferenceProfile[] = [];
+	const fridayOff = FRIDAY_OFF_NURSES;
 
 	for (const profile of profiles.values()) {
 		if (assignedToday.has(profile.nurseId)) continue;
 
-		if (!canAssignShift(profile, shiftType, isFriday)) continue;
+		if (!profile.active) continue;
+		if (isFriday && fridayOff.includes(profile.nurseId)) continue;
+
+		const maxShift = profile.maxShifts[shiftType];
+		if (profile.assigned[shiftType] >= maxShift) continue;
+
+		if (
+			profile.hardConstraintShift &&
+			profile.hardConstraintShift !== shiftType
+		)
+			continue;
+
+		if (profile.preferences[shiftType] === 0) continue;
+
+		if (
+			profile.consecutiveDays >= ROSTER_CONFIG.CONSTRAINTS.MAX_CONSECUTIVE_DAYS
+		)
+			continue;
+
+		if (shiftType === "night") {
+			if (
+				profile.consecutiveNights >=
+				ROSTER_CONFIG.CONSTRAINTS.MAX_CONSECUTIVE_NIGHTS
+			)
+				continue;
+			if (profile.nightShiftCooldown > 0) continue;
+		}
 
 		eligible.push(profile);
 	}
