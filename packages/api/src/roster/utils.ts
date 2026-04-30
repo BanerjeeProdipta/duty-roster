@@ -55,7 +55,7 @@ export const ROSTER_CONFIG = {
 		MAX_CONSECUTIVE_DAYS: 6,
 		MIN_DAYS_OFF_PER_WEEK: 1,
 	},
-	ALLOW_OVER_PREFERENCE: 0,
+	ALLOW_OVER_PREFERENCE: 10,
 } as const;
 
 export const FRIDAY_OFF_NURSES: string[] = ["nurse_1_id", "nurse_2_id"];
@@ -233,64 +233,62 @@ export function canAssignShift(
 	return true;
 }
 
+function compareNurses(
+	a: NursePreferenceProfile,
+	b: NursePreferenceProfile,
+	shiftType: ShiftType,
+): number {
+	const totalA = a.assigned.morning + a.assigned.evening + a.assigned.night;
+	const totalB = b.assigned.morning + b.assigned.evening + b.assigned.night;
+	if (totalA !== totalB) return totalA - totalB;
+
+	if (shiftType === "night") {
+		if (a.needsSecondNight && !b.needsSecondNight) return -1;
+		if (!a.needsSecondNight && b.needsSecondNight) return 1;
+	}
+
+	const gapA = a.maxShifts[shiftType] - a.assigned[shiftType];
+	const gapB = b.maxShifts[shiftType] - b.assigned[shiftType];
+	return gapB - gapA;
+}
+
 export function getEligibleNurses(
 	profiles: Map<string, NursePreferenceProfile>,
 	shiftType: ShiftType,
 	assignedToday: Set<string>,
 	isFriday: boolean,
-	activeNurseIds?: Set<string>,
 ): NursePreferenceProfile[] {
 	const eligible: NursePreferenceProfile[] = [];
 	const fridayOff = FRIDAY_OFF_NURSES;
+	const maxConsecutiveDays = ROSTER_CONFIG.CONSTRAINTS.MAX_CONSECUTIVE_DAYS;
+	const maxConsecutiveNights = ROSTER_CONFIG.CONSTRAINTS.MAX_CONSECUTIVE_NIGHTS;
 
 	for (const profile of profiles.values()) {
 		if (assignedToday.has(profile.nurseId)) continue;
-
 		if (!profile.active) continue;
 		if (isFriday && fridayOff.includes(profile.nurseId)) continue;
 
 		const maxShift = profile.maxShifts[shiftType];
 		if (profile.assigned[shiftType] >= maxShift) continue;
-
 		if (
 			profile.hardConstraintShift &&
 			profile.hardConstraintShift !== shiftType
 		)
 			continue;
-
 		if (profile.preferences[shiftType] === 0) continue;
-
-		if (
-			profile.consecutiveDays >= ROSTER_CONFIG.CONSTRAINTS.MAX_CONSECUTIVE_DAYS
-		)
-			continue;
+		if (profile.consecutiveDays >= maxConsecutiveDays) continue;
 
 		if (shiftType === "night") {
-			if (
-				profile.consecutiveNights >=
-				ROSTER_CONFIG.CONSTRAINTS.MAX_CONSECUTIVE_NIGHTS
-			)
-				continue;
+			if (profile.consecutiveNights >= maxConsecutiveNights) continue;
 			if (profile.nightShiftCooldown > 0) continue;
 		}
 
 		eligible.push(profile);
 	}
 
-	eligible.sort((a, b) => {
-		const totalA = a.assigned.morning + a.assigned.evening + a.assigned.night;
-		const totalB = b.assigned.morning + b.assigned.evening + b.assigned.night;
-		if (totalA !== totalB) return totalA - totalB;
+	if (eligible.length <= 1) return eligible;
 
-		if (shiftType === "night") {
-			if (a.needsSecondNight && !b.needsSecondNight) return -1;
-			if (!a.needsSecondNight && b.needsSecondNight) return 1;
-		}
-
-		const gapA = a.maxShifts[shiftType] - a.assigned[shiftType];
-		const gapB = b.maxShifts[shiftType] - b.assigned[shiftType];
-		return gapB - gapA;
-	});
+	eligible.sort((a, b) => compareNurses(a, b, shiftType));
 
 	return eligible;
 }
@@ -342,12 +340,34 @@ export function assignRequiredShifts(
 	dayType: DayType,
 	day: number,
 	assignments: Map<string, { shiftType: ShiftType; nurseId: string }[]>,
+	daysInMonth: number,
 ) {
 	const coverage = getCoverageForDay(dayType);
 	const isFriday = dayType === "FRIDAY";
 	const assignedToday = new Set<string>();
 
-	const shifts: ShiftType[] = ["morning", "evening", "night"];
+	// Calculate pref vs required ratio for dynamic shift ordering
+	const shiftRatios: { shiftType: ShiftType; ratio: number }[] = [];
+
+	for (const st of ["morning", "evening", "night"] as ShiftType[]) {
+		// Sum preferences across all nurses
+		let totalPref = 0;
+		for (const profile of profiles.values()) {
+			totalPref += profile.preferences[st];
+		}
+
+		// Total required for the month
+		const totalRequired = coverage[st] * daysInMonth;
+
+		// Ratio: lower = more constrained = assign first
+		const ratio = totalRequired > 0 ? totalPref / totalRequired : 999;
+		shiftRatios.push({ shiftType: st, ratio });
+	}
+
+	// Sort by ratio ascending (lowest ratio = most constrained = first)
+	shiftRatios.sort((a, b) => a.ratio - b.ratio);
+
+	const shifts = shiftRatios.map((s) => s.shiftType);
 
 	for (const shiftType of shifts) {
 		const required = coverage[shiftType];

@@ -260,33 +260,65 @@ type GenerateRosterParams = {
 };
 
 export async function generateRoster({ year, month }: GenerateRosterParams) {
+	const t0 = performance.now();
+	const daysInMonth = getDaysInMonth(year, month);
 	const { startDate, endDate } = getMonthDateRange(year, month);
+
+	const t1 = performance.now();
 	const rows = await rosterDb.findSchedulesAndPreferencesByDateRange(
 		startDate,
 		endDate,
 	);
-	const profiles = buildNurseProfiles(rows, getDaysInMonth(year, month));
+	const t2 = performance.now();
+
+	const profiles = buildNurseProfiles(rows, daysInMonth);
 	const assignments = new Map<
 		string,
 		{ shiftType: "morning" | "evening" | "night"; nurseId: string }[]
 	>();
 
-	for (let day = 1; day <= getDaysInMonth(year, month); day++) {
+	const t3 = performance.now();
+	for (let day = 1; day <= daysInMonth; day++) {
 		const dayType = getDayType(year, month, day);
-		assignRequiredShifts(year, month, profiles, dayType, day, assignments);
+		assignRequiredShifts(
+			year,
+			month,
+			profiles,
+			dayType,
+			day,
+			assignments,
+			daysInMonth,
+		);
 		resetDailyState(profiles);
 	}
+	const t4 = performance.now();
 
-	const schedules = Array.from(assignments.entries()).flatMap(
-		([dateKey, items]) =>
-			items.map((item) => ({
+	const schedules: { nurseId: string; shiftId: string; date: Date }[] = [];
+	for (const [dateKey, items] of assignments) {
+		const date = new Date(`${dateKey}T00:00:00.000Z`);
+		for (const item of items) {
+			schedules.push({
 				nurseId: item.nurseId,
 				shiftId: `shift_${item.shiftType}`,
-				date: new Date(`${dateKey}T00:00:00.000Z`),
-			})),
-	);
+				date,
+			});
+		}
+	}
 
+	const t5 = performance.now();
 	await rosterDb.createSchedules(schedules);
+	const t6 = performance.now();
+
+	console.log("Roster timing:", {
+		setup: t1 - t0,
+		dbFetch: t2 - t1,
+		buildProfiles: t3 - t2,
+		algorithm: t4 - t3,
+		format: t5 - t4,
+		dbWrite: t6 - t5,
+		total: t6 - t0,
+	});
+
 	return {
 		success: true,
 		scheduledDays: schedules.length,

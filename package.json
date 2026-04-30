@@ -43,6 +43,9 @@
 		"db:seed": "turbo -F @Duty-Roster/db db:seed",
 		"deploy:server": "cd apps/server && bun run build:cf && bun run deploy",
 		"deploy:web": "cd apps/web && bun run build:cf && bun run deploy",
+		"start:server": "cd apps/server && bun run start",
+		"start:web": "cd apps/web && bun run start",
+		"start": "bun run start:server & bun run start:web",
 		"deploy": "bun install && bun run deploy:server && bun run deploy:web",
 		"check": "biome check --write .",
 		"prepare": "husky"
