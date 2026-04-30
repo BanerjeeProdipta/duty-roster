@@ -238,18 +238,21 @@ function compareNurses(
 	b: NursePreferenceProfile,
 	shiftType: ShiftType,
 ): number {
-	const totalA = a.assigned.morning + a.assigned.evening + a.assigned.night;
-	const totalB = b.assigned.morning + b.assigned.evening + b.assigned.night;
-	if (totalA !== totalB) return totalA - totalB;
+	// First: prioritize by gap for the specific shift type (larger gap = higher priority)
+	const gapA = a.maxShifts[shiftType] - a.assigned[shiftType];
+	const gapB = b.maxShifts[shiftType] - b.assigned[shiftType];
+	if (gapA !== gapB) return gapB - gapA;
 
+	// If gaps are equal, prioritize nurses who need a second night
 	if (shiftType === "night") {
 		if (a.needsSecondNight && !b.needsSecondNight) return -1;
 		if (!a.needsSecondNight && b.needsSecondNight) return 1;
 	}
 
-	const gapA = a.maxShifts[shiftType] - a.assigned[shiftType];
-	const gapB = b.maxShifts[shiftType] - b.assigned[shiftType];
-	return gapB - gapA;
+	// Finally, prioritize nurses with fewer total assignments
+	const totalA = a.assigned.morning + a.assigned.evening + a.assigned.night;
+	const totalB = b.assigned.morning + b.assigned.evening + b.assigned.night;
+	return totalA - totalB;
 }
 
 export function getEligibleNurses(
