@@ -81,10 +81,11 @@ export default function Header() {
 								<Button
 									variant="secondary"
 									onClick={handleSignOut}
-									className="ml-1"
+									className="ml-1 inline-flex text-foreground text-sm"
 								>
 									<LogOut />
-									<span className="ml-2">{userName}</span>
+
+									<span className="">{userName}</span>
 								</Button>
 							</>
 						) : (
@@ -137,16 +138,15 @@ export default function Header() {
 								<>
 									<Button
 										variant="ghost"
-										className="mt-2 w-full justify-start"
+										className="w-full justify-start"
 										onClick={() => {
 											handleSignOut();
 											setIsMenuOpen(false);
 										}}
 									>
-										<span className="mt-2 font-medium text-foreground text-sm">
-											{userName}
-										</span>{" "}
-										Sign Out
+										<LogOut />
+
+										<span className="text-foreground text-sm">{userName}</span>
 									</Button>
 								</>
 							) : (

@@ -81,7 +81,11 @@ export function getDaysInMonth(year: number, month: number): number {
 	return new Date(Date.UTC(year, month, 0)).getUTCDate();
 }
 
-export function getWeekNumber(year: number, month: number, day: number): number {
+export function getWeekNumber(
+	year: number,
+	month: number,
+	day: number,
+): number {
 	const date = new Date(year, month - 1, day);
 	const startOfYear = new Date(year, 0, 1);
 	const diff = date.getTime() - startOfYear.getTime();
@@ -205,8 +209,7 @@ export function canAssignShift(
 	if (profile.preferences[shiftType] === 0) return false;
 
 	if (
-		profile.consecutiveDays >=
-		ROSTER_CONFIG.CONSTRAINTS.MAX_CONSECUTIVE_DAYS
+		profile.consecutiveDays >= ROSTER_CONFIG.CONSTRAINTS.MAX_CONSECUTIVE_DAYS
 	) {
 		return false;
 	}
