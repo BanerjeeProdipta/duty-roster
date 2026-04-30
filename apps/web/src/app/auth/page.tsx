@@ -1,15 +1,11 @@
-"use client";
-
-import { useState } from "react";
-import SignInForm from "@/features/auth/components/sign-in-form";
-import SignUpForm from "@/features/auth/components/sign-up-form";
+import { Suspense } from "react";
+import Loader from "@/components/loader";
+import AuthForms from "./auth-forms";
 
 export default function LoginPage() {
-	const [isLogin, setIsLogin] = useState(true);
-
-	return isLogin ? (
-		<SignInForm onSwitchToSignUp={() => setIsLogin(false)} />
-	) : (
-		<SignUpForm onSwitchToSignIn={() => setIsLogin(true)} />
+	return (
+		<Suspense fallback={<Loader />}>
+			<AuthForms />
+		</Suspense>
 	);
 }

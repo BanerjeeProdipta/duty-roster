@@ -1,6 +1,6 @@
-import { initAuthEnv } from "./loader";
 import { createEnv } from "@t3-oss/env-core";
 import { z } from "zod";
+import { initAuthEnv } from "./loader";
 
 initAuthEnv();
 

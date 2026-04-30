@@ -2,34 +2,39 @@
 
 import { Button } from "@Duty-Roster/ui/components/button";
 import { cn } from "@Duty-Roster/ui/lib/utils";
-import { Menu, X } from "lucide-react";
+import { LogOut, Menu, X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 import { authClient } from "@/lib/auth-client";
+import { ROUTES } from "@/lib/paths";
 
 export default function Header() {
 	const pathname = usePathname();
 	const router = useRouter();
 	const [isMenuOpen, setIsMenuOpen] = useState(false);
-	const { data: session, isPending } = authClient.useSession();
+	const { data: session, isPending: isSessionPending } =
+		authClient.useSession();
+
+	const isAdmin = (session?.user as { role?: string })?.role === "admin";
+	const userName = (session?.user as { name?: string })?.name;
 
 	const links = [
-		{ to: "/", label: "Home" },
-		...(session?.user
+		{ to: ROUTES.home, label: "Home" },
+		{ to: ROUTES.roster, label: "Roster" },
+		...(session?.user && isAdmin
 			? [
-					{ to: "/dashboard", label: "Dashboard" },
-					{ to: "/roster", label: "Roster" },
-					{ to: "/manage-users", label: "Manage" },
+					{ to: ROUTES.dashboard, label: "Dashboard" },
+					{ to: ROUTES.manageUsers, label: "Manage" },
 				]
 			: []),
 	] as const;
 
 	const handleSignOut = async () => {
 		await authClient.signOut();
-		router.push("/");
+		router.push(ROUTES.home);
 		router.refresh();
 		toast.success("Signed out successfully");
 	};
@@ -70,19 +75,23 @@ export default function Header() {
 							</Link>
 						);
 					})}
-					{!isPending &&
+					{!isSessionPending &&
 						(session?.user ? (
-							<Button
-								variant="secondary"
-								onClick={handleSignOut}
-								className="ml-1"
-							>
-								Sign Out
-							</Button>
+							<>
+								<Button
+									variant="secondary"
+									onClick={handleSignOut}
+									className="ml-1 inline-flex text-foreground text-sm"
+								>
+									<LogOut />
+
+									<span className="">{userName}</span>
+								</Button>
+							</>
 						) : (
 							<Button
 								variant="secondary"
-								onClick={() => router.push("/auth")}
+								onClick={() => router.push(ROUTES.auth)}
 								className="ml-1"
 							>
 								Sign In
@@ -124,24 +133,28 @@ export default function Header() {
 								</Link>
 							);
 						})}
-						{!isPending &&
+						{!isSessionPending &&
 							(session?.user ? (
-								<Button
-									variant="ghost"
-									className="mt-2 w-full justify-start"
-									onClick={() => {
-										handleSignOut();
-										setIsMenuOpen(false);
-									}}
-								>
-									Sign Out
-								</Button>
+								<>
+									<Button
+										variant="ghost"
+										className="w-full justify-start"
+										onClick={() => {
+											handleSignOut();
+											setIsMenuOpen(false);
+										}}
+									>
+										<LogOut />
+
+										<span className="text-foreground text-sm">{userName}</span>
+									</Button>
+								</>
 							) : (
 								<Button
 									variant="ghost"
 									className="mt-2 w-full justify-start"
 									onClick={() => {
-										router.push("/auth");
+										router.push(ROUTES.auth);
 										setIsMenuOpen(false);
 									}}
 								>
