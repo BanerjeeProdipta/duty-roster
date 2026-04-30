@@ -292,7 +292,10 @@ export async function generateRoster({ year, month }: GenerateRosterParams) {
 			assignments,
 			daysInMonth,
 		);
-		resetDailyState(profiles);
+		// Get today's assignments
+		const dayKey = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+		const assignmentsToday = assignments.get(dayKey) ?? [];
+		resetDailyState(profiles, assignmentsToday);
 	}
 	const t4 = performance.now();
 

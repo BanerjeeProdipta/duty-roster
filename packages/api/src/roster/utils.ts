@@ -319,9 +319,17 @@ export function recordShift(
 
 export function resetDailyState(
 	profiles: Map<string, NursePreferenceProfile>,
+	assignmentsToday: { shiftType: ShiftType; nurseId: string }[],
 ): void {
 	for (const profile of profiles.values()) {
-		profile.consecutiveDays = 0;
+		// Check if nurse worked today
+		const workedToday = assignmentsToday.some(
+			(a) => a.nurseId === profile.nurseId,
+		);
+		if (!workedToday) {
+			profile.consecutiveDays = 0;
+		}
+		// Note: consecutiveDays is incremented in recordShift, not here
 
 		if (profile.nightShiftCooldown > 0) {
 			profile.nightShiftCooldown--;
