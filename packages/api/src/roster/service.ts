@@ -264,6 +264,9 @@ export async function generateRoster({ year, month }: GenerateRosterParams) {
 	const daysInMonth = getDaysInMonth(year, month);
 	const { startDate, endDate } = getMonthDateRange(year, month);
 
+	// Truncate nurse_schedule for this month first
+	await rosterDb.truncateSchedulesByDateRange(startDate, endDate);
+
 	const t1 = performance.now();
 	const rows = await rosterDb.findSchedulesAndPreferencesByDateRange(
 		startDate,

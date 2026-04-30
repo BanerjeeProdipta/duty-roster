@@ -113,6 +113,20 @@ export async function findSchedulesAndPreferencesByDateRange(
 	return result.rows;
 }
 
+export async function truncateSchedulesByDateRange(
+	startDate: Date,
+	endDate: Date,
+): Promise<void> {
+	await db
+		.delete(nurseSchedule)
+		.where(
+			and(
+				sql`${nurseSchedule.date} >= ${startDate}`,
+				sql`${nurseSchedule.date} <= ${endDate}`,
+			),
+		);
+}
+
 export async function createSchedules(
 	schedules: {
 		nurseId: string;
@@ -122,24 +136,7 @@ export async function createSchedules(
 ) {
 	if (schedules.length === 0) return;
 
-	const firstSchedule = schedules.at(0);
-	if (!firstSchedule) return;
-
-	const year = firstSchedule.date.getUTCFullYear();
-	const month = firstSchedule.date.getUTCMonth() + 1;
-	const { startDate, endDate } = getMonthDateRange(year, month);
-
-	// 1️⃣ Clear the entire month first
-	await db
-		.delete(nurseSchedule)
-		.where(
-			and(
-				sql`${nurseSchedule.date} >= ${startDate}`,
-				sql`${nurseSchedule.date} <= ${endDate}`,
-			),
-		);
-
-	// 2️⃣ Insert in batches using Drizzle's batch insert
+	// Schedules are already truncated in generateRoster, just insert
 	const BATCH_SIZE = 500;
 	for (let i = 0; i < schedules.length; i += BATCH_SIZE) {
 		const batch = schedules.slice(i, i + BATCH_SIZE).map((s) => ({
