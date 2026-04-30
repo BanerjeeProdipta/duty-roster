@@ -2,7 +2,7 @@ import { Button } from "@Duty-Roster/ui/components/button";
 import { Input } from "@Duty-Roster/ui/components/input";
 import { Label } from "@Duty-Roster/ui/components/label";
 import { useForm } from "@tanstack/react-form";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect } from "react";
 import { toast } from "sonner";
 import z from "zod";
@@ -15,11 +15,13 @@ export default function SignInForm({
 	onSwitchToSignUp?: () => void;
 }) {
 	const router = useRouter();
+	const searchParams = useSearchParams();
+	const callbackUrl = searchParams.get("callbackUrl") ?? "/dashboard";
 	const { data: session, isPending } = authClient.useSession();
 
 	useEffect(() => {
 		if (session) {
-			router.push("/dashboard");
+			router.push(callbackUrl);
 		}
 	}, [session, router]);
 
@@ -33,12 +35,12 @@ export default function SignInForm({
 				{
 					email: value.email,
 					password: value.password,
-					callbackURL: "/dashboard",
+					callbackURL: callbackUrl,
 				},
 				{
 					onSuccess: () => {
 						router.refresh();
-						router.push("/dashboard");
+						router.push(callbackUrl);
 						toast.success("Sign in successful");
 					},
 					onError: (error) => {
