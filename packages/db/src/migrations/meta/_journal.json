@@ -5,15 +5,8 @@
 		{
 			"idx": 0,
 			"version": "7",
-			"when": 1776266755723,
-			"tag": "0000_adorable_galactus",
-			"breakpoints": true
-		},
-		{
-			"idx": 1,
-			"version": "7",
-			"when": 1776266755724,
-			"tag": "0001_motional_galactus",
+			"when": 1777544389114,
+			"tag": "0000_mushy_adam_warlock",
 			"breakpoints": true
 		}
 	]

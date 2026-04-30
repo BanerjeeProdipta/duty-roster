@@ -1,1 +1,0 @@
-ALTER TABLE nurse_shift_preference ADD COLUMN active BOOLEAN NOT NULL DEFAULT true;
