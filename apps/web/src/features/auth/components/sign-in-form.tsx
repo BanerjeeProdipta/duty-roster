@@ -23,7 +23,7 @@ export default function SignInForm({
 		if (session) {
 			router.push(callbackUrl);
 		}
-	}, [session, router]);
+	}, [session, router, callbackUrl]);
 
 	const form = useForm({
 		defaultValues: {

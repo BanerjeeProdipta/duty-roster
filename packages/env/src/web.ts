@@ -1,6 +1,6 @@
-import { initWebEnv } from "./loader";
 import { createEnv } from "@t3-oss/env-nextjs";
 import { z } from "zod";
+import { initWebEnv } from "./loader";
 
 initWebEnv();
 

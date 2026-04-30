@@ -22,7 +22,7 @@ export function RosterTableSkeleton() {
 								{Array.from({ length: HEADER_COUNT }).map((_, i) => (
 									<th
 										key={`header-${i}`}
-										className="sticky top-0 z-[10] bg-[#f2f2f2]"
+										className="sticky top-0 z-[10] bg-slate-100"
 										style={{ width: "140px", height: "80px" }}
 									>
 										<div className="flex flex-col items-center gap-1">

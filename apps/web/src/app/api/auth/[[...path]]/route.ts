@@ -21,10 +21,7 @@ async function handleProxy(request: NextRequest) {
 			? `http://localhost:${process.env.SERVER_PORT ?? 3000}`
 			: process.env.NEXT_PUBLIC_SERVER_URL ||
 				"https://duty-roster-server.duty-roster.workers.dev";
-	const targetUrl = new URL(
-		url.pathname + url.search,
-		targetBaseUrl,
-	);
+	const targetUrl = new URL(url.pathname + url.search, targetBaseUrl);
 
 	const headers = new Headers(request.headers);
 	// We don't want to pass the host header to the target

@@ -1,6 +1,6 @@
+import { existsSync } from "node:fs";
+import path from "node:path";
 import dotenv from "dotenv";
-import { existsSync } from "fs";
-import path from "path";
 
 interface LoadEnvOptions {
 	/** Base directory to search for .env files */
@@ -28,7 +28,7 @@ export function loadEnv(options: LoadEnvOptions = {}) {
 
 	const {
 		baseDir = process.cwd(),
-		mode = process.env.NODE_ENV as any ?? "development",
+		mode = (process.env.NODE_ENV as any) ?? "development",
 		customPaths = [],
 	} = options;
 
