@@ -432,7 +432,9 @@ export async function generateRoster({ year, month }: GenerateRosterParams) {
 	// Apply active preferences
 	for (const row of nurseShiftPreferences) {
 		const { weight, shiftId, active } = row;
-		if (!active) continue;
+		console.log(
+			`🔍 Preference row: nurse=${row.nurse.id}, shiftId=${shiftId}, weight=${weight}, active=${active}`,
+		);
 
 		const nurseId = row.nurse.id;
 
@@ -448,6 +450,11 @@ export async function generateRoster({ year, month }: GenerateRosterParams) {
 		existing.shift_off -= weight;
 	}
 
+	console.log("📋 Nurse preference map:");
+	for (const [nurseId, prefs] of nurseShiftPreferenceMap.entries()) {
+		console.log(`  ${nurseId}:`, prefs);
+	}
+
 	const nurses = Array.from(nurseShiftPreferenceMap.keys());
 
 	const preferences: Record<
@@ -455,12 +462,47 @@ export async function generateRoster({ year, month }: GenerateRosterParams) {
 		{ morning: number; evening: number; night: number }
 	> = {};
 
+	const maxShiftsPerType: Record<
+		string,
+		{ morning: number; evening: number; night: number }
+	> = {};
+
 	for (const [nurseId, prefs] of nurseShiftPreferenceMap.entries()) {
+		// Use preference weights directly
 		preferences[nurseId] = {
 			morning: prefs.shift_morning ?? 0,
 			evening: prefs.shift_evening ?? 0,
 			night: prefs.shift_night ?? 0,
 		};
+
+		// HARD CAP: percentage / 100 * totalDays = max shifts of that type
+		// Use floor to be conservative - never exceed
+		// If weight is 0 or not set, nurse won't get that shift type (use -1 to block completely)
+		const morningWeight = prefs.shift_morning ?? 0;
+		const eveningWeight = prefs.shift_evening ?? 0;
+		const nightWeight = prefs.shift_night ?? 0;
+
+		maxShiftsPerType[nurseId] = {
+			morning:
+				morningWeight > 0 ? Math.floor((morningWeight / 100) * totalDays) : -1,
+			evening:
+				eveningWeight > 0 ? Math.floor((eveningWeight / 100) * totalDays) : -1,
+			night: nightWeight > 0 ? Math.floor((nightWeight / 100) * totalDays) : -1,
+		};
+	}
+
+	// Log all nurses' preferences
+	console.log("📋 ALL NURSE PREFERENCES:");
+	for (const [nurseId, prefs] of nurseShiftPreferenceMap.entries()) {
+		console.log(
+			`  ${nurseId}: morning=${prefs.shift_morning ?? 0}, evening=${prefs.shift_evening ?? 0}, night=${prefs.shift_night ?? 0}`,
+		);
+	}
+	console.log("📋 ALL MAX SHIFTS PER TYPE:");
+	for (const [nurseId, maxes] of Object.entries(maxShiftsPerType)) {
+		console.log(
+			`  ${nurseId}: morning=${maxes.morning}, evening=${maxes.evening}, night=${maxes.night}`,
+		);
 	}
 
 	// ─────────────────────────────────────────────
@@ -526,6 +568,7 @@ export async function generateRoster({ year, month }: GenerateRosterParams) {
 		days: totalDays,
 		shifts: ["morning", "evening", "night"] as const,
 		preferences,
+		max_shifts_per_type: maxShiftsPerType,
 		coverage,
 		constraints: {
 			max_consecutive_nights: ROSTER_CONFIG.CONSTRAINTS.MAX_CONSECUTIVE_NIGHTS,
@@ -552,6 +595,15 @@ export async function generateRoster({ year, month }: GenerateRosterParams) {
 
 	const roster = solverResult.roster as SolverRoster;
 	console.log(`📋 Roster has ${Object.keys(roster).length} nurses`);
+
+	// Show workload per nurse
+	const workloadByNurse: [string, number][] = [];
+	for (const [nurseId, shifts] of Object.entries(roster)) {
+		const worked = shifts.filter((s) => s !== "off").length;
+		workloadByNurse.push([nurseId, worked]);
+	}
+	workloadByNurse.sort((a, b) => b[1] - a[1]);
+	console.log("📊 Top 10 workloads:", workloadByNurse.slice(0, 10));
 
 	// Debug: show first day's shifts for first 5 nurses
 	const sampleNurses = Object.keys(roster).slice(0, 5);

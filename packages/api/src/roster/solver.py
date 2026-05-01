@@ -13,8 +13,11 @@ def solve(data):
     preferences = data["preferences"]
     coverage = data["coverage"]
     constraints = data["constraints"]
+    max_shifts_per_type = data.get("max_shifts_per_type", {})
 
     print(f"📊 [SOLVER] Input: {len(nurses)} nurses, {days} days, {len(shifts)} shift types", flush=True)
+    print(f"📋 [SOLVER] Sample preferences: {dict(list(preferences.items())[:3])}", flush=True)
+    print(f"🔢 [SOLVER] Max shifts per type: {dict(list(max_shifts_per_type.items())[:3])}", flush=True)
     print(f"📋 [SOLVER] Coverage by day: {coverage[:3]}... (showing first 3)", flush=True)
     print(f"🎯 [SOLVER] Constraints: max_nights={constraints['max_consecutive_nights']}, max_days={constraints['max_consecutive_days']}", flush=True)
 
@@ -142,26 +145,18 @@ def solve(data):
     print(f"   📊 Target avg shifts per nurse: {avg_load} (with {remainder} nurses getting +1)", flush=True)
 
     # ----------------------------
-    # 9. HARD: FAIRNESS CONSTRAINTS (±1 variance)
+    # 9. Soft preference for balanced workload
     # ----------------------------
-    print("⚖️ [SOLVER] Adding HARD fairness constraints (±1 variance)...", flush=True)
+    print("⚖️ [SOLVER] Adding soft workload balancing...", flush=True)
 
-    # Calculate max shifts per nurse (leave some slack for feasibility)
-    max_shifts_per_nurse = min(days - 5, avg_load + 2)  # Allow some buffer
-
-    for n in nurses:
-        # Hard cap on max shifts
-        model.Add(total_shifts[n] <= max_shifts_per_nurse)
-
-        if n not in unavailable_nurses:
-            # Available nurses: at least avg_load
-            model.Add(total_shifts[n] >= avg_load)
-        else:
-            # Unavailable nurses: fewer shifts
-            unavailable_max = max(0, (avg_load * 2) // 5)
-            model.Add(total_shifts[n] <= unavailable_max)
-
-    print(f"   ✅ Max shifts cap: {max_shifts_per_nurse}, avg: {avg_load}", flush=True)
+    workload_penalties = []
+    if available_nurses:
+        for n in available_nurses:
+            dev = model.NewIntVar(0, days, f"dev_{n}")
+            model.Add(dev >= total_shifts[n] - avg_load)
+            model.Add(dev >= avg_load - total_shifts[n])
+            # Sufficient penalty to ensure fairness without over-complicating the search tree
+            workload_penalties.append(-200 * dev)
 
     # ----------------------------
     # 10. Shift type tracking
@@ -183,6 +178,22 @@ def solve(data):
     print(f"   📋 Required per shift type: {dict(required_total_per_shift)}", flush=True)
 
     # ----------------------------
+    # 10b. HARD: Max shifts per type based on preferences (weight/10)
+    # ----------------------------
+    print("🔢 [SOLVER] Adding HARD max shifts per type constraints...", flush=True)
+    for n in nurses:
+        nurse_limits = max_shifts_per_type.get(n, {})
+        for s in shifts:
+            max_allowed = nurse_limits.get(s, None)
+            if max_allowed is not None:
+                if max_allowed < 0:
+                    model.Add(shift_count[(n, s)] == 0)
+                    print(f"   {n} {s}: BLOCKED", flush=True)
+                else:
+                    model.Add(shift_count[(n, s)] <= max_allowed)
+                    print(f"   {n} {s}: max {max_allowed}", flush=True)
+
+    # ----------------------------
     # 11. OBJECTIVE: Maximize preferences
     # ----------------------------
     print("🎯 [SOLVER] Building objective function...", flush=True)
@@ -197,17 +208,22 @@ def solve(data):
 
     print(f"   ✅ {len(preference_terms)} preference terms", flush=True)
     
-    model.Maximize(sum(preference_terms))
-    print("   🎯 Objective: Maximize preference satisfaction", flush=True)
-    print("      (with hard constraints: coverage ✅, fairness ✅, logistics ✅)", flush=True)
+    if 'workload_penalties' in locals() and workload_penalties:
+        model.Maximize(sum(preference_terms) + sum(workload_penalties))
+    else:
+        model.Maximize(sum(preference_terms))
+        
+    print("   🎯 Objective: Maximize preference satisfaction and fairness", flush=True)
+    print("      (with hard constraints: coverage ✅, logistics ✅)", flush=True)
 
     # ----------------------------
     # 12. Solve
     # ----------------------------
-    print("🚀 [SOLVER] Starting solver (60s timeout, 8 workers)...", flush=True)
+    print("🚀 [SOLVER] Starting solver (0.5s timeout, 4 workers)...", flush=True)
     solver = cp_model.CpSolver()
-    solver.parameters.max_time_in_seconds = 60
-    solver.parameters.num_search_workers = 8
+    # Limit max time to 0.5 seconds for instant response. CP-SAT is incredibly fast.
+    solver.parameters.max_time_in_seconds = 0.5
+    solver.parameters.num_search_workers = 3
     solver.parameters.log_search_progress = False
 
     status = solver.Solve(model)
