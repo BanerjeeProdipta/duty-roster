@@ -8,8 +8,13 @@ export const useGenerateRoster = () => {
 
 	return useMutation({
 		mutationKey: ["generate-roster"],
-		mutationFn: ({ year, month }: { year: number; month: number }) =>
-			trpcClient.roster.generateRoster.mutate({ year, month }),
+		mutationFn: async ({ year, month }: { year: number; month: number }) => {
+			const result = await trpcClient.roster.generateRoster.mutate({
+				year,
+				month,
+			});
+			return result;
+		},
 
 		onSuccess: async (_result, { year, month }) => {
 			toast.success("Roster generated successfully", {
