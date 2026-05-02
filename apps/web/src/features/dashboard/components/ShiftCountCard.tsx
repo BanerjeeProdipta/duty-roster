@@ -62,13 +62,6 @@ export function ShiftCountCard({
 	const config = shiftConfig[shift];
 	const isFulfilled = assigned >= required;
 	const assignedPct = required > 0 ? (assigned / required) * 100 : 0;
-	const [isAnimating, setIsAnimating] = useState(false);
-
-	useEffect(() => {
-		setIsAnimating(true);
-		const timer = setTimeout(() => setIsAnimating(false), 300);
-		return () => clearTimeout(timer);
-	}, [assigned, capacity]);
 
 	return (
 		<div
@@ -76,7 +69,6 @@ export function ShiftCountCard({
 				"flex flex-col gap-2 rounded-2xl border p-3 sm:p-4",
 				config.bgLight,
 				config.border,
-				isAnimating && "shadow-md",
 			)}
 		>
 			<div className="flex items-center justify-between gap-2">
