@@ -464,7 +464,23 @@ export async function generateRoster({ year, month }: GenerateRosterParams) {
 		existing.shift_off -= weight;
 	}
 
-	console.log("📋 Nurse preference map:");
+	// Filter out inactive nurses from the map
+	const activeNurseIds = new Set(
+		nurseShiftPreferences.filter((p) => p.active).map((p) => p.nurse.id),
+	);
+
+	console.log(
+		`📊 Active nurses: ${activeNurseIds.size} / ${nurseShiftPreferenceMap.size} total`,
+	);
+
+	for (const nurseId of nurseShiftPreferenceMap.keys()) {
+		if (!activeNurseIds.has(nurseId)) {
+			console.log(`   Removing inactive nurse: ${nurseId}`);
+			nurseShiftPreferenceMap.delete(nurseId);
+		}
+	}
+
+	console.log("📋 Nurse preference map (after filtering inactive):");
 	for (const [nurseId, prefs] of nurseShiftPreferenceMap.entries()) {
 		console.log(`  ${nurseId}:`, prefs);
 	}

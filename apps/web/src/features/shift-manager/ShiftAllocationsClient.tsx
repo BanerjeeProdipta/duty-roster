@@ -2,8 +2,8 @@
 
 import type { SchedulesResponse } from "@Duty-Roster/api";
 import { SearchInput } from "@Duty-Roster/ui/components/search-input";
-import { Loader2 } from "lucide-react";
-import { useCallback, useState } from "react";
+import { AlertTriangle, Loader2 } from "lucide-react";
+import { useCallback, useMemo, useState } from "react";
 import { useScheduleInit } from "@/hooks/useScheduleInit";
 import { NurseShiftCounts } from "./components/NurseShiftCounts";
 import { NurseTable } from "./components/NurseTable/NurseTable";
@@ -22,10 +22,35 @@ export default function ShiftAllocationsClient({
 		nurses,
 		nurseRows: initialNurseRows,
 	} = useScheduleInit(initialSchedules);
+
 	const [nurseRows, setNurseRows] =
 		useState<SchedulesResponse["nurseRows"]>(initialNurseRows);
 	const [searchTerm, setSearchTerm] = useState("");
 	const [language, setLanguage] = useState<"en-US" | "bn-BD">("bn-BD");
+
+	// Warning: req === pref AND nurses have inconsistent off days
+	const showExactMatchWarning = useMemo(() => {
+		// Check 1: req === pref (exact match on totals)
+		const reqTotal = initialSchedules?.shiftRequirements?.total ?? 0;
+		const prefTotal = initialSchedules?.preferenceCapacity?.total ?? 0;
+		if (reqTotal !== prefTotal) return false;
+
+		// Check 2: Nurses have inconsistent off days
+		const activeNurseRows = nurseRows.filter((row) => row.nurse.active);
+		if (activeNurseRows.length === 0) return false;
+
+		// Calculate off days for each nurse: totalDays - (morning + evening + night)
+		const offDaysByNurse = activeNurseRows.map((row) => {
+			const metrics = row.preferenceWiseShiftMetrics;
+			const worked =
+				(metrics.morning ?? 0) + (metrics.evening ?? 0) + (metrics.night ?? 0);
+			return totalDays - worked;
+		});
+
+		// Check if all off day counts are the same
+		const uniqueOffCounts = new Set(offDaysByNurse);
+		return uniqueOffCounts.size > 1;
+	}, [initialSchedules, nurseRows, totalDays]);
 
 	const showLoader = isFetching && !nurses.length;
 
@@ -69,6 +94,21 @@ export default function ShiftAllocationsClient({
 
 	return (
 		<div className="flex flex-col gap-4">
+			{/* Warning alert for exact match + inconsistent off days */}
+			{showExactMatchWarning && (
+				<div className="flex items-start gap-3 rounded-lg border border-rose-200 bg-rose-50 p-4">
+					<AlertTriangle className="mt-0.5 h-5 w-5 text-rose-600" />
+					<div>
+						<h4 className="font-semibold text-rose-700">Exact Match Warning</h4>
+						<p className="mt-1 text-rose-700 text-xs">
+							Required equals preferred, but nurses have inconsistent off days.
+							This may cause the solver to fail. Consider equalizing off days
+							across nurses.
+						</p>
+					</div>
+				</div>
+			)}
+
 			<NurseShiftCounts
 				nurseRows={nurseRows}
 				shiftRequirements={initialSchedules?.shiftRequirements}
