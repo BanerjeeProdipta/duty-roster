@@ -11,6 +11,15 @@ export async function findAllNurses() {
 	return db.select().from(nurse).orderBy(nurse.name);
 }
 
+export async function updateNurse(nurseId: string, data: { name?: string }) {
+	const [row] = await db
+		.update(nurse)
+		.set(data)
+		.where(eq(nurse.id, nurseId))
+		.returning();
+	return row;
+}
+
 // ─────────────── CREATE SCHEDULE ───────────────
 
 export async function createSchedule(

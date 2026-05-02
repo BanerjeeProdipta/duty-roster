@@ -3,6 +3,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useState } from "react";
 import {
+	useUpdateNurse,
 	useUpdateNurseActive,
 	useUpdatePreferences,
 } from "@/hooks/useUpdatePreferences";
@@ -26,11 +27,14 @@ interface UseNurseCardReturn {
 	isSavingError: boolean;
 	isToggleActivePending: boolean;
 	isToggleActiveError: boolean;
+	isUpdateNamePending: boolean;
 
 	// Handlers
 	handleFieldChange: (field: ShiftField, value: number) => void;
 	handleSave: () => void;
+	handleCancel: () => void;
 	handleToggleActive: () => void;
+	handleUpdateName: (name: string) => void;
 }
 
 export function useNurseCard({
@@ -79,6 +83,13 @@ export function useNurseCard({
 		},
 	});
 
+	// Nurse update mutation (for name updates)
+	const updateNurseMutation = useUpdateNurse({
+		onSuccess: () => {
+			// Query invalidation is handled by useUpdateNurse
+		},
+	});
+
 	// Field change handler with automatic off calculation
 	const handleFieldChange = useCallback(
 		(field: ShiftField, value: number) => {
@@ -106,6 +117,14 @@ export function useNurseCard({
 			daysInMonth: totalDays,
 		});
 	}, [draft, totalDays, updatePrefsMutation]);
+
+	// Cancel handler - resets draft to original nurse values
+	const handleCancel = useCallback(() => {
+		setDraft({
+			...nurse,
+			off: Math.max(0, totalDays - nurse.morning - nurse.evening - nurse.night),
+		});
+	}, [nurse, totalDays]);
 
 	// Toggle active handler with optimistic update
 	const handleToggleActive = useCallback(() => {
@@ -135,6 +154,32 @@ export function useNurseCard({
 		);
 	}, [draft, totalDays, updateActiveMutation]);
 
+	// Update name handler
+	const handleUpdateName = useCallback(
+		(name: string) => {
+			if (updateNurseMutation.isPending) return;
+
+			const previousName = draft.name;
+
+			// Optimistic update
+			setDraft((prev) => ({ ...prev, name }));
+
+			updateNurseMutation.mutate(
+				{
+					nurseId: draft.nurseId,
+					name,
+				},
+				{
+					onError: () => {
+						// Rollback on error
+						setDraft((prev) => ({ ...prev, name: previousName }));
+					},
+				},
+			);
+		},
+		[draft.nurseId, draft.name, updateNurseMutation],
+	);
+
 	return {
 		// State
 		draft,
@@ -147,10 +192,13 @@ export function useNurseCard({
 		isSavingError: updatePrefsMutation.isError,
 		isToggleActivePending: updateActiveMutation.isPending,
 		isToggleActiveError: updateActiveMutation.isError,
+		isUpdateNamePending: updateNurseMutation.isPending,
 
 		// Handlers
 		handleFieldChange,
 		handleSave,
+		handleCancel,
 		handleToggleActive,
+		handleUpdateName,
 	};
 }

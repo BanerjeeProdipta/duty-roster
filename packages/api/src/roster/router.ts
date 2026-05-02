@@ -83,4 +83,13 @@ export const rosterRouter = router({
 			);
 			return result;
 		}),
+
+	updateNurse: adminProcedure
+		.input(
+			z.object({
+				nurseId: z.string(),
+				name: z.string().optional(),
+			}),
+		)
+		.mutation(({ input }) => rosterService.updateNurse(input)),
 });

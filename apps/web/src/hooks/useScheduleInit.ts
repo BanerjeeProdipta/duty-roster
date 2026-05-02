@@ -11,6 +11,7 @@ export function useScheduleInit(initialSchedules?: SchedulesResponse) {
 
 	return {
 		schedules,
+		nurseRows: schedules?.nurseRows ?? [],
 		isLoading,
 		isFetching,
 		totalDays,

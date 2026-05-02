@@ -40,7 +40,7 @@ export default function Header() {
 	};
 
 	return (
-		<header className="sticky top-0 z-[100] w-full border-border/50 border-b bg-white backdrop-blur-md dark:bg-slate-950/80">
+		<header className="sticky top-0 z-[100] w-full border-border/50 border-b bg-white dark:bg-slate-950">
 			<div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6">
 				<Link href="/" className="flex h-10 w-10 items-center">
 					<Image
@@ -49,6 +49,7 @@ export default function Header() {
 						height={100}
 						width={100}
 						className="rounded-sm"
+						priority
 					/>
 					<p className="font-semibold text-xl tracking-tight">
 						<span className="text-slate-900 dark:text-slate-100">simple</span>

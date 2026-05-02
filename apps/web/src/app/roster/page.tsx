@@ -23,7 +23,9 @@ async function RosterContent(props: {
 
 	return (
 		<div className="flex flex-col gap-6">
-			<RosterPDFViewer initialSchedules={initialSchedules} />
+			<Suspense fallback={<RosterPrintSkeleton />}>
+				<RosterPDFViewer initialSchedules={initialSchedules} />
+			</Suspense>
 		</div>
 	);
 }

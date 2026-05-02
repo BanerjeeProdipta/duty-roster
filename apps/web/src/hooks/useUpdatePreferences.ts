@@ -101,3 +101,34 @@ export function useUpdateNurseActive(options?: { onSuccess?: () => void }) {
 
 	return mutation;
 }
+
+export function useUpdateNurse(options?: { onSuccess?: () => void }) {
+	const queryClient = useQueryClient();
+
+	const mutation = useMutation({
+		mutationFn: async ({
+			nurseId,
+			name,
+		}: {
+			nurseId: string;
+			name?: string;
+		}) => {
+			return trpcClient.roster.updateNurse.mutate({
+				nurseId,
+				name,
+			});
+		},
+
+		onSuccess: () => {
+			toast.success("Nurse updated successfully");
+			queryClient.invalidateQueries({ queryKey: ["schedules"] });
+			options?.onSuccess?.();
+		},
+
+		onError: (error: Error) => {
+			toast.error(`Failed to update nurse: ${error.message}`);
+		},
+	});
+
+	return mutation;
+}

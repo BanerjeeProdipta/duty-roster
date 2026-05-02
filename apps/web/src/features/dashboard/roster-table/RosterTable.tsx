@@ -21,8 +21,7 @@ export function RosterTable({
 	editable = false,
 	initialSchedules,
 }: RosterTableProps) {
-	const { schedules, isLoading, isFetching } =
-		useScheduleInit(initialSchedules);
+	const { schedules, isLoading } = useScheduleInit(initialSchedules);
 	const searchParams = useSearchParams();
 	const qParam = searchParams.get("q") ?? "";
 

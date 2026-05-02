@@ -1,8 +1,8 @@
+import { Skeleton } from "@Duty-Roster/ui/components/skeleton";
 import { Suspense } from "react";
 import { MonthNavigator } from "@/components/MonthNavigator";
-import { ShiftCounts } from "@/features/dashboard/components/ShiftCounts";
 import { ShiftCountsSkeleton } from "@/features/dashboard/components/ShiftCountsSkeleton";
-import { ShiftManagerSkeleton } from "@/features/shift-manager/components/ShiftManagerSkeleton";
+import { RosterTableSkeleton } from "@/features/dashboard/roster-table/RosterTableSkeleton";
 import ShiftAllocationsClient from "@/features/shift-manager/ShiftAllocationsClient";
 import { getMonthDateRange, getYearMonthFromSearchParams } from "@/utils";
 import { getAuthedTRPCServer } from "@/utils/trpc-server";
@@ -26,8 +26,9 @@ async function ShiftAllocationsContent(props: {
 	return (
 		<div className="flex flex-col gap-6">
 			<MonthNavigator />
-			<ShiftCounts initialSchedules={initialSchedules} />
-			<ShiftAllocationsClient initialSchedules={initialSchedules} />
+			<Suspense fallback={<ShiftCountsSkeleton />}>
+				<ShiftAllocationsClient initialSchedules={initialSchedules} />
+			</Suspense>
 		</div>
 	);
 }
@@ -35,9 +36,16 @@ async function ShiftAllocationsContent(props: {
 function ShiftAllocationsLoading() {
 	return (
 		<div className="flex flex-col gap-6">
-			<div className="flex h-10 w-48 animate-pulse rounded-lg bg-slate-200" />
+			<div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+				<Skeleton className="h-10 w-full max-w-md rounded-lg" />
+				<div className="flex items-center gap-4">
+					<Skeleton className="h-10 w-40 rounded-lg" />
+					<Skeleton className="h-10 w-32 rounded-lg" />
+				</div>
+			</div>
 			<ShiftCountsSkeleton />
-			<ShiftManagerSkeleton />
+			<div className="flex h-10 w-full animate-pulse rounded-lg bg-slate-200" />
+			<RosterTableSkeleton />
 		</div>
 	);
 }
