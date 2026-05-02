@@ -26,7 +26,9 @@ async function ShiftAllocationsContent(props: {
 	return (
 		<div className="flex flex-col gap-6">
 			<MonthNavigator />
-			<ShiftAllocationsClient initialSchedules={initialSchedules} />
+			<Suspense fallback={<ShiftCountsSkeleton />}>
+				<ShiftAllocationsClient initialSchedules={initialSchedules} />
+			</Suspense>
 		</div>
 	);
 }

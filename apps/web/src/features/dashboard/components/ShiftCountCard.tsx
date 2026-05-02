@@ -73,10 +73,10 @@ export function ShiftCountCard({
 	return (
 		<div
 			className={cn(
-				"flex flex-col gap-2 rounded-2xl border p-3 transition-all duration-300 sm:p-4",
+				"flex flex-col gap-2 rounded-2xl border p-3 sm:p-4",
 				config.bgLight,
 				config.border,
-				isAnimating && "scale-[1.02] shadow-md",
+				isAnimating && "shadow-md",
 			)}
 		>
 			<div className="flex items-center justify-between gap-2">
@@ -94,13 +94,7 @@ export function ShiftCountCard({
 					)}
 				>
 					<Label variant="inline">Needed:</Label>
-					<p
-						className={cn(
-							isAnimating && "scale-110 transition-all duration-300",
-						)}
-					>
-						{Math.max(0, required - assigned)}
-					</p>
+					<p>{Math.max(0, required - assigned)}</p>
 				</div>
 			</div>
 
@@ -117,11 +111,7 @@ export function ShiftCountCard({
 				<div className="flex flex-col items-center rounded-lg bg-white/60 p-2">
 					<Label className="text-[10px]">Assigned</Label>
 					<span
-						className={cn(
-							"font-bold text-lg transition-all duration-300",
-							config.text,
-							isAnimating && "scale-110",
-						)}
+						className={cn("font-bold text-lg", config.text)}
 						suppressHydrationWarning
 					>
 						{assigned}
@@ -130,11 +120,7 @@ export function ShiftCountCard({
 				<div className="flex flex-col items-center rounded-lg bg-white/60 p-2">
 					<Label className="text-[10px]">Preference</Label>
 					<span
-						className={cn(
-							"font-bold text-lg transition-all duration-300",
-							config.text,
-							isAnimating && "scale-110",
-						)}
+						className={cn("font-bold text-lg", config.text)}
 						suppressHydrationWarning
 					>
 						{Math.round(capacity)}
@@ -150,10 +136,7 @@ export function ShiftCountCard({
 					)}
 				>
 					<div
-						className={cn(
-							"absolute h-full transition-all duration-300",
-							config.bg,
-						)}
+						className={cn("absolute h-full", config.bg)}
 						style={{
 							width: `${Math.min(assignedPct, 100)}%`,
 						}}

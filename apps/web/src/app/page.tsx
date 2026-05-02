@@ -25,19 +25,9 @@ async function HomeContent(props: {
 	return (
 		<div className="flex flex-col gap-6">
 			<RosterHeader initialSchedules={initialSchedules} />
-			<RosterTable initialSchedules={initialSchedules} />
-		</div>
-	);
-}
-
-function HomeLoading() {
-	return (
-		<div className="flex flex-col gap-6">
-			<div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-				<div className="h-10 w-full max-w-md animate-pulse rounded-lg bg-slate-200" />
-				<div className="h-10 w-32 animate-pulse rounded-lg bg-slate-200" />
-			</div>
-			<RosterTableSkeleton />
+			<Suspense fallback={<RosterTableSkeleton />}>
+				<RosterTable initialSchedules={initialSchedules} />
+			</Suspense>
 		</div>
 	);
 }
@@ -46,7 +36,7 @@ export default function Home(props: {
 	searchParams: Promise<{ year?: string; month?: string }>;
 }) {
 	return (
-		<Suspense fallback={<HomeLoading />}>
+		<Suspense fallback={<RosterTableSkeleton />}>
 			<HomeContent searchParams={props.searchParams} />
 		</Suspense>
 	);

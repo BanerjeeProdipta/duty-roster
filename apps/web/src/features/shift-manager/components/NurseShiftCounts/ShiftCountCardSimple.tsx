@@ -69,10 +69,10 @@ export function ShiftCountCardSimple({
 	return (
 		<div
 			className={cn(
-				"flex flex-col gap-2 rounded-2xl border p-3 transition-all duration-300 sm:p-4",
+				"flex flex-col gap-2 rounded-2xl border p-3 sm:p-4",
 				config.bgLight,
 				config.border,
-				isAnimating && "scale-[1.02] shadow-md",
+				isAnimating && "shadow-md",
 			)}
 		>
 			<div className="flex items-center justify-between gap-2">
