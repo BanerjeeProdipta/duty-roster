@@ -1,7 +1,12 @@
 import { spawn } from "node:child_process";
-import { resolve as pathResolve } from "node:path";
+import { dirname, resolve as pathResolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import * as rosterDb from "./db";
 import type { SchedulesResponse } from "./schema";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
 import {
 	FRIDAY_OFF_NURSES,
 	getDaysCountFromStartAndEndDate,
