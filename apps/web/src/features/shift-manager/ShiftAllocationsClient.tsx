@@ -74,7 +74,7 @@ export default function ShiftAllocationsClient({
 				shiftRequirements={initialSchedules?.shiftRequirements}
 			/>
 
-			<div className="flex w-full flex-row items-center gap-4">
+			<div className="flex w-full flex-col items-center gap-4 lg:flex-row">
 				<SearchInput
 					placeholder={language === "bn-BD" ? "নার্স খুঁজুন..." : "Search nurses..."}
 					onSearch={setSearchTerm}
