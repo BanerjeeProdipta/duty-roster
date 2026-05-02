@@ -46,29 +46,25 @@ const shiftConfig = {
 
 type ShiftType = "total" | "morning" | "evening" | "night";
 
-interface ShiftCountCardProps {
+interface ShiftCountCardSimpleProps {
 	shift: ShiftType;
 	required: number;
-	assigned: number;
-	capacity: number;
+	preference: number;
 }
 
-export function ShiftCountCard({
+export function ShiftCountCardSimple({
 	shift,
 	required,
-	assigned,
-	capacity,
-}: ShiftCountCardProps) {
+	preference,
+}: ShiftCountCardSimpleProps) {
 	const config = shiftConfig[shift];
-	const isFulfilled = assigned >= required;
-	const assignedPct = required > 0 ? (assigned / required) * 100 : 0;
 	const [isAnimating, setIsAnimating] = useState(false);
 
 	useEffect(() => {
 		setIsAnimating(true);
 		const timer = setTimeout(() => setIsAnimating(false), 300);
 		return () => clearTimeout(timer);
-	}, [assigned, capacity]);
+	}, [preference]);
 
 	return (
 		<div
@@ -90,7 +86,7 @@ export function ShiftCountCard({
 				<div
 					className={cn(
 						"inline-flex items-center gap-1 font-semibold text-sm",
-						isFulfilled ? "text-slate-600" : "text-rose-500",
+						preference >= required ? "text-slate-600" : "text-rose-500",
 					)}
 				>
 					<Label variant="inline">Needed:</Label>
@@ -99,12 +95,12 @@ export function ShiftCountCard({
 							isAnimating && "scale-110 transition-all duration-300",
 						)}
 					>
-						{Math.max(0, required - assigned)}
+						{Math.max(0, required - preference)}
 					</p>
 				</div>
 			</div>
 
-			<div className="grid grid-cols-3 gap-2">
+			<div className="grid grid-cols-2 gap-2">
 				<div className="flex flex-col items-center rounded-lg bg-white/60 p-2">
 					<Label className="text-[10px]">Required</Label>
 					<span
@@ -112,19 +108,6 @@ export function ShiftCountCard({
 						suppressHydrationWarning
 					>
 						{required}
-					</span>
-				</div>
-				<div className="flex flex-col items-center rounded-lg bg-white/60 p-2">
-					<Label className="text-[10px]">Assigned</Label>
-					<span
-						className={cn(
-							"font-bold text-lg transition-all duration-300",
-							config.text,
-							isAnimating && "scale-110",
-						)}
-						suppressHydrationWarning
-					>
-						{assigned}
 					</span>
 				</div>
 				<div className="flex flex-col items-center rounded-lg bg-white/60 p-2">
@@ -137,27 +120,8 @@ export function ShiftCountCard({
 						)}
 						suppressHydrationWarning
 					>
-						{Math.round(capacity)}
+						{preference}
 					</span>
-				</div>
-			</div>
-
-			<div className="flex flex-col gap-1">
-				<div
-					className={cn(
-						"relative h-2 w-full overflow-hidden rounded-full",
-						config.bgDark,
-					)}
-				>
-					<div
-						className={cn(
-							"absolute h-full transition-all duration-300",
-							config.bg,
-						)}
-						style={{
-							width: `${Math.min(assignedPct, 100)}%`,
-						}}
-					/>
 				</div>
 			</div>
 		</div>

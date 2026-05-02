@@ -12,7 +12,7 @@ import {
 import { VoiceInput } from "@Duty-Roster/ui/components/voice-input";
 import { cn } from "@Duty-Roster/ui/lib/utils";
 import { AlertCircle, Check, Coffee, Moon, Sun, Sunset, X } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ShiftInput } from "@/features/shift-manager/components/ShiftInput";
 import { FourWaySlider } from "@/features/shift-manager/components/Slider";
 import { useNurseCard } from "@/features/shift-manager/hooks/useNurseCard";
@@ -22,9 +22,21 @@ import { ActiveToggle } from "../NurseCard/ActiveToggle";
 interface NurseTableProps {
 	nurses: NurseState[];
 	totalDays: number;
+	onShiftChange?: (
+		nurseId: string,
+		morning: number,
+		evening: number,
+		night: number,
+	) => void;
+	onActiveChange?: (nurseId: string, active: boolean) => void;
 }
 
-export function NurseTable({ nurses, totalDays }: NurseTableProps) {
+export function NurseTable({
+	nurses,
+	totalDays,
+	onShiftChange,
+	onActiveChange,
+}: NurseTableProps) {
 	return (
 		<div className="overflow-hidden rounded-xl border bg-white">
 			<Table>
@@ -74,6 +86,8 @@ export function NurseTable({ nurses, totalDays }: NurseTableProps) {
 							key={nurse.nurseId}
 							nurse={nurse}
 							totalDays={totalDays}
+							onShiftChange={onShiftChange}
+							onActiveChange={onActiveChange}
 						/>
 					))}
 				</TableBody>
@@ -85,11 +99,25 @@ export function NurseTable({ nurses, totalDays }: NurseTableProps) {
 interface NurseTableRowProps {
 	nurse: NurseState;
 	totalDays: number;
+	onShiftChange?: (
+		nurseId: string,
+		morning: number,
+		evening: number,
+		night: number,
+	) => void;
+	onActiveChange?: (nurseId: string, active: boolean) => void;
 }
 
-function NurseTableRow({ nurse, totalDays }: NurseTableRowProps) {
+function NurseTableRow({
+	nurse,
+	totalDays,
+	onShiftChange,
+	onActiveChange,
+}: NurseTableRowProps) {
 	const [isEditingName, setIsEditingName] = useState(false);
 	const [editName, setEditName] = useState(nurse.name);
+	const isFirstRender = useRef(true);
+	const prevActiveRef = useRef(nurse.active ?? true);
 
 	const {
 		draft,
@@ -104,6 +132,22 @@ function NurseTableRow({ nurse, totalDays }: NurseTableRowProps) {
 		handleToggleActive,
 		handleUpdateName,
 	} = useNurseCard({ nurse, totalDays });
+
+	useEffect(() => {
+		if (isFirstRender.current) {
+			isFirstRender.current = false;
+			return;
+		}
+		onShiftChange?.(nurse.nurseId, draft.morning, draft.evening, draft.night);
+	}, [draft.morning, draft.evening, draft.night, nurse.nurseId, onShiftChange]);
+
+	useEffect(() => {
+		if (isFirstRender.current) return;
+		if (prevActiveRef.current !== draft.active) {
+			prevActiveRef.current = draft.active;
+			onActiveChange?.(nurse.nurseId, draft.active);
+		}
+	}, [draft.active, nurse.nurseId, onActiveChange]);
 
 	const handleStartEditing = () => {
 		setEditName(draft.name);
