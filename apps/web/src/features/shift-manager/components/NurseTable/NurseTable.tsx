@@ -12,7 +12,7 @@ import {
 import { VoiceInput } from "@Duty-Roster/ui/components/voice-input";
 import { cn } from "@Duty-Roster/ui/lib/utils";
 import { AlertCircle, Check, Coffee, Moon, Sun, Sunset, X } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { ShiftInput } from "@/features/shift-manager/components/ShiftInput";
 import { FourWaySlider } from "@/features/shift-manager/components/Slider";
 import { useNurseCard } from "@/features/shift-manager/hooks/useNurseCard";
@@ -131,23 +131,13 @@ function NurseTableRow({
 		handleCancel,
 		handleToggleActive,
 		handleUpdateName,
-	} = useNurseCard({ nurse, totalDays });
-
-	useEffect(() => {
-		if (isFirstRender.current) {
-			isFirstRender.current = false;
-			return;
-		}
-		onShiftChange?.(nurse.nurseId, draft.morning, draft.evening, draft.night);
-	}, [draft.morning, draft.evening, draft.night, nurse.nurseId, onShiftChange]);
-
-	useEffect(() => {
-		if (isFirstRender.current) return;
-		if (prevActiveRef.current !== draft.active) {
-			prevActiveRef.current = draft.active;
-			onActiveChange?.(nurse.nurseId, draft.active);
-		}
-	}, [draft.active, nurse.nurseId, onActiveChange]);
+	} = useNurseCard({
+		nurse,
+		totalDays,
+		onShiftChange: (morning, evening, night) =>
+			onShiftChange?.(nurse.nurseId, morning, evening, night),
+		onActiveChange: (active) => onActiveChange?.(nurse.nurseId, active),
+	});
 
 	const handleStartEditing = () => {
 		setEditName(draft.name);
@@ -267,6 +257,9 @@ function NurseTableRow({
 						<Button
 							variant="outline"
 							size="sm"
+							className={cn(
+								hasChanged && "bg-emerald-100 hover:bg-emerald-200",
+							)}
 							onClick={handleSaveAll}
 							disabled={isSavingPending}
 						>
@@ -275,6 +268,7 @@ function NurseTableRow({
 						<Button
 							variant="outline"
 							size="sm"
+							className={cn(hasChanged && "bg-rose-100 hover:bg-rose-200")}
 							onClick={handleCancelAll}
 							disabled={isSavingPending}
 						>

@@ -13,6 +13,8 @@ import { convertToPreferences, nurseHasChanged } from "../utils";
 interface UseNurseCardOptions {
 	nurse: NurseState;
 	totalDays: number;
+	onShiftChange?: (morning: number, evening: number, night: number) => void;
+	onActiveChange?: (active: boolean) => void;
 }
 
 interface UseNurseCardReturn {
@@ -40,6 +42,8 @@ interface UseNurseCardReturn {
 export function useNurseCard({
 	nurse,
 	totalDays,
+	onShiftChange,
+	onActiveChange,
 }: UseNurseCardOptions): UseNurseCardReturn {
 	const _queryClient = useQueryClient();
 
@@ -71,15 +75,14 @@ export function useNurseCard({
 	// Preference update mutation with optimistic updates
 	const updatePrefsMutation = useUpdatePreferences({
 		onSuccess: () => {
-			// Query invalidation is handled by useUpdatePreferences
-			// Optimistic update already applied via setDraft
+			onShiftChange?.(draft.morning, draft.evening, draft.night);
 		},
 	});
 
 	// Active toggle mutation with optimistic updates
 	const updateActiveMutation = useUpdateNurseActive({
 		onSuccess: () => {
-			// Query invalidation is handled by useUpdateNurseActive
+			onActiveChange?.(draft.active);
 		},
 	});
 

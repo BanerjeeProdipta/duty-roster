@@ -11,7 +11,7 @@ export function MonthNavigator() {
 	const router = useRouter();
 	const { year, month } = useYearMonth();
 
-	const monthDate = new Date(year, month - 1);
+	const monthDate = new Date(Date.UTC(year, month - 1));
 
 	const navigateToMonth = useCallback(
 		(newYear: number, newMonth: number) => {

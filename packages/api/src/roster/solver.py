@@ -178,20 +178,20 @@ def solve(data):
     print(f"   📋 Required per shift type: {dict(required_total_per_shift)}", flush=True)
 
     # ----------------------------
-    # 10b. HARD: Max shifts per type based on preferences (weight/10)
+    # 10b. HARD: Exact shifts per type based on preferences
     # ----------------------------
-    print("🔢 [SOLVER] Adding HARD max shifts per type constraints...", flush=True)
+    print("🔢 [SOLVER] Adding HARD exact shifts per type constraints...", flush=True)
     for n in nurses:
         nurse_limits = max_shifts_per_type.get(n, {})
         for s in shifts:
-            max_allowed = nurse_limits.get(s, None)
-            if max_allowed is not None:
-                if max_allowed < 0:
+            limit = nurse_limits.get(s, None)
+            if limit is not None:
+                if limit < 0:
                     model.Add(shift_count[(n, s)] == 0)
                     print(f"   {n} {s}: BLOCKED", flush=True)
                 else:
-                    model.Add(shift_count[(n, s)] <= max_allowed)
-                    print(f"   {n} {s}: max {max_allowed}", flush=True)
+                    model.Add(shift_count[(n, s)] == limit)
+                    print(f"   {n} {s}: exact {limit}", flush=True)
 
     # ----------------------------
     # 11. OBJECTIVE: Maximize preferences
@@ -219,11 +219,11 @@ def solve(data):
     # ----------------------------
     # 12. Solve
     # ----------------------------
-    print("🚀 [SOLVER] Starting solver (5.0s timeout, 3 workers)...", flush=True)
+    print("🚀 [SOLVER] Starting solver (10.0s timeout, 4 workers)...", flush=True)
     solver = cp_model.CpSolver()
-    # Limit max time to 5.0 seconds to allow finding solutions for tight constraints.
-    solver.parameters.max_time_in_seconds = 5.0
-    solver.parameters.num_search_workers = 3
+    # Limit max time to 10.0 seconds to allow finding solutions with exact preference constraints.
+    solver.parameters.max_time_in_seconds = 10.0
+    solver.parameters.num_search_workers = 4
     solver.parameters.log_search_progress = False
 
     status = solver.Solve(model)
