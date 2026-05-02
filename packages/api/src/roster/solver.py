@@ -219,10 +219,10 @@ def solve(data):
     # ----------------------------
     # 12. Solve
     # ----------------------------
-    print("🚀 [SOLVER] Starting solver (0.5s timeout, 4 workers)...", flush=True)
+    print("🚀 [SOLVER] Starting solver (5.0s timeout, 3 workers)...", flush=True)
     solver = cp_model.CpSolver()
-    # Limit max time to 0.5 seconds for instant response. CP-SAT is incredibly fast.
-    solver.parameters.max_time_in_seconds = 0.5
+    # Limit max time to 5.0 seconds to allow finding solutions for tight constraints.
+    solver.parameters.max_time_in_seconds = 5.0
     solver.parameters.num_search_workers = 3
     solver.parameters.log_search_progress = False
 

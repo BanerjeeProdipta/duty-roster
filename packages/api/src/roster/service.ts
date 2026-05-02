@@ -484,10 +484,10 @@ export async function generateRoster({ year, month }: GenerateRosterParams) {
 
 		maxShiftsPerType[nurseId] = {
 			morning:
-				morningWeight > 0 ? Math.floor((morningWeight / 100) * totalDays) : -1,
+				morningWeight > 0 ? Math.round((morningWeight / 100) * totalDays) : -1,
 			evening:
-				eveningWeight > 0 ? Math.floor((eveningWeight / 100) * totalDays) : -1,
-			night: nightWeight > 0 ? Math.floor((nightWeight / 100) * totalDays) : -1,
+				eveningWeight > 0 ? Math.round((eveningWeight / 100) * totalDays) : -1,
+			night: nightWeight > 0 ? Math.round((nightWeight / 100) * totalDays) : -1,
 		};
 	}
 
