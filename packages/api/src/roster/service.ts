@@ -4,9 +4,6 @@ import { fileURLToPath } from "node:url";
 import * as rosterDb from "./db";
 import type { SchedulesResponse } from "./schema";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
 import {
 	FRIDAY_OFF_NURSES,
 	getDaysCountFromStartAndEndDate,
@@ -40,11 +37,23 @@ async function runSolver(payload: {
 	};
 }): Promise<{ success: boolean; roster?: Record<string, string[]> }> {
 	return new Promise((resolve) => {
+		let localDirname = "";
+		try {
+			if (typeof import.meta !== "undefined" && import.meta.url) {
+				localDirname = dirname(fileURLToPath(import.meta.url));
+			}
+		} catch (e) {
+			// Ignore error in environments where fileURLToPath fails
+		}
+
 		const possiblePaths = [
 			pathResolve(process.cwd(), "packages/api/src/roster/solver.py"),
 			pathResolve(process.cwd(), "src/roster/solver.py"),
-			pathResolve(__dirname, "solver.py"),
 		];
+
+		if (localDirname) {
+			possiblePaths.push(pathResolve(localDirname, "solver.py"));
+		}
 
 		let solverPath = "";
 		for (const p of possiblePaths) {
