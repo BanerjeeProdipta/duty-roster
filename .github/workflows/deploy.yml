@@ -1,12 +1,11 @@
 name: Deploy
-
+ 
 on:
   push:
     branches:
       - main
 
 env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
   CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
   CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
   DATABASE_URL: ${{ secrets.DATABASE_URL }}
@@ -26,6 +25,11 @@ jobs:
         with:
           bun-version: latest
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
       - name: Install dependencies
         run: bun install
 
@@ -33,4 +37,6 @@ jobs:
         run: bun run deploy:server
 
       - name: Deploy Frontend
-        run: export CLOUDFLARE_ACCOUNT_ID=${{ secrets.CLOUDFLARE_ACCOUNT_ID }} && bun run deploy:web
+        run: bun run deploy:web
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
