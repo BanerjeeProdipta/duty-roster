@@ -4,6 +4,8 @@ import { Button } from "@Duty-Roster/ui/components/button";
 import { SearchInput } from "@Duty-Roster/ui/components/search-input";
 import { FileText } from "lucide-react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
 import { MonthNavigator } from "@/components/MonthNavigator";
 import type { SchedulesResponse } from "@/features/dashboard/roster-table/RosterMatrix.types";
 import { useGenerateRoster } from "@/hooks/useGenerateRoster";
@@ -24,10 +26,30 @@ export function RosterHeader({
 		initialSchedules?.nurseRows.map((row) => row.nurse.name) ?? [];
 	const nurseCount = nurseNames.length;
 
+	const searchParams = useSearchParams();
+	const router = useRouter();
+	const [searchValue, setSearchValue] = useState(searchParams.get("q") ?? "");
+
+	useEffect(() => {
+		setSearchValue(searchParams.get("q") ?? "");
+	}, [searchParams]);
+
+	const handleSearch = (value: string) => {
+		const params = new URLSearchParams(searchParams.toString());
+		if (value) {
+			params.set("q", value);
+		} else {
+			params.delete("q");
+		}
+		router.push(`?${params.toString()}`, { scroll: false });
+	};
+
 	return (
 		<div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
 			<SearchInput
-				paramKey="q"
+				value={searchValue}
+				onChange={setSearchValue}
+				onSearch={handleSearch}
 				language="bn-BD"
 				placeholder="নার্সের নাম দিয়ে খুঁজুন..."
 				suggestions={nurseNames}

@@ -1,23 +1,27 @@
 "use client";
 
-import { useVoiceSearch } from "@Duty-Roster/ui/hooks/useVoiceSearch";
+import { VoiceInput } from "@Duty-Roster/ui/components/voice-input";
 import { cn } from "@Duty-Roster/ui/lib/utils";
-import { Mic, Search, X } from "lucide-react";
-import { useSearchParams } from "next/navigation";
+import { X } from "lucide-react";
 import type { ComponentProps } from "react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 interface SearchInputProps
 	extends Omit<ComponentProps<"input">, "value" | "onChange"> {
-	paramKey?: string;
+	value?: string;
+	onChange?: (value: string) => void;
+	onSearch?: (value: string) => void;
 	language?: "en-US" | "bn-BD";
+	onLanguageChange?: (language: "en-US" | "bn-BD") => void;
 	suggestions?: string[];
 	suggestionCount?: number;
+	trailing?: React.ReactNode;
+	inputClassName?: string;
 }
 
 const banglaUI = {
 	stopListening: "শোনা বন্ধ করুন",
-	startVoiceSearch: "কণ্ঠস্বর অনুসন্ধান শুরু করুন",
+	startVoiceSearch: "কণ্ঠস্বর ইনপুট শুরু করুন",
 	clear: "পরিষ্কার করুন",
 };
 
@@ -28,94 +32,77 @@ const englishUI = {
 };
 
 function SearchInput({
-	paramKey = "q",
+	value: controlledValue,
+	onChange: controlledOnChange,
+	onSearch,
 	language = "bn-BD",
+	onLanguageChange,
 	suggestions = [],
 	suggestionCount = 10,
 	className,
+	inputClassName,
 	placeholder,
+	trailing,
 	...props
 }: SearchInputProps) {
-	const searchParams = useSearchParams();
-	const urlValue = searchParams.get(paramKey) ?? "";
-	const [value, setValue] = useState(urlValue);
+	const [internalValue, setInternalValue] = useState("");
+	const currentValue = controlledValue ?? internalValue;
+	const valueRef = useRef(currentValue);
+	const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+	useEffect(() => {
+		valueRef.current = currentValue;
+	}, [currentValue]);
 	const [showSuggestions, setShowSuggestions] = useState(false);
 	const [highlightedIndex, setHighlightedIndex] = useState(-1);
 	const containerRef = useRef<HTMLDivElement>(null);
 	const listRef = useRef<HTMLDivElement>(null);
-	const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
 	const ui = language === "bn-BD" ? banglaUI : englishUI;
 
-	// Cleanup debounce timer on unmount
-	useEffect(() => {
-		return () => {
-			if (debounceTimerRef.current) {
-				clearTimeout(debounceTimerRef.current);
-			}
-		};
-	}, []);
+	const debouncedSearch = (value: string) => {
+		if (!onSearch) return;
+		if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+		searchTimerRef.current = setTimeout(() => {
+			onSearch(value);
+		}, 300);
+	};
 
-	useEffect(() => {
-		setValue(searchParams.get(paramKey) ?? "");
-	}, [searchParams, paramKey]);
-
-	useEffect(() => {
-		const handleClickOutside = (event: MouseEvent) => {
-			if (
-				containerRef.current &&
-				!containerRef.current.contains(event.target as Node)
-			) {
-				setShowSuggestions(false);
-			}
-		};
-		document.addEventListener("mousedown", handleClickOutside);
-		return () => document.removeEventListener("mousedown", handleClickOutside);
-	}, []);
-
-	const filteredSuggestions = suggestions
-		.filter((s) => s.toLowerCase().includes(value.toLowerCase()))
-		.slice(0, suggestionCount);
-
-	const { isListening, isBrowserSupported, startListening, stopListening } =
-		useVoiceSearch({
-			language,
-			onTranscript: (transcript) => {
-				setValue((prev) => prev + transcript);
-			},
-		});
-
-	const updateURL = useCallback(
-		(newValue: string) => {
-			const params = new URLSearchParams(window.location.search);
-			if (newValue) {
-				params.set(paramKey, newValue);
-			} else {
-				params.delete(paramKey);
-			}
-			window.history.pushState(
-				null,
-				"",
-				params.toString() ? `?${params.toString()}` : window.location.pathname,
-			);
-		},
-		[paramKey],
-	);
-
-	const handleChange = (newValue: string) => {
-		setValue(newValue);
+	const handleValueChange = (newValue: string) => {
+		valueRef.current = newValue;
+		if (controlledOnChange) {
+			controlledOnChange(newValue);
+		} else {
+			setInternalValue(newValue);
+		}
 		setShowSuggestions(newValue.length > 0 && filteredSuggestions.length > 0);
 		setHighlightedIndex(-1);
+		debouncedSearch(newValue);
+	};
 
-		// Clear existing timer
-		if (debounceTimerRef.current) {
-			clearTimeout(debounceTimerRef.current);
+	const toggleLanguage = () => {
+		const newLang = language === "bn-BD" ? "en-US" : "bn-BD";
+		if (onLanguageChange) {
+			onLanguageChange(newLang);
 		}
+	};
 
-		// Debounce URL update to prevent cascading re-renders
-		debounceTimerRef.current = setTimeout(() => {
-			updateURL(newValue);
-		}, 300);
+	const filteredSuggestions = suggestions
+		.filter((s) => s.toLowerCase().includes(currentValue.toLowerCase()))
+		.slice(0, suggestionCount);
+
+	const handleClear = () => {
+		handleValueChange("");
+	};
+
+	const handleSelectSuggestion = (suggestion: string) => {
+		handleValueChange(suggestion);
+		setShowSuggestions(false);
+		setHighlightedIndex(-1);
+		if (onSearch) {
+			if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+			onSearch(suggestion);
+		}
 	};
 
 	const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -149,51 +136,51 @@ function SearchInput({
 		}
 	};
 
-	const handleSelectSuggestion = (suggestion: string) => {
-		// Clear debounce timer since we're updating immediately
-		if (debounceTimerRef.current) {
-			clearTimeout(debounceTimerRef.current);
-		}
-		setValue(suggestion);
-		setShowSuggestions(false);
-		setHighlightedIndex(-1);
-		updateURL(suggestion);
-	};
+	useEffect(() => {
+		const handleClickOutside = (event: MouseEvent) => {
+			if (
+				containerRef.current &&
+				!containerRef.current.contains(event.target as Node)
+			) {
+				setShowSuggestions(false);
+			}
+		};
+		document.addEventListener("mousedown", handleClickOutside);
+		return () => document.removeEventListener("mousedown", handleClickOutside);
+	}, []);
 
-	const handleClear = () => {
-		// Clear debounce timer since we're updating immediately
-		if (debounceTimerRef.current) {
-			clearTimeout(debounceTimerRef.current);
-		}
-		setValue("");
-		setShowSuggestions(false);
-		setHighlightedIndex(-1);
-		updateURL("");
-	};
+	useEffect(() => {
+		return () => {
+			if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+		};
+	}, []);
 
 	return (
-		<div ref={containerRef} className="relative flex flex-1 flex-col gap-1">
+		<div ref={containerRef} className="relative flex flex-col gap-1">
 			<div
 				className={cn(
 					"flex items-center gap-2 rounded-xl border bg-white px-3 py-2",
 					className,
 				)}
 			>
-				<Search className="h-4 w-4 text-slate-400" />
 				<input
 					type="text"
-					value={value}
-					onChange={(e) => handleChange(e.target.value)}
-					onKeyDown={handleKeyDown}
+					value={currentValue}
+					onChange={(e) => handleValueChange(e.target.value)}
+					onKeyDown={(e) => {
+						handleKeyDown(e);
+						props.onKeyDown?.(e);
+					}}
 					onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
 					placeholder={placeholder}
 					className={cn(
 						"flex-1 bg-transparent text-sm outline-none placeholder:text-slate-400",
 						language === "bn-BD" && "text-base",
+						inputClassName,
 					)}
 					{...props}
 				/>
-				{value && (
+				{currentValue && (
 					<button
 						type="button"
 						onClick={handleClear}
@@ -204,27 +191,24 @@ function SearchInput({
 						<X className="h-4 w-4 text-slate-400" />
 					</button>
 				)}
-				{isBrowserSupported && (
-					<button
-						type="button"
-						onClick={isListening ? stopListening : startListening}
-						className={cn(
-							"rounded-md border p-1.5 transition-colors",
-							isListening
-								? "border-green-400 bg-green-50 hover:bg-green-100"
-								: "hover:bg-slate-50",
-						)}
-						title={isListening ? ui.stopListening : ui.startVoiceSearch}
-						aria-label={isListening ? ui.stopListening : ui.startVoiceSearch}
-					>
-						<Mic
-							className={cn(
-								"h-4 w-4",
-								isListening ? "animate-pulse text-green-500" : "text-slate-600",
-							)}
-						/>
-					</button>
-				)}
+				<VoiceInput
+					language={language}
+					onTranscript={(transcript) =>
+						handleValueChange(valueRef.current + transcript)
+					}
+				/>
+				<button
+					type="button"
+					onClick={toggleLanguage}
+					className="rounded-md border border-slate-200 px-2 py-1 font-semibold text-xs transition-colors hover:bg-slate-50"
+					title={language === "bn-BD" ? "Switch to English" : "বাংলায় সুইচ করুন"}
+					aria-label={
+						language === "bn-BD" ? "Switch to English" : "বাংলায় সুইচ করুন"
+					}
+				>
+					{language === "bn-BD" ? "বাং" : "EN"}
+				</button>
+				{trailing}
 			</div>
 			{showSuggestions && filteredSuggestions.length > 0 && (
 				<div

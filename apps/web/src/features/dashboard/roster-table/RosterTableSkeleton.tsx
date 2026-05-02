@@ -21,6 +21,7 @@ export function RosterTableSkeleton() {
 								</th>
 								{Array.from({ length: HEADER_COUNT }).map((_, i) => (
 									<th
+										// biome-ignore lint/suspicious/noArrayIndexKey: static skeleton
 										key={`header-${i}`}
 										className="sticky top-0 z-[10] bg-slate-100"
 										style={{ width: "140px", height: "80px" }}
@@ -35,12 +36,15 @@ export function RosterTableSkeleton() {
 						</thead>
 						<tbody>
 							{Array.from({ length: NURSE_ROW_COUNT }).map((_, rowIndex) => (
-								<tr key={`row-${rowIndex}`}>
+								<tr
+									// biome-ignore lint/suspicious/noArrayIndexKey: static skeleton
+									key={`row-${rowIndex}`}
+								>
 									<td
 										className="sticky left-0 z-20 border-slate-200 border-b bg-white"
 										style={{
-											width: "180px",
-											minWidth: "180px",
+											width: "100px",
+											minWidth: "100px",
 											height: "80px",
 										}}
 									>
@@ -63,8 +67,9 @@ export function RosterTableSkeleton() {
 										style={{ height: "80px" }}
 									>
 										<div className="flex h-full items-center justify-center gap-2">
-											{Array.from({ length: 7 }).map((_, i) => (
+											{Array.from({ length: 20 }).map((_, i) => (
 												<Skeleton
+													// biome-ignore lint/suspicious/noArrayIndexKey: static skeleton
 													key={`skeleton-${i}`}
 													className="h-12 w-12 rounded-lg"
 												/>

@@ -20,6 +20,18 @@ export type { ShiftTypeKey, ShiftUpdateResult };
 
 // ───────────── PREFERENCES (merged logic) ─────────────
 
+export async function updateNurse({
+	nurseId,
+	name,
+}: {
+	nurseId: string;
+	name?: string;
+}) {
+	if (name !== undefined) {
+		await rosterDb.updateNurse(nurseId, { name });
+	}
+}
+
 export async function updateNurseShiftPreferenceWeights(
 	preferences: {
 		nurseId: string;
