@@ -42,14 +42,14 @@ export function NurseTable({
 			<Table>
 				<TableHeader>
 					<TableRow className="bg-slate-50/50">
-						<TableHead className="w-[280px]">Nurse</TableHead>
+						<TableHead className="w-[280px] text-center">Nurse</TableHead>
 						<TableHead>Status</TableHead>
 						<TableHead className="text-center">
 							<div className="inline-flex items-center gap-1.5">
 								<div className="rounded bg-amber-200 p-1 text-amber-900">
 									<Sun className="h-4 w-4" />
 								</div>
-								Morning
+								M
 							</div>
 						</TableHead>
 						<TableHead className="text-center">
@@ -57,7 +57,7 @@ export function NurseTable({
 								<div className="rounded bg-blue-200 p-1 text-blue-900">
 									<Sunset className="h-4 w-4" />
 								</div>
-								Evening
+								E
 							</div>
 						</TableHead>
 						<TableHead className="text-center">
@@ -65,7 +65,7 @@ export function NurseTable({
 								<div className="rounded bg-violet-200 p-1 text-violet-900">
 									<Moon className="h-4 w-4" />
 								</div>
-								Night
+								N
 							</div>
 						</TableHead>
 						<TableHead className="text-center">
@@ -73,7 +73,7 @@ export function NurseTable({
 								<div className="rounded bg-slate-200 p-1 text-slate-500">
 									<Coffee className="h-4 w-4" />
 								</div>
-								Off
+								O
 							</div>
 						</TableHead>
 						<TableHead className="text-center">Total</TableHead>

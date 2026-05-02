@@ -55,10 +55,9 @@ export const ROSTER_CONFIG = {
 		MAX_CONSECUTIVE_DAYS: 6,
 		MIN_DAYS_OFF_PER_WEEK: 1,
 	},
-	ALLOW_OVER_PREFERENCE: 0,
 } as const;
 
-export const FRIDAY_OFF_NURSES: string[] = ["nurse_1_id", "nurse_2_id"];
+export const FRIDAY_OFF_NURSES: string[] = [];
 
 // ───────────── DATE HELPERS ─────────────
 
@@ -114,7 +113,12 @@ export function isFriday(dateStr: string): boolean {
 }
 
 export function normalizeDateKey(dateStr: string): string {
-	const date = new Date(dateStr);
+	// Handle "YYYY-MM-DD" format properly in UTC
+	const parts = dateStr.split("-").map(Number);
+	const y = parts[0]!;
+	const m = parts[1]!;
+	const d = parts[2]!;
+	const date = new Date(Date.UTC(y, m - 1, d));
 	return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}-${String(date.getUTCDate()).padStart(2, "0")}`;
 }
 
@@ -144,49 +148,6 @@ export function getCoverageForDay(dayType: DayType): ShiftCounts {
 	return dayType === "FRIDAY"
 		? ROSTER_CONFIG.COVERAGE.FRIDAY
 		: ROSTER_CONFIG.COVERAGE.WEEKDAY;
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function buildNurseProfiles(
-	rows: any[],
-	daysInMonth: number,
-): Map<string, NursePreferenceProfile> {
-	const profiles = new Map<string, NursePreferenceProfile>();
-
-	for (const row of rows) {
-		const pm = Number(row.prefMorning) || 0;
-		const pe = Number(row.prefEvening) || 0;
-		const pn = Number(row.prefNight) || 0;
-		const active = row.active as boolean;
-
-		const buffer = ROSTER_CONFIG.ALLOW_OVER_PREFERENCE;
-		const maxMorning = Math.round((pm / 100) * daysInMonth) + buffer;
-		const maxEvening = Math.round((pe / 100) * daysInMonth) + buffer;
-		const maxNight = Math.round((pn / 100) * daysInMonth) + buffer;
-
-		let hardConstraintShift: ShiftType | null = null;
-		if (pm + pe + pn === 100) {
-			if (pm === 100) hardConstraintShift = "morning";
-			else if (pe === 100) hardConstraintShift = "evening";
-			else if (pn === 100) hardConstraintShift = "night";
-		}
-
-		profiles.set(row.id as string, {
-			nurseId: row.id as string,
-			nurseName: row.name as string,
-			active,
-			preferences: { morning: pm, evening: pe, night: pn },
-			maxShifts: { morning: maxMorning, evening: maxEvening, night: maxNight },
-			assigned: { morning: 0, evening: 0, night: 0 },
-			hardConstraintShift,
-			consecutiveDays: 0,
-			consecutiveNights: 0,
-			nightShiftCooldown: 0,
-			needsSecondNight: false,
-		});
-	}
-
-	return profiles;
 }
 
 export function canAssignShift(

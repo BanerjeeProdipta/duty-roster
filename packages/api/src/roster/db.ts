@@ -59,11 +59,16 @@ export async function findSchedulesAndPreferencesByDateRange(
 	startDate: Date,
 	endDate: Date,
 ) {
-	const start = new Date(startDate);
-	start.setUTCHours(0, 0, 0, 0);
+	const start =
+		typeof startDate === "string" ? new Date(startDate) : new Date(startDate);
+	const end =
+		typeof endDate === "string" ? new Date(endDate) : new Date(endDate);
 
-	const end = new Date(endDate);
-	end.setUTCHours(23, 59, 59, 999);
+	// Get UTC date strings for DB comparison
+	const startStr = `${start.getUTCFullYear()}-${String(start.getUTCMonth() + 1).padStart(2, "0")}-${String(start.getUTCDate()).padStart(2, "0")} 00:00:00`;
+	const endStr = `${end.getUTCFullYear()}-${String(end.getUTCMonth() + 1).padStart(2, "0")}-${String(end.getUTCDate()).padStart(2, "0")} 23:59:59`;
+
+	console.log(`🔍 Query: ${startStr} to ${endStr}`);
 
 	const result = await db.execute(sql`
     WITH nurse_prefs AS (
@@ -95,8 +100,8 @@ export async function findSchedulesAndPreferencesByDateRange(
         COUNT(*) FILTER (WHERE s.id IS NOT NULL)                    AS total_assigned
       FROM nurse_schedule ns
       LEFT JOIN shift s ON s.id = ns.shift_id
-      WHERE ns.date >= ${start}
-        AND ns.date <= ${end}
+      WHERE ns.date >= ${sql.raw(`'${startStr}'`)}
+        AND ns.date <= ${sql.raw(`'${endStr}'`)}
       GROUP BY ns.nurse_id
     )
 
@@ -138,13 +143,6 @@ export async function createSchedules(
 	const month = firstSchedule.date.getUTCMonth() + 1;
 	const { startDate, endDate } = getMonthDateRange(year, month);
 
-	const normalizedSchedules = schedules.map((s) => ({
-		id: `schedule_${s.nurseId}_${s.date.toISOString().split("T")[0]}`,
-		nurseId: s.nurseId,
-		shiftId: s.shiftId,
-		date: s.date,
-	}));
-
 	// 1️⃣ Clear the entire month first
 	await db
 		.delete(nurseSchedule)
@@ -155,11 +153,27 @@ export async function createSchedules(
 			),
 		);
 
-	// 2️⃣ Insert in batches
-	const BATCH_SIZE = 100;
-	for (let i = 0; i < normalizedSchedules.length; i += BATCH_SIZE) {
-		const batch = normalizedSchedules.slice(i, i + BATCH_SIZE);
-		await db.insert(nurseSchedule).values(batch);
+	// 2️⃣ Use raw SQL for fast bulk insert
+	if (schedules.length === 0) return;
+
+	console.log(`🗑️ Clearing month ${year}-${month}...`);
+	console.log(`📝 Building bulk insert with ${schedules.length} records...`);
+
+	const values = schedules
+		.map(
+			(s) =>
+				`('schedule_${s.nurseId}_${s.date.toISOString().split("T")[0]}', '${s.nurseId}', '${s.date.toISOString()}', ${s.shiftId ? `'${s.shiftId}'` : "NULL"})`,
+		)
+		.join(", ");
+
+	try {
+		await db.execute(
+			sql`INSERT INTO nurse_schedule (id, nurse_id, date, shift_id) VALUES ${sql.raw(values)} ON CONFLICT (id) DO UPDATE SET shift_id = EXCLUDED.shift_id`,
+		);
+		console.log("✅ Schedules saved!");
+	} catch (err) {
+		console.error("❌ DB Error:", err);
+		throw err;
 	}
 }
 
@@ -179,29 +193,6 @@ export async function findScheduleById(id: string) {
 		.where(eq(nurseSchedule.id, id))
 		.limit(1);
 	return row;
-}
-
-export async function findShiftCountsByMonth(year: number, month: number) {
-	const { startDate, endDate } = getMonthDateRange(year, month);
-
-	const results = await db
-		.select({
-			date: nurseSchedule.date,
-			shiftId: shift.id,
-		})
-		.from(nurseSchedule)
-		.innerJoin(shift, eq(shift.id, nurseSchedule.shiftId))
-		.where(
-			and(
-				sql`${nurseSchedule.date} >= ${startDate}`,
-				sql`${nurseSchedule.date} <= ${endDate}`,
-			),
-		);
-
-	return results.map((r) => ({
-		date: r.date,
-		shiftId: r.shiftId,
-	}));
 }
 
 // ─────────────── PREFERENCES (combined query) ───────────────
