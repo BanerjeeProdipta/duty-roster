@@ -23,8 +23,6 @@ export default function ShiftAllocationsClient({
 		totalDays,
 		nurses,
 		nurseRows: initialNurseRows,
-		year,
-		month,
 	} = useScheduleInit(initialSchedules);
 
 	const [nurseRows, setNurseRows] =
@@ -42,7 +40,12 @@ export default function ShiftAllocationsClient({
 		useSolverValidation({
 			nurseRows,
 			totalDays,
-			shiftRequirements: initialSchedules?.shiftRequirements,
+			shiftRequirements: initialSchedules?.shiftRequirements ?? {
+				morning: 0,
+				evening: 0,
+				night: 0,
+				total: 0,
+			},
 		});
 
 	const shiftCounts = useShiftCounts({
@@ -103,9 +106,6 @@ export default function ShiftAllocationsClient({
 				totalDays={totalDays}
 				shiftDeficits={shiftDeficits}
 				showExactMatchWarning={showExactMatchWarning}
-				year={year}
-				month={month}
-				nurseRows={nurseRows}
 			/>
 
 			{/* Shift Count Cards */}
@@ -139,7 +139,7 @@ export default function ShiftAllocationsClient({
 			</div>
 
 			{/* Search Bar + Nurse Totals */}
-			<div className="flex w-full flex-col items-center gap-4 lg:flex-row">
+			<div className="flex w-full flex-col items-center justify-between sm:flex-row sm:gap-4">
 				<SearchInput
 					placeholder={language === "bn-BD" ? "নার্স খুঁজুন..." : "Search nurses..."}
 					onSearch={setSearchTerm}

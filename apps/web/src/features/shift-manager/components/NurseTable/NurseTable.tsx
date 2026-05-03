@@ -12,7 +12,7 @@ import {
 import { VoiceInput } from "@Duty-Roster/ui/components/voice-input";
 import { cn } from "@Duty-Roster/ui/lib/utils";
 import { AlertCircle, Check, Coffee, Moon, Sun, Sunset, X } from "lucide-react";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { ShiftInput } from "@/features/shift-manager/components/ShiftInput";
 import { FourWaySlider } from "@/features/shift-manager/components/Slider";
 import { useNurseCard } from "@/features/shift-manager/hooks/useNurseCard";
@@ -245,7 +245,7 @@ function NurseTableRow({
 							max={totalDays}
 						/>
 						{draft.night >= 2 ? (
-							<span className="absolute top-2.5 -right-1 inline-flex items-center justify-center rounded bg-violet-100 px-1.5 py-0.5 font-bold text-[10px] text-violet-700">
+							<span className="absolute -top-1 -right-1 inline-flex items-center justify-center rounded bg-violet-100 px-1 py-0.5 font-bold text-[10px] text-violet-700">
 								+{Math.floor(draft.night / 2)}
 							</span>
 						) : (
