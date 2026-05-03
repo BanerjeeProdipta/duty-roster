@@ -254,13 +254,10 @@ def solve(data):
                     model.Add(shift_count[(n, s)] == 0)
                     print(f"   {n} {s}: BLOCKED", flush=True)
                 else:
-                    # Use exact (==) if no buffer, max (<=) if buffer exists
-                    if shift_buffer.get(s, 0) > 0:
-                        model.Add(shift_count[(n, s)] <= limit)
-                        print(f"   {n} {s}: max {limit} (flexible)", flush=True)
-                    else:
-                        model.Add(shift_count[(n, s)] == limit)
-                        print(f"   {n} {s}: exact {limit} (tight)", flush=True)
+                    # Always use <= to allow flexibility (exact caused infeasibility)
+                    # The solver will still try to maximize preference satisfaction
+                    model.Add(shift_count[(n, s)] <= limit)
+                    print(f"   {n} {s}: max {limit} (flexible)", flush=True)
 
     # ----------------------------
     # 11. OBJECTIVE: Maximize preferences
@@ -321,7 +318,12 @@ def solve(data):
     if status not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
         print("❌ [SOLVER] No feasible solution found!", flush=True)
         print("   This means coverage, fairness, and constraints are incompatible.", flush=True)
-        
+
+        # Check for specific constraint conflicts
+        if total_buffer == 0:
+            print("   💡 Tip: Try increasing preference for at least one shift type to create buffer > 0", flush=True)
+            print("   This allows the solver to be more flexible with shift assignments.", flush=True)
+
         # Two-phase fallback for tight constraints (no buffer)
         if total_buffer == 0:
             print("⚠️ [SOLVER] Attempting two-phase fallback for tight constraints...", flush=True)

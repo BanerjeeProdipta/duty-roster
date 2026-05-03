@@ -5,10 +5,13 @@ import * as rosterDb from "./db";
 import type { SchedulesResponse } from "./schema";
 
 import {
+	buildCoverageForMonth,
 	FRIDAY_OFF_NURSES,
 	getDaysCountFromStartAndEndDate,
 	getDaysInMonth,
-	isFriday,
+	getFridayIndicesForMonth,
+	getShiftRequirementsForMonth,
+	getShiftRequirementsForRange,
 	normalizeDateKey,
 	ROSTER_CONFIG,
 	type ShiftTypeKey,
@@ -137,12 +140,22 @@ async function runSolver(payload: {
 export async function updateNurse({
 	nurseId,
 	name,
+	active,
 }: {
 	nurseId: string;
 	name?: string;
+	active?: boolean;
 }) {
-	if (name !== undefined) {
-		await rosterDb.updateNurse(nurseId, { name });
+	console.log("📝 updateNurse called:", { nurseId, name, active });
+	const data: { name?: string; active?: boolean } = {};
+	if (name !== undefined) data.name = name;
+	if (active !== undefined) data.active = active;
+	if (Object.keys(data).length > 0) {
+		console.log("📝 Updating nurse in DB:", { nurseId, data });
+		await rosterDb.updateNurse(nurseId, data);
+		console.log("✅ Nurse updated");
+	} else {
+		console.log("⚠️ No data to update");
 	}
 }
 
@@ -176,6 +189,168 @@ export async function updateNurseShiftPreferenceWeights(
 	}
 
 	await rosterDb.upsertNurseShiftPreferences(validated, daysInMonth);
+}
+
+export async function prefillFairPreferences(
+	year: number,
+	month: number,
+): Promise<{ success: boolean; updated: number }> {
+	const totalDays = getDaysInMonth(year, month);
+
+	// Get shift requirements for the month
+	const shiftRequirements = getShiftRequirementsForMonth(year, month);
+
+	// Get all nurses and separate active/inactive
+	const allNurses = await rosterDb.findAllNurses();
+
+	const activeNurses = allNurses.filter((n) => n.active !== false);
+	console.log(
+		`all nurses: ${allNurses.length}, active: ${activeNurses.length}`,
+	);
+	const activeNurseCount = activeNurses.length;
+
+	if (activeNurseCount === 0) {
+		return { success: false, updated: 0 };
+	}
+
+	// Calculate fair share per nurse for each shift type
+	// Key insight: solver needs total_preferred >= total_required for each shift type
+	// to have buffer >= 0 and find a feasible solution with preference optimization.
+	//
+	// The solver calculates max_shifts_per_type as: Math.round((weight / 100) * totalDays)
+	// So total_preferred = sum(Math.round((weight / 100) * totalDays)) for all nurses.
+	// For N nurses with same weight W: total_preferred = N * Math.round((W/100) * totalDays)
+	//
+	// We need: N * Math.round((W/100) * totalDays) >= requirement
+	// This means: Math.round((W/100) * totalDays) >= ceil(requirement / N)
+	// To guarantee this: (W/100) * totalDays >= ceil(requirement / N)
+	// So: W >= ceil(requirement / N) / totalDays * 100
+	const calcMinWeight = (requirement: number): number => {
+		const minShiftsPerNurse = Math.ceil(requirement / activeNurseCount);
+		// Calculate weight needed and ceil it to ensure we meet the requirement
+		return Math.ceil((minShiftsPerNurse / totalDays) * 100);
+	};
+
+	// Calculate initial fair shares using ceil to ensure requirements are met
+	const fairShares = {
+		morning: Math.max(1, calcMinWeight(shiftRequirements.morning)),
+		evening: Math.max(1, calcMinWeight(shiftRequirements.evening)),
+		night: Math.max(1, calcMinWeight(shiftRequirements.night)),
+	};
+
+	// Log the fair share calculation for debugging
+	const rawMorning =
+		(shiftRequirements.morning / activeNurseCount / totalDays) * 100;
+	const rawEvening =
+		(shiftRequirements.evening / activeNurseCount / totalDays) * 100;
+	const rawNight =
+		(shiftRequirements.night / activeNurseCount / totalDays) * 100;
+	console.log(
+		`📊 Fair shares: morning=${fairShares.morning}%, evening=${fairShares.evening}%, night=${fairShares.night}%`,
+	);
+	console.log(
+		`   Raw: morning=${rawMorning.toFixed(2)}%, evening=${rawEvening.toFixed(2)}%, night=${rawNight.toFixed(2)}%`,
+	);
+
+	// Iteratively adjust weights to meet requirements while keeping total <= 99
+	let iterations = 0;
+	while (iterations < 200) {
+		iterations++;
+
+		// Check if all requirements are met
+		const morningOK =
+			Math.round((fairShares.morning / 100) * totalDays) * activeNurseCount >=
+			shiftRequirements.morning;
+		const eveningOK =
+			Math.round((fairShares.evening / 100) * totalDays) * activeNurseCount >=
+			shiftRequirements.evening;
+		const nightOK =
+			Math.round((fairShares.night / 100) * totalDays) * activeNurseCount >=
+			shiftRequirements.night;
+		const totalWeight =
+			fairShares.morning + fairShares.evening + fairShares.night;
+		const totalOK = totalWeight <= 99;
+
+		if (morningOK && eveningOK && nightOK && totalOK) break;
+
+		// Fix first failing constraint
+		if (!morningOK) {
+			fairShares.morning += 1;
+		} else if (!eveningOK) {
+			fairShares.evening += 1;
+		} else if (!nightOK) {
+			fairShares.night += 1;
+		} else if (!totalOK) {
+			// Total too high - reduce shift with most excess
+			const excess = {
+				morning:
+					Math.round((fairShares.morning / 100) * totalDays) *
+						activeNurseCount -
+					shiftRequirements.morning,
+				evening:
+					Math.round((fairShares.evening / 100) * totalDays) *
+						activeNurseCount -
+					shiftRequirements.evening,
+				night:
+					Math.round((fairShares.night / 100) * totalDays) * activeNurseCount -
+					shiftRequirements.night,
+			};
+			const maxExcess = Math.max(excess.morning, excess.evening, excess.night);
+			if (maxExcess <= 0) {
+				console.error(
+					`❌ Cannot fit shifts within 99% with ${activeNurseCount} nurses. Need more nurses.`,
+				);
+				break;
+			}
+			if (excess.morning === maxExcess && fairShares.morning > 1) {
+				fairShares.morning -= 1;
+			} else if (excess.evening === maxExcess && fairShares.evening > 1) {
+				fairShares.evening -= 1;
+			} else if (fairShares.night > 1) {
+				fairShares.night -= 1;
+			}
+		}
+	}
+
+	const totalOff =
+		100 - fairShares.morning - fairShares.evening - fairShares.night;
+	console.log(
+		`   Final: morning=${fairShares.morning}%, evening=${fairShares.evening}%, night=${fairShares.night}%, off=${totalOff}%`,
+	);
+
+	// Build preferences array for upsert
+	const preferences: {
+		nurseId: string;
+		shiftId: string;
+		weight: number;
+		active: boolean;
+	}[] = [];
+
+	for (const nurse of activeNurses) {
+		preferences.push({
+			nurseId: nurse.id,
+			shiftId: "shift_morning",
+			weight: fairShares.morning,
+			active: true,
+		});
+		preferences.push({
+			nurseId: nurse.id,
+			shiftId: "shift_evening",
+			weight: fairShares.evening,
+			active: true,
+		});
+		preferences.push({
+			nurseId: nurse.id,
+			shiftId: "shift_night",
+			weight: fairShares.night,
+			active: true,
+		});
+	}
+
+	console.log(`preferences to upsert: ${JSON.stringify(preferences, null, 2)}`);
+	await rosterDb.upsertNurseShiftPreferences(preferences, totalDays);
+
+	return { success: true, updated: activeNurseCount };
 }
 
 // ───────────── SCHEDULES ─────────────
@@ -335,28 +510,14 @@ export async function getSchedulesByDateRange(
 		preferenceCapacity.total += pref.total ?? 0;
 	}
 
-	let fridayCount = 0;
-	let weekdayCount = 0;
-
-	for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-		const dateStr = d.toISOString().split("T")[0] ?? "";
-		if (isFriday(dateStr)) {
-			fridayCount++;
-		} else {
-			weekdayCount++;
-		}
-	}
-
 	const shiftRequirements = {
-		morning: weekdayCount * 20 + fridayCount * 3,
-		evening: (weekdayCount + fridayCount) * 3,
-		night: (weekdayCount + fridayCount) * 2,
-		total:
-			weekdayCount * 20 +
-			fridayCount * 3 +
-			(weekdayCount + fridayCount) * 3 +
-			(weekdayCount + fridayCount) * 2,
+		...getShiftRequirementsForRange(startDate, endDate),
+		total: 0,
 	};
+	shiftRequirements.total =
+		shiftRequirements.morning +
+		shiftRequirements.evening +
+		shiftRequirements.night;
 
 	return {
 		nurseRows,
@@ -464,9 +625,11 @@ export async function generateRoster({ year, month }: GenerateRosterParams) {
 		existing.shift_off -= weight;
 	}
 
-	// Filter out inactive nurses from the map
+	// Filter out inactive nurses from the map (check both nurse.active and preference.active)
 	const activeNurseIds = new Set(
-		nurseShiftPreferences.filter((p) => p.active).map((p) => p.nurse.id),
+		nurseShiftPreferences
+			.filter((p) => p.nurse.active !== false && p.active)
+			.map((p) => p.nurse.id),
 	);
 
 	console.log(
@@ -538,28 +701,7 @@ export async function generateRoster({ year, month }: GenerateRosterParams) {
 	// ─────────────────────────────────────────────
 	// 2. Build per-day coverage (IMPORTANT FIX)
 	// ─────────────────────────────────────────────
-	const coverage: { morning: number; evening: number; night: number }[] = [];
-
-	for (let i = 0; i < totalDays; i++) {
-		// Create date in UTC to get correct day of week
-		const date = new Date(Date.UTC(year, month - 1, i + 1));
-		const dayOfWeek = date.getUTCDay();
-		const isFri = dayOfWeek === 5; // Friday = 5
-
-		coverage.push(
-			isFri
-				? {
-						morning: ROSTER_CONFIG.COVERAGE.FRIDAY.morning,
-						evening: ROSTER_CONFIG.COVERAGE.FRIDAY.evening,
-						night: ROSTER_CONFIG.COVERAGE.FRIDAY.night,
-					}
-				: {
-						morning: ROSTER_CONFIG.COVERAGE.WEEKDAY.morning,
-						evening: ROSTER_CONFIG.COVERAGE.WEEKDAY.evening,
-						night: ROSTER_CONFIG.COVERAGE.WEEKDAY.night,
-					},
-		);
-	}
+	const coverage = buildCoverageForMonth(year, month);
 
 	const totalRequiredShifts = coverage.reduce(
 		(sum, day) => sum + day.morning + day.evening + day.night,
@@ -580,13 +722,7 @@ export async function generateRoster({ year, month }: GenerateRosterParams) {
 	}
 
 	// Find all Friday indices in the month
-	const fridayIndices: number[] = [];
-	for (let i = 0; i < totalDays; i++) {
-		const date = new Date(Date.UTC(year, month - 1, i + 1));
-		if (date.getUTCDay() === 5) {
-			fridayIndices.push(i);
-		}
-	}
+	const fridayIndices = getFridayIndicesForMonth(year, month);
 	console.log(
 		`📅 Found ${fridayIndices.length} Fridays at indices: ${fridayIndices}`,
 	);
@@ -617,9 +753,13 @@ export async function generateRoster({ year, month }: GenerateRosterParams) {
 	);
 
 	if (!solverResult.success) {
+		// Check if it's a pre-solve validation failure
+		const reason = (solverResult as any).reason;
 		return {
 			success: false,
-			error: "Solver failed to find a feasible solution",
+			error: reason
+				? `Solver failed: ${reason}`
+				: "Solver couldn't find a valid roster. Try adjusting preferences to create more flexibility (ensure some shifts have buffer > 0).",
 		};
 	}
 

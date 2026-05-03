@@ -50,47 +50,20 @@ export function useUpdateNurseActive(options?: { onSuccess?: () => void }) {
 		mutationFn: async ({
 			nurseId,
 			active,
-			morning,
-			evening,
-			night,
-			totalDays,
 		}: {
 			nurseId: string;
 			active: boolean;
-			morning: number;
-			evening: number;
-			night: number;
-			totalDays: number;
 		}) => {
-			const preferences: PreferenceUpdate[] = [
-				{
-					nurseId,
-					shiftId: "shift_morning",
-					weight: Math.round((morning / totalDays) * 100),
-					active,
-				},
-				{
-					nurseId,
-					shiftId: "shift_evening",
-					weight: Math.round((evening / totalDays) * 100),
-					active,
-				},
-				{
-					nurseId,
-					shiftId: "shift_night",
-					weight: Math.round((night / totalDays) * 100),
-					active,
-				},
-			];
-			return trpcClient.roster.updateNurseShiftPreferences.mutate({
-				preferences,
-				daysInMonth: totalDays,
+			console.log("📡 Updating nurse active:", { nurseId, active });
+			return trpcClient.roster.updateNurse.mutate({
+				nurseId,
+				active,
 			});
 		},
 
 		onSuccess: () => {
 			toast.success("Active status updated");
-			queryClient.invalidateQueries({ queryKey: ["schedules"] });
+			queryClient.invalidateQueries({ queryKey: QUERY_KEYS.schedulesBase });
 			options?.onSuccess?.();
 		},
 
@@ -121,7 +94,7 @@ export function useUpdateNurse(options?: { onSuccess?: () => void }) {
 
 		onSuccess: () => {
 			toast.success("Nurse updated successfully");
-			queryClient.invalidateQueries({ queryKey: ["schedules"] });
+			queryClient.invalidateQueries({ queryKey: QUERY_KEYS.schedulesBase });
 			options?.onSuccess?.();
 		},
 

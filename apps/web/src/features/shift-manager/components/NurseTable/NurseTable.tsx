@@ -42,7 +42,7 @@ export function NurseTable({
 			<Table>
 				<TableHeader>
 					<TableRow className="bg-slate-50/50">
-						<TableHead className="w-[280px] text-center">Nurse</TableHead>
+						<TableHead className="w-70 text-center">Nurse</TableHead>
 						<TableHead>Status</TableHead>
 						<TableHead className="text-center">
 							<div className="inline-flex items-center gap-1.5">
@@ -116,8 +116,6 @@ function NurseTableRow({
 }: NurseTableRowProps) {
 	const [isEditingName, setIsEditingName] = useState(false);
 	const [editName, setEditName] = useState(nurse.name);
-	const isFirstRender = useRef(true);
-	const prevActiveRef = useRef(nurse.active ?? true);
 
 	const {
 		draft,
@@ -237,13 +235,23 @@ function NurseTableRow({
 						max={totalDays}
 					/>
 				</TableCell>
+
 				<TableCell>
-					<ShiftInput
-						color="bg-[#E5E7EB]"
-						value={draft.off}
-						onChange={(val) => handleFieldChange("off", val)}
-						max={totalDays}
-					/>
+					<div className="relative flex h-full w-full items-center justify-center">
+						<ShiftInput
+							color="bg-[#E5E7EB]"
+							value={draft.off}
+							onChange={(val) => handleFieldChange("off", val)}
+							max={totalDays}
+						/>
+						{draft.night >= 2 ? (
+							<span className="absolute top-2.5 -right-1 inline-flex items-center justify-center rounded bg-violet-100 px-1.5 py-0.5 font-bold text-[10px] text-violet-700">
+								+{Math.floor(draft.night / 2)}
+							</span>
+						) : (
+							<span className="text-[10px] text-slate-300">-</span>
+						)}
+					</div>
 				</TableCell>
 				<TableCell className="text-center">
 					<span

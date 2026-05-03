@@ -52,9 +52,17 @@ export function useNurseCard({
 
 	// Sync draft when nurse prop changes (different nurse or different base values)
 	useEffect(() => {
+		const nightCooldownOff = Math.floor(nurse.night / 2);
 		setDraft({
 			...nurse,
-			off: Math.max(0, totalDays - nurse.morning - nurse.evening - nurse.night),
+			off: Math.max(
+				0,
+				totalDays -
+					nurse.morning -
+					nurse.evening -
+					nurse.night -
+					nightCooldownOff,
+			),
 		});
 	}, [
 		nurse.nurseId,
@@ -68,7 +76,10 @@ export function useNurseCard({
 	]);
 
 	// Computed values
-	const sum = draft.morning + draft.evening + draft.night + draft.off;
+	// Night cooldown: every 2 consecutive nights needs 1 off day
+	const nightCooldownOff = Math.floor(draft.night / 2);
+	const sum =
+		draft.morning + draft.evening + draft.night + draft.off + nightCooldownOff;
 	const isInvalid = sum !== totalDays;
 	const hasChanged = nurseHasChanged(nurse, draft);
 
@@ -93,15 +104,21 @@ export function useNurseCard({
 		},
 	});
 
-	// Field change handler with automatic off calculation
+	// Field change handler with automatic off calculation (includes night cooldown)
 	const handleFieldChange = useCallback(
 		(field: ShiftField, value: number) => {
 			setDraft((prev) => {
 				const next = { ...prev, [field]: value };
 				if (field !== "off") {
+					// Night cooldown: every 2 consecutive nights needs 1 off day
+					const nightCooldownOff = Math.floor(next.night / 2);
 					next.off = Math.max(
 						0,
-						totalDays - next.morning - next.evening - next.night,
+						totalDays -
+							next.morning -
+							next.evening -
+							next.night -
+							nightCooldownOff,
 					);
 				}
 				return next;
@@ -123,9 +140,17 @@ export function useNurseCard({
 
 	// Cancel handler - resets draft to original nurse values
 	const handleCancel = useCallback(() => {
+		const nightCooldownOff = Math.floor(nurse.night / 2);
 		setDraft({
 			...nurse,
-			off: Math.max(0, totalDays - nurse.morning - nurse.evening - nurse.night),
+			off: Math.max(
+				0,
+				totalDays -
+					nurse.morning -
+					nurse.evening -
+					nurse.night -
+					nightCooldownOff,
+			),
 		});
 	}, [nurse, totalDays]);
 
@@ -134,6 +159,11 @@ export function useNurseCard({
 		if (updateActiveMutation.isPending) return;
 
 		const nextActive = !draft.active;
+		console.log("🔄 Toggling active:", {
+			nurseId: draft.nurseId,
+			from: draft.active,
+			to: nextActive,
+		});
 
 		// Optimistic update - update local state immediately
 		setDraft((prev) => ({ ...prev, active: nextActive }));
@@ -143,10 +173,6 @@ export function useNurseCard({
 			{
 				nurseId: draft.nurseId,
 				active: nextActive,
-				morning: draft.morning,
-				evening: draft.evening,
-				night: draft.night,
-				totalDays,
 			},
 			{
 				// Rollback on error
@@ -155,7 +181,7 @@ export function useNurseCard({
 				},
 			},
 		);
-	}, [draft, totalDays, updateActiveMutation]);
+	}, [draft.nurseId, draft.active, updateActiveMutation]);
 
 	// Update name handler
 	const handleUpdateName = useCallback(

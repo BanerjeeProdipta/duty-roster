@@ -77,6 +77,10 @@ export function createUTCDate(year: number, month: number, day: number): Date {
 }
 
 export function getDaysInMonth(year: number, month: number): number {
+	// month is 1-indexed (1 = January, 2 = February, etc.)
+	// Date.UTC uses 0-indexed months, so month=5 (May, 1-indexed) becomes month=5 (June, 0-indexed)
+	// Day 0 of next month = last day of current month
+	// Example: month=5 (May, 1-indexed) -> Date.UTC(year, 5, 0) = last day of May = 31
 	return new Date(Date.UTC(year, month, 0)).getUTCDate();
 }
 
@@ -301,4 +305,86 @@ export function assignRequiredShifts(
 			assignments.set(dayKey, list);
 		}
 	}
+}
+
+// ───────────── SHIFT REQUIREMENTS HELPERS ─────────────
+
+export function getFridayAndWeekdayCounts(
+	startDate: Date,
+	endDate: Date,
+): { fridayCount: number; weekdayCount: number } {
+	let fridayCount = 0;
+	let weekdayCount = 0;
+	const d = new Date(startDate);
+	while (d <= endDate) {
+		const dateStr = d.toISOString().split("T")[0] ?? "";
+		if (isFriday(dateStr)) {
+			fridayCount++;
+		} else {
+			weekdayCount++;
+		}
+		d.setDate(d.getDate() + 1);
+	}
+	return { fridayCount, weekdayCount };
+}
+
+export function getShiftRequirementsForMonth(
+	year: number,
+	month: number,
+): ShiftCounts {
+	const totalDays = getDaysInMonth(year, month);
+	const startDate = new Date(Date.UTC(year, month - 1, 1));
+	const endDate = new Date(Date.UTC(year, month - 1, totalDays));
+	return getShiftRequirementsForRange(startDate, endDate);
+}
+
+export function getShiftRequirementsForRange(
+	startDate: Date,
+	endDate: Date,
+): ShiftCounts {
+	const { fridayCount, weekdayCount } = getFridayAndWeekdayCounts(
+		startDate,
+		endDate,
+	);
+	return {
+		morning:
+			weekdayCount * ROSTER_CONFIG.COVERAGE.WEEKDAY.morning +
+			fridayCount * ROSTER_CONFIG.COVERAGE.FRIDAY.morning,
+		evening:
+			(weekdayCount + fridayCount) * ROSTER_CONFIG.COVERAGE.WEEKDAY.evening,
+		night: (weekdayCount + fridayCount) * ROSTER_CONFIG.COVERAGE.WEEKDAY.night,
+	};
+}
+
+export function buildCoverageForMonth(
+	year: number,
+	month: number,
+): { morning: number; evening: number; night: number }[] {
+	const totalDays = getDaysInMonth(year, month);
+	const coverage: { morning: number; evening: number; night: number }[] = [];
+	for (let i = 0; i < totalDays; i++) {
+		const date = new Date(Date.UTC(year, month - 1, i + 1));
+		const isFri = date.getUTCDay() === 5;
+		coverage.push(
+			isFri
+				? { ...ROSTER_CONFIG.COVERAGE.FRIDAY }
+				: { ...ROSTER_CONFIG.COVERAGE.WEEKDAY },
+		);
+	}
+	return coverage;
+}
+
+export function getFridayIndicesForMonth(
+	year: number,
+	month: number,
+): number[] {
+	const totalDays = getDaysInMonth(year, month);
+	const fridayIndices: number[] = [];
+	for (let i = 0; i < totalDays; i++) {
+		const date = new Date(Date.UTC(year, month - 1, i + 1));
+		if (date.getUTCDay() === 5) {
+			fridayIndices.push(i);
+		}
+	}
+	return fridayIndices;
 }

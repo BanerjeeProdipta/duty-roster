@@ -2,12 +2,14 @@
 
 import type { SchedulesResponse } from "@Duty-Roster/api";
 import { SearchInput } from "@Duty-Roster/ui/components/search-input";
-import { AlertTriangle, Loader2 } from "lucide-react";
-import { useCallback, useMemo, useState } from "react";
+import { Loader2, UserCheck, UserMinus } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { ShiftCountCard } from "@/features/dashboard/components/ShiftCountCard";
 import { useScheduleInit } from "@/hooks/useScheduleInit";
-import { NurseShiftCounts } from "./components/NurseShiftCounts";
 import { NurseTable } from "./components/NurseTable/NurseTable";
-import { ShiftTotalsBar } from "./components/ShiftTotalsBar";
+import { SolverWarnings } from "./components/SolverWarnings";
+import { useShiftCounts } from "./hooks/useShiftCounts";
+import { useSolverValidation } from "./hooks/useSolverValidation";
 
 interface ShiftAllocationsClientProps {
 	initialSchedules?: SchedulesResponse;
@@ -21,6 +23,8 @@ export default function ShiftAllocationsClient({
 		totalDays,
 		nurses,
 		nurseRows: initialNurseRows,
+		year,
+		month,
 	} = useScheduleInit(initialSchedules);
 
 	const [nurseRows, setNurseRows] =
@@ -28,29 +32,24 @@ export default function ShiftAllocationsClient({
 	const [searchTerm, setSearchTerm] = useState("");
 	const [language, setLanguage] = useState<"en-US" | "bn-BD">("bn-BD");
 
-	// Warning: req === pref AND nurses have inconsistent off days
-	const showExactMatchWarning = useMemo(() => {
-		// Check 1: req === pref (exact match on totals)
-		const reqTotal = initialSchedules?.shiftRequirements?.total ?? 0;
-		const prefTotal = initialSchedules?.preferenceCapacity?.total ?? 0;
-		if (reqTotal !== prefTotal) return false;
+	// Sync nurseRows when query refetches (e.g. after prefill)
+	useEffect(() => {
+		setNurseRows(initialNurseRows);
+	}, [initialNurseRows]);
 
-		// Check 2: Nurses have inconsistent off days
-		const activeNurseRows = nurseRows.filter((row) => row.nurse.active);
-		if (activeNurseRows.length === 0) return false;
-
-		// Calculate off days for each nurse: totalDays - (morning + evening + night)
-		const offDaysByNurse = activeNurseRows.map((row) => {
-			const metrics = row.preferenceWiseShiftMetrics;
-			const worked =
-				(metrics.morning ?? 0) + (metrics.evening ?? 0) + (metrics.night ?? 0);
-			return totalDays - worked;
+	// Extracted logic hooks
+	const { solverValidation, shiftDeficits, showExactMatchWarning } =
+		useSolverValidation({
+			nurseRows,
+			totalDays,
+			shiftRequirements: initialSchedules?.shiftRequirements,
 		});
 
-		// Check if all off day counts are the same
-		const uniqueOffCounts = new Set(offDaysByNurse);
-		return uniqueOffCounts.size > 1;
-	}, [initialSchedules, nurseRows, totalDays]);
+	const shiftCounts = useShiftCounts({
+		nurseRows,
+		nurses,
+		shiftRequirements: initialSchedules?.shiftRequirements,
+	});
 
 	const showLoader = isFetching && !nurses.length;
 
@@ -92,28 +91,54 @@ export default function ShiftAllocationsClient({
 		);
 	}, []);
 
+	const totalAvailable =
+		(shiftCounts.morning.available ?? 0) +
+		(shiftCounts.evening.available ?? 0) +
+		(shiftCounts.night.available ?? 0);
+
 	return (
 		<div className="flex flex-col gap-4">
-			{/* Warning alert for exact match + inconsistent off days */}
-			{showExactMatchWarning && (
-				<div className="flex items-start gap-3 rounded-lg border border-rose-200 bg-rose-50 p-4">
-					<AlertTriangle className="mt-0.5 h-5 w-5 text-rose-600" />
-					<div>
-						<h4 className="font-semibold text-rose-700">Exact Match Warning</h4>
-						<p className="mt-1 text-rose-700 text-xs">
-							Required equals preferred, but nurses have inconsistent off days.
-							This may cause the solver to fail. Consider equalizing off days
-							across nurses.
-						</p>
-					</div>
-				</div>
-			)}
-
-			<NurseShiftCounts
+			<SolverWarnings
+				solverValidation={solverValidation}
+				totalDays={totalDays}
+				shiftDeficits={shiftDeficits}
+				showExactMatchWarning={showExactMatchWarning}
+				year={year}
+				month={month}
 				nurseRows={nurseRows}
-				shiftRequirements={initialSchedules?.shiftRequirements}
 			/>
 
+			{/* Shift Count Cards */}
+			<div className="flex flex-col gap-3 rounded-xl border bg-white p-3 sm:p-4">
+				<div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
+					<ShiftCountCard
+						shift="total"
+						required={shiftCounts.total.required}
+						preference={shiftCounts.total.preference}
+						available={totalAvailable}
+					/>
+					<ShiftCountCard
+						shift="morning"
+						required={shiftCounts.morning.required}
+						preference={shiftCounts.morning.preference}
+						available={shiftCounts.morning.available}
+					/>
+					<ShiftCountCard
+						shift="evening"
+						required={shiftCounts.evening.required}
+						preference={shiftCounts.evening.preference}
+						available={shiftCounts.evening.available}
+					/>
+					<ShiftCountCard
+						shift="night"
+						required={shiftCounts.night.required}
+						preference={shiftCounts.night.preference}
+						available={shiftCounts.night.available}
+					/>
+				</div>
+			</div>
+
+			{/* Search Bar + Nurse Totals */}
 			<div className="flex w-full flex-col items-center gap-4 lg:flex-row">
 				<SearchInput
 					placeholder={language === "bn-BD" ? "নার্স খুঁজুন..." : "Search nurses..."}
@@ -122,7 +147,16 @@ export default function ShiftAllocationsClient({
 					onLanguageChange={(lang) => setLanguage(lang)}
 					className="w-full"
 				/>
-				<ShiftTotalsBar nurses={nurses} />
+				<div className="flex items-center justify-center gap-4 rounded-lg bg-slate-50 px-4 py-3">
+					<div className="inline-flex items-center gap-1 font-medium text-green-600 text-sm">
+						<UserCheck className="h-4 w-4" />
+						{shiftCounts.activeCount}
+					</div>
+					<div className="inline-flex items-center gap-1 font-medium text-rose-400 text-sm">
+						<UserMinus className="h-4 w-4" />
+						{shiftCounts.inactiveCount}
+					</div>
+				</div>
 			</div>
 
 			{showLoader && (

@@ -1,9 +1,11 @@
 import { Skeleton } from "@Duty-Roster/ui/components/skeleton";
 import { Suspense } from "react";
 import { MonthNavigator } from "@/components/MonthNavigator";
+import { PrefillFairlyButton } from "@/components/PrefillFairlyButton";
 import { ShiftCountsSkeleton } from "@/features/dashboard/components/ShiftCountsSkeleton";
 import { RosterTableSkeleton } from "@/features/dashboard/roster-table/RosterTableSkeleton";
 import ShiftAllocationsClient from "@/features/shift-manager/ShiftAllocationsClient";
+import WeekDayCounts from "@/features/shift-manager/WeekDayCounts";
 import {
 	getMonthDateRange,
 	getWeekdayCounts,
@@ -26,26 +28,13 @@ async function ShiftAllocationsContent(props: {
 		startDate,
 		endDate,
 	});
-	const weekdayCounts = getWeekdayCounts(year, month);
 
 	return (
 		<div className="flex flex-col gap-6">
 			<MonthNavigator />
-			<div className="mx-auto flex flex-wrap gap-2 text-sm">
-				<span className="text-slate-500">Sunday:</span>
-				<span className="font-medium">{weekdayCounts.sun}</span>
-				<span className="text-slate-500">Monday:</span>
-				<span className="font-medium">{weekdayCounts.mon}</span>
-				<span className="text-slate-500">Tuesday:</span>
-				<span className="font-medium">{weekdayCounts.tue}</span>
-				<span className="text-slate-500">Wednesday:</span>
-				<span className="font-medium">{weekdayCounts.wed}</span>
-				<span className="text-slate-500">Thursday:</span>
-				<span className="font-medium">{weekdayCounts.thu}</span>
-				<span className="text-slate-500">Friday:</span>
-				<span className="font-medium">{weekdayCounts.fri}</span>
-				<span className="text-slate-500">Saturday:</span>
-				<span className="font-medium">{weekdayCounts.sat}</span>
+			<div className="flex items-center justify-between">
+				<WeekDayCounts month={month} year={year} />
+				<PrefillFairlyButton year={year} month={month} />
 			</div>
 			<Suspense fallback={<ShiftCountsSkeleton />}>
 				<ShiftAllocationsClient initialSchedules={initialSchedules} />
