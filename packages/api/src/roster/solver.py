@@ -21,16 +21,14 @@ def solve(data):
     print(f"📋 [SOLVER] Coverage by day: {coverage[:3]}... (showing first 3)", flush=True)
     print(f"🎯 [SOLVER] Constraints: max_nights={constraints['max_consecutive_nights']}, max_days={constraints['max_consecutive_days']}", flush=True)
 
-    # ----------------------------
-    # 0. Buffer Analysis: Required vs Preferred
-    # ----------------------------
+    # Buffer Analysis
     print("🔍 [SOLVER] Analyzing buffer (required vs preferred)...", flush=True)
     shift_buffer = {}
     use_exact_constraints = True
     
     for s in shifts:
         total_required = sum(coverage[d][s] for d in range(days))
-        total_preferred = sum(max_shifts_per_type.get(n, {}).get(s, 0) for n in nurses)
+        total_preferred = sum(max(0, max_shifts_per_type.get(n, {}).get(s, days)) for n in nurses)
         buffer = total_preferred - total_required
         shift_buffer[s] = buffer
         
@@ -42,8 +40,8 @@ def solve(data):
     
     total_required_all = sum(coverage[d][s] for d in range(days) for s in shifts)
     total_preferred_all = sum(
-        max_shifts_per_type.get(n, {}).get(s, 0) 
-        for n in nurses 
+        max(0, max_shifts_per_type.get(n, {}).get(s, days))
+        for n in nurses
         for s in shifts
     )
     total_buffer = total_preferred_all - total_required_all
@@ -53,12 +51,9 @@ def solve(data):
     print(f"⚡ [SOLVER] Total shifts needed: {total_needed}", flush=True)
     print(f"👩‍⚕️ [SOLVER] Shifts per nurse (avg): {total_needed / len(nurses):.1f}", flush=True)
 
-    # ----------------------------
-    # 0b. Pre-Solve Validation
-    # ----------------------------
+    # Pre-Solve Validation
     print("🔍 [SOLVER] Running pre-solve validation...", flush=True)
     
-    # Check 1: Total capacity vs required
     min_days_off = constraints.get("min_days_off_per_week", 0)
     max_shifts_per_nurse = days - (min_days_off * (days // 7))
     total_capacity = len(nurses) * max_shifts_per_nurse
@@ -71,30 +66,22 @@ def solve(data):
     else:
         print(f"   ✅ Capacity check passed", flush=True)
     
-    # Check 2: Per-shift capacity vs required
+    # Check per-shift capacity
     for s in shifts:
         total_required = sum(coverage[d][s] for d in range(days))
-        total_max = sum(max_shifts_per_type.get(n, {}).get(s, days) for n in nurses)
+        total_max = sum(max(0, max_shifts_per_type.get(n, {}).get(s, days)) for n in nurses)
         if total_max < total_required:
             print(f"   ❌ INFEASIBLE: {s} max ({total_max}) < required ({total_required})", flush=True)
             return {"success": False, "reason": f"Insufficient {s} capacity: {total_max} < {total_required}"}
         else:
             print(f"   ✅ {s}: max={total_max} >= required={total_required}", flush=True)
     
-    # Check 3: Per-nurse shift limits vs days available
-    for n in nurses:
-        nurse_max_total = sum(max_shifts_per_type.get(n, {}).get(s, 0) for s in shifts)
-        if nurse_max_total > max_shifts_per_nurse:
-            print(f"   ⚠️ {n}: max shifts ({nurse_max_total}) > available days ({max_shifts_per_nurse})", flush=True)
-    
     print("   ✅ Pre-solve validation complete", flush=True)
 
     model = cp_model.CpModel()
     print("✅ [SOLVER] Model created", flush=True)
 
-    # ----------------------------
-    # 1. Decision Variables
-    # ----------------------------
+    # Decision Variables
     print("🔢 [SOLVER] Creating decision variables...", flush=True)
     X = {}
     for n in nurses:
@@ -103,17 +90,13 @@ def solve(data):
                 X[(n, d, s)] = model.NewBoolVar(f"{n}_{d}_{s}")
     print(f"   ✅ Created {len(X)} variables", flush=True)
 
-    # ----------------------------
-    # 2. One shift per day
-    # ----------------------------
+    # One shift per day
     print("📌 [SOLVER] Adding one-shift-per-day constraints...", flush=True)
     for n in nurses:
         for d in range(days):
             model.Add(sum(X[(n, d, s)] for s in shifts) <= 1)
 
-    # ----------------------------
-    # 3. HARD: COVERAGE CONSTRAINTS
-    # ----------------------------
+    # HARD: COVERAGE CONSTRAINTS
     print("🎯 [SOLVER] Adding HARD coverage constraints...", flush=True)
     for d in range(days):
         for s in shifts:
@@ -123,51 +106,51 @@ def solve(data):
             )
     print(f"   ✅ Added {days * len(shifts)} coverage constraints", flush=True)
 
-    # ----------------------------
-    # 4. Max consecutive nights
-    # ----------------------------
-    max_nights = constraints["max_consecutive_nights"]
-    print(f"🌙 [SOLVER] Adding max {max_nights} consecutive nights constraint...", flush=True)
+    # ════════════════════════════════════════════════════════════════════
+    # ★★★ MANDATORY REST AFTER 2 CONSECUTIVE NIGHTS ★★★
+    # ════════════════════════════════════════════════════════════════════
+    # Rule: If Days d and d+1 are BOTH Night → Day d+2 MUST be Off
+    # Allows: 0, 1, 2, or 3+ nights per month (depending on spacing)
+    # Prevents: 3+ consecutive nights without a rest day
+    # Examples:
+    #   - Night, Off, ... (1 isolated) ✓
+    #   - Night, Night, Off, ... (pair) ✓
+    #   - Night, Off, Night, ... (2 separate) ✓
+    #   - Night, Night, Night, ... (3 consecutive) ✗ BLOCKED
+    # ════════════════════════════════════════════════════════════════════
+    
+    print(f"🌙 [SOLVER] Enforcing mandatory rest rule: max 2 consecutive nights...", flush=True)
+    
+    previous_shifts = data.get("previous_shifts", {})
+
     for n in nurses:
-        for d in range(days - max_nights):
-            model.Add(
-                sum(X[(n, d + i, "night")] for i in range(max_nights + 1))
-                <= max_nights
-            )
+        # Cross-month boundaries
+        prev = previous_shifts.get(n, ["off", "off"])
+        prev_minus_2 = 1 if prev[0] == "night" else 0
+        prev_minus_1 = 1 if prev[1] == "night" else 0
 
-    # ----------------------------
-    # 5. Max consecutive working days
-    # ----------------------------
-    max_days = constraints["max_consecutive_days"]
-    print(f"📅 [SOLVER] Adding max {max_days} consecutive days constraint...", flush=True)
-    for n in nurses:
-        for d in range(days - max_days):
-            model.Add(
-                sum(
-                    X[(n, d + i, s)]
-                    for i in range(max_days + 1)
-                    for s in shifts
-                )
-                <= max_days
-            )
+        # Rule 0: If Day -2 and Day -1 were both night, Day 0 MUST be Off
+        if prev_minus_2 and prev_minus_1 and days > 0:
+            model.Add(sum(X[(n, 0, s)] for s in shifts) == 0)
+        
+        # Rule 1: If Day -1 and Day 0 are both night, Day 1 MUST be Off
+        if prev_minus_1 and days > 1:
+            night_on_0 = X[(n, 0, "night")]
+            any_shift_on_1 = sum(X[(n, 1, s)] for s in shifts)
+            model.Add(night_on_0 + any_shift_on_1 <= 1)
 
-    # ----------------------------
-    # 6. Min days off per week (if specified)
-    # ----------------------------
-    min_off = constraints.get("min_days_off_per_week", 0)
-    if min_off > 0:
-        print(f"📅 [SOLVER] Adding min {min_off} days off per week...", flush=True)
-        for n in nurses:
-            for week_start in range(0, days, 7):
-                week_end = min(week_start + 7, days)
-                model.Add(
-                    sum(X[(n, d, s)] for d in range(week_start, week_end) for s in shifts)
-                    <= (7 - min_off)
-                )
+        # If Days d and d+1 are BOTH Night → Day d+2 MUST be Off
+        # Constraint: night(d) + night(d+1) + any_shift(d+2) <= 2
+        for d in range(days - 2):
+            night_on_d = X[(n, d, "night")]
+            night_on_d_plus_1 = X[(n, d + 1, "night")]
+            any_shift_on_d_plus_2 = sum(X[(n, d + 2, s)] for s in shifts)
+            model.Add(night_on_d + night_on_d_plus_1 + any_shift_on_d_plus_2 <= 2)
+    
+    print(f"   ✅ Rest-day constraints: {days - 2} per nurse", flush=True)
+    print(f"   📋 Pattern: Max 2 consecutive nights, then must have non-night shift or off", flush=True)
 
-    # ----------------------------
-    # 7. Unavailable nurses (e.g., Friday-offs)
-    # ----------------------------
+    # Unavailable nurses (e.g., Friday-offs)
     unavailable = data.get("unavailable", {})
     unavailable_nurses = set()
     if unavailable:
@@ -180,9 +163,7 @@ def solve(data):
                     for s in shifts:
                         model.Add(X[(n, d, s)] == 0)
 
-    # ----------------------------
-    # 8. Workload tracking
-    # ----------------------------
+    # Workload tracking
     print("📈 [SOLVER] Setting up workload tracking...", flush=True)
     total_shifts = {}
     for n in nurses:
@@ -196,7 +177,6 @@ def solve(data):
         coverage[d][s] for d in range(days) for s in shifts
     )
     
-    # Adjust for unavailable nurses
     available_nurses = [n for n in nurses if n not in unavailable_nurses]
     
     if available_nurses:
@@ -208,9 +188,7 @@ def solve(data):
     
     print(f"   📊 Target avg shifts per nurse: {avg_load} (with {remainder} nurses getting +1)", flush=True)
 
-    # ----------------------------
-    # 9. Soft preference for balanced workload
-    # ----------------------------
+    # Soft preference for balanced workload
     print("⚖️ [SOLVER] Adding soft workload balancing...", flush=True)
 
     workload_penalties = []
@@ -219,12 +197,9 @@ def solve(data):
             dev = model.NewIntVar(0, days, f"dev_{n}")
             model.Add(dev >= total_shifts[n] - avg_load)
             model.Add(dev >= avg_load - total_shifts[n])
-            # Sufficient penalty to ensure fairness without over-complicating the search tree
             workload_penalties.append(-200 * dev)
 
-    # ----------------------------
-    # 10. Shift type tracking
-    # ----------------------------
+    # Shift type tracking
     print("📊 [SOLVER] Setting up shift type tracking...", flush=True)
     shift_count = {}
     for n in nurses:
@@ -235,15 +210,58 @@ def solve(data):
                 sum(X[(n, d, s)] for d in range(days))
             )
 
+    # Note: NNO pattern is encouraged by the max 2 consecutive nights constraint
+    # This naturally creates NNO + N spacing for 3-night nurses
+    print("🌙 [SOLVER] Night pattern: max 2 consecutive nights enforced", flush=True)
+    print(f"   📋 For 3-night nurses: naturally creates Night-Night-Off + isolated Night", flush=True)
+
+    # ════════════════════════════════════════════════════════════════════
+    # CONSECUTIVE NIGHT PAIRS TRACKING
+    # ════════════════════════════════════════════════════════════════════
+    # Track consecutive night pairs (Night, Night) per nurse for enforcement
+    print("📋 [SOLVER] Adding consecutive night pair tracking...", flush=True)
+
+    consec_night = {}
+    for n in nurses:
+        for d in range(days - 1):
+            consec_night[(n, d)] = model.NewBoolVar(f"{n}_{d}_consec_night")
+            night_d = X[(n, d, "night")]
+            night_d_plus_1 = X[(n, d + 1, "night")]
+            # consec_night = night_d AND night_d_plus_1
+            model.Add(consec_night[(n, d)] <= night_d)
+            model.Add(consec_night[(n, d)] <= night_d_plus_1)
+            model.Add(consec_night[(n, d)] >= night_d + night_d_plus_1 - 1)
+
+    # Count consecutive night pairs per nurse
+    consec_night_count = {}
+    for n in nurses:
+        consec_night_count[n] = model.NewIntVar(0, days, f"{n}_consec_night_count")
+        model.Add(consec_night_count[n] == sum(consec_night[(n, d)] for d in range(days - 1)))
+
+    print(f"   ✅ Consecutive night pairs: {days - 1} potential pairs per nurse", flush=True)
+
+    # ════════════════════════════════════════════════════════════════════
+    # ENFORCE: Exactly 2 nights → must be back-to-back
+    # ════════════════════════════════════════════════════════════════════
+    # ENCOURAGE: Night-Night-Off pattern (prevent scattered nights)
+    # ════════════════════════════════════════════════════════════════════
+    print("🌙 [SOLVER] Encouraging: Night-Night-Off pattern (prefer back-to-back nights)...", flush=True)
+
+    nno_rewards = []
+    for n in nurses:
+        # Reward each pair of consecutive nights to encourage pairing and prevent scattered isolated nights
+        nno_rewards.append(100 * consec_night_count[n])
+
+    print(f"   ✅ Night-Night-Off pattern encouraged for all nurses (soft constraint)", flush=True)
+    print(f"   ✅ 3+ nights → will naturally form a pair plus isolated night", flush=True)
+
     required_total_per_shift = {
         s: sum(coverage[d][s] for d in range(days))
         for s in shifts
     }
     print(f"   📋 Required per shift type: {dict(required_total_per_shift)}", flush=True)
 
-    # ----------------------------
-    # 10b. HARD: Shifts per type based on preferences and buffer
-    # ----------------------------
+    # HARD: Shifts per type based on preferences and buffer
     print("🔢 [SOLVER] Adding shifts per type constraints...", flush=True)
     for n in nurses:
         nurse_limits = max_shifts_per_type.get(n, {})
@@ -252,16 +270,10 @@ def solve(data):
             if limit is not None:
                 if limit < 0:
                     model.Add(shift_count[(n, s)] == 0)
-                    print(f"   {n} {s}: BLOCKED", flush=True)
                 else:
-                    # Always use <= to allow flexibility (exact caused infeasibility)
-                    # The solver will still try to maximize preference satisfaction
                     model.Add(shift_count[(n, s)] <= limit)
-                    print(f"   {n} {s}: max {limit} (flexible)", flush=True)
 
-    # ----------------------------
-    # 11. OBJECTIVE: Maximize preferences
-    # ----------------------------
+    # OBJECTIVE: Maximize preferences
     print("🎯 [SOLVER] Building objective function...", flush=True)
     preference_terms = []
 
@@ -275,37 +287,26 @@ def solve(data):
     print(f"   ✅ {len(preference_terms)} preference terms", flush=True)
     
     if 'workload_penalties' in locals() and workload_penalties:
-        model.Maximize(sum(preference_terms) + sum(workload_penalties))
+        model.Maximize(sum(preference_terms) + sum(workload_penalties) + sum(nno_rewards))
     else:
-        model.Maximize(sum(preference_terms))
+        model.Maximize(sum(preference_terms) + sum(nno_rewards))
         
     print("   🎯 Objective: Maximize preference satisfaction and fairness", flush=True)
-    print("      (with hard constraints: coverage ✅, logistics ✅)", flush=True)
+    print("      (with hard constraints: coverage ✅, logistics ✅, night rest rule ✅)", flush=True)
+    print("      (Note: 3-night pattern naturally emerges as NNO + N from the hard constraint)", flush=True)
 
-    # ----------------------------
-    # 12. Solve
-    # ----------------------------
-    
-    # Dynamic worker calculation based on buffer flexibility
+    # Solve
     num_vars = len(nurses) * days * len(shifts)
     
     if total_buffer > 0:
-        # Has flexibility - parallel workers help explore solution space
-        if num_vars < 1000:
-            workers = 2
-        elif num_vars < 5000:
-            workers = 4
-        else:
-            workers = 8
+        workers = 2 if num_vars < 1000 else (4 if num_vars < 5000 else 8)
         print(f"🔧 [SOLVER] Buffer={total_buffer} (flexible), using {workers} workers for parallel search", flush=True)
     else:
-        # No flexibility - focused single-threaded search
         workers = 1
         print(f"🔧 [SOLVER] Buffer={total_buffer} (tight constraints), using {workers} worker for focused search", flush=True)
     
     print(f"🚀 [SOLVER] Starting solver ({'30.0' if total_buffer == 0 else '15.0'}s timeout, {workers} workers)...", flush=True)
     solver = cp_model.CpSolver()
-    # More time for tight constraints (no buffer), less for flexible cases
     solver.parameters.max_time_in_seconds = 30.0 if total_buffer == 0 else 15.0
     solver.parameters.num_search_workers = workers
     solver.parameters.cp_model_presolve = True
@@ -317,120 +318,16 @@ def solve(data):
 
     if status not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
         print("❌ [SOLVER] No feasible solution found!", flush=True)
-        print("   This means coverage, fairness, and constraints are incompatible.", flush=True)
+        print("   This means coverage, fairness, and night rest constraints are incompatible.", flush=True)
 
-        # Check for specific constraint conflicts
         if total_buffer == 0:
             print("   💡 Tip: Try increasing preference for at least one shift type to create buffer > 0", flush=True)
-            print("   This allows the solver to be more flexible with shift assignments.", flush=True)
 
-        # Two-phase fallback for tight constraints (no buffer)
-        if total_buffer == 0:
-            print("⚠️ [SOLVER] Attempting two-phase fallback for tight constraints...", flush=True)
-            
-            # Phase 1: Solve with only hard constraints (no objective)
-            print("   Phase 1: Finding feasible solution without preferences...", flush=True)
-            model_phase1 = cp_model.CpModel()
-            
-            # Re-add all hard constraints (simplified - just coverage and logistics)
-            X_phase1 = {}
-            for n in nurses:
-                for d in range(days):
-                    for s in shifts:
-                        X_phase1[(n, d, s)] = model_phase1.NewBoolVar(f"{n}_{d}_{s}")
-            
-            # One shift per day
-            for n in nurses:
-                for d in range(days):
-                    model_phase1.Add(sum(X_phase1[(n, d, s)] for s in shifts) <= 1)
-            
-            # Coverage constraints
-            for d in range(days):
-                for s in shifts:
-                    model_phase1.Add(
-                        sum(X_phase1[(n, d, s)] for n in nurses) == coverage[d][s]
-                    )
-            
-            # Consecutive constraints
-            for n in nurses:
-                for d in range(days - max_nights):
-                    model_phase1.Add(
-                        sum(X_phase1[(n, d + i, "night")] for i in range(max_nights + 1)) <= max_nights
-                    )
-                for d in range(days - max_days):
-                    model_phase1.Add(
-                        sum(X_phase1[(n, d + i, s)] for i in range(max_days + 1) for s in shifts) <= max_days
-                    )
-            
-            # Unavailable nurses
-            if unavailable_nurses and unavailable_days:
-                for n in unavailable_nurses:
-                    for d in unavailable_days:
-                        for s in shifts:
-                            model_phase1.Add(X_phase1[(n, d, s)] == 0)
-            
-            # Exact shift counts (the tight constraints)
-            for n in nurses:
-                nurse_limits = max_shifts_per_type.get(n, {})
-                for s in shifts:
-                    limit = nurse_limits.get(s, None)
-                    if limit is not None:
-                        if limit < 0:
-                            shift_count_temp = model_phase1.NewIntVar(0, days, f"temp_{n}_{s}")
-                            model_phase1.Add(shift_count_temp == sum(X_phase1[(n, d, s)] for d in range(days)))
-                            model_phase1.Add(shift_count_temp == 0)
-                        else:
-                            shift_count_temp = model_phase1.NewIntVar(0, days, f"temp_{n}_{s}")
-                            model_phase1.Add(shift_count_temp == sum(X_phase1[(n, d, s)] for d in range(days)))
-                            model_phase1.Add(shift_count_temp == limit)
-            
-            solver_phase1 = cp_model.CpSolver()
-            solver_phase1.parameters.max_time_in_seconds = 30.0
-            solver_phase1.parameters.num_search_workers = 1
-            solver_phase1.parameters.cp_model_presolve = True
-            
-            status_phase1 = solver_phase1.Solve(model_phase1)
-            
-            if status_phase1 in (cp_model.OPTIMAL, cp_model.FEASIBLE):
-                print("   ✅ Phase 1: Feasible solution found! Using it...", flush=True)
-                # Extract solution from phase 1
-                roster = {n: [] for n in nurses}
-                shift_counts = {s: 0 for s in shifts}
-                nurse_workload = {}
-                coverage_by_day_shift = {d: {s: 0 for s in shifts} for d in range(days)}
-                
-                for n in nurses:
-                    nurse_shifts = 0
-                    for d in range(days):
-                        assigned = "off"
-                        for s in shifts:
-                            if solver_phase1.Value(X_phase1[(n, d, s)]) == 1:
-                                assigned = s
-                                shift_counts[assigned] = shift_counts.get(assigned, 0) + 1
-                                coverage_by_day_shift[d][assigned] += 1
-                                nurse_shifts += 1
-                        roster[n].append(assigned)
-                    nurse_workload[n] = nurse_shifts
-                
-                return {
-                    "success": True,
-                    "roster": roster,
-                    "workload": nurse_workload,
-                    "shift_totals": shift_counts,
-                    "required": dict(required_total_per_shift),
-                    "preference_score": 0,
-                    "note": "Solved with fallback (no preference optimization)"
-                }
-            else:
-                print("   ❌ Phase 1: Still infeasible. Problem may be truly unsolvable.", flush=True)
-        
         return {"success": False, "reason": "Conflicting hard constraints - no feasible solution exists"}
 
     print("✅ [SOLVER] Solution found!", flush=True)
 
-    # ----------------------------
-    # 13. Extract result and verify
-    # ----------------------------
+    # Extract result and verify
     print("📤 [SOLVER] Extracting results...", flush=True)
     roster = {n: [] for n in nurses}
 

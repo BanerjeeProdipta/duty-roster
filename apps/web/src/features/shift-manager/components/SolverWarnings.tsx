@@ -145,29 +145,6 @@ export function SolverWarnings({
 					</div>
 				</div>
 			)}
-
-			{/* Exact Match Warning */}
-			{showExactMatchWarning && (
-				<div className="flex items-start gap-3 rounded-lg border border-rose-200 bg-rose-50 p-4">
-					<AlertTriangle className="mt-0.5 h-5 w-5 text-rose-600" />
-					<div className="flex-1">
-						<div className="flex items-center gap-1.5">
-							<h4 className="font-semibold text-rose-700">
-								Exact Match Warning
-							</h4>
-							<InfoTooltip
-								title="In simple terms:"
-								content="The required shifts equal what nurses prefer, but nurses have different off day counts. This confuses the solver. Try to make all nurses have a similar number of off days."
-							/>
-						</div>
-						<p className="mt-1 text-rose-700 text-xs">
-							Required equals preferred, but nurses have inconsistent off days.
-							This may cause the solver to fail. Consider equalizing off days
-							across nurses.
-						</p>
-					</div>
-				</div>
-			)}
 		</>
 	);
 }
