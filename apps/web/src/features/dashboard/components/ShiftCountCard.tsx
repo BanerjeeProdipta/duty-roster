@@ -3,6 +3,7 @@
 import { Label } from "@Duty-Roster/ui/components/label";
 import { cn } from "@Duty-Roster/ui/lib/utils";
 import { FileUser, Moon, Sun, Sunset } from "lucide-react";
+import { bg } from "zod/v4/locales";
 
 const shiftConfig = {
 	total: {
@@ -16,6 +17,7 @@ const shiftConfig = {
 	morning: {
 		label: "Morning",
 		bgLight: "bg-amber-50",
+		bgDark: "bg-amber-700",
 		text: "text-amber-900",
 		border: "border-amber-200",
 		Icon: Sun,
@@ -23,6 +25,7 @@ const shiftConfig = {
 	evening: {
 		label: "Evening",
 		bgLight: "bg-blue-50",
+		bgDark: "bg-blue-700",
 		text: "text-blue-900",
 		border: "border-blue-200",
 		Icon: Sunset,
@@ -30,6 +33,7 @@ const shiftConfig = {
 	night: {
 		label: "Night",
 		bgLight: "bg-violet-50",
+		bgDark: "bg-violet-700",
 		text: "text-violet-900",
 		border: "border-violet-200",
 		Icon: Moon,
@@ -125,24 +129,6 @@ export function ShiftCountCard({
 					</div>
 				)}
 			</div>
-
-			{assigned !== undefined && (
-				<div className="flex flex-col gap-1">
-					<div
-						className={cn(
-							"relative h-2 w-full overflow-hidden rounded-full",
-							config.bgDark,
-						)}
-					>
-						<div
-							className="absolute h-full bg-[#FDE68A]"
-							style={{
-								width: `${Math.min(displayPct, 100)}%`,
-							}}
-						/>
-					</div>
-				</div>
-			)}
 		</div>
 	);
 }
