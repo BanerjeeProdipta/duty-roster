@@ -305,9 +305,9 @@ def solve(data):
         workers = 1
         print(f"🔧 [SOLVER] Buffer={total_buffer} (tight constraints), using {workers} worker for focused search", flush=True)
     
-    print(f"🚀 [SOLVER] Starting solver ({'30.0' if total_buffer == 0 else '15.0'}s timeout, {workers} workers)...", flush=True)
+    print(f"🚀 [SOLVER] Starting solver ({'10.0' if total_buffer == 0 else '5.0'}s timeout, {workers} workers)...", flush=True)
     solver = cp_model.CpSolver()
-    solver.parameters.max_time_in_seconds = 30.0 if total_buffer == 0 else 15.0
+    solver.parameters.max_time_in_seconds = 10.0 if total_buffer == 0 else 5.0
     solver.parameters.num_search_workers = workers
     solver.parameters.cp_model_presolve = True
     solver.parameters.log_search_progress = False
