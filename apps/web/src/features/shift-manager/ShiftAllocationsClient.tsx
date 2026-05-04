@@ -6,10 +6,13 @@ import { Loader2, UserCheck, UserMinus } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { ShiftCountCard } from "@/features/dashboard/components/ShiftCountCard";
 import { useScheduleInit } from "@/hooks/useScheduleInit";
+import {
+	useFlexibilityMetrics,
+	useSolverValidation,
+} from "@/hooks/useSolverValidation";
 import { NurseTable } from "./components/NurseTable/NurseTable";
 import { SolverWarnings } from "./components/SolverWarnings";
 import { useShiftCounts } from "./hooks/useShiftCounts";
-import { useSolverValidation } from "./hooks/useSolverValidation";
 
 interface ShiftAllocationsClientProps {
 	initialSchedules?: SchedulesResponse;
@@ -54,6 +57,27 @@ export default function ShiftAllocationsClient({
 		shiftRequirements: initialSchedules?.shiftRequirements,
 	});
 
+	const flexibilityMetrics = useFlexibilityMetrics({
+		shiftRequirements: initialSchedules?.shiftRequirements,
+		shiftCounts: {
+			morning: {
+				required: shiftCounts.morning.required,
+				preference: shiftCounts.morning.preference,
+			},
+			evening: {
+				required: shiftCounts.evening.required,
+				preference: shiftCounts.evening.preference,
+			},
+			night: {
+				required: shiftCounts.night.required,
+				preference: shiftCounts.night.preference,
+			},
+		},
+		totalDays,
+		nurses,
+		nurseRows,
+	});
+
 	const showLoader = isFetching && !nurses.length;
 
 	const filteredNurses = searchTerm
@@ -94,11 +118,6 @@ export default function ShiftAllocationsClient({
 		);
 	}, []);
 
-	const totalAvailable =
-		(shiftCounts.morning.available ?? 0) +
-		(shiftCounts.evening.available ?? 0) +
-		(shiftCounts.night.available ?? 0);
-
 	return (
 		<div className="flex flex-col gap-4">
 			<SolverWarnings
@@ -106,6 +125,7 @@ export default function ShiftAllocationsClient({
 				totalDays={totalDays}
 				shiftDeficits={shiftDeficits}
 				showExactMatchWarning={showExactMatchWarning}
+				flexibilityMetrics={flexibilityMetrics}
 			/>
 
 			{/* Shift Count Cards */}
@@ -115,25 +135,21 @@ export default function ShiftAllocationsClient({
 						shift="total"
 						required={shiftCounts.total.required}
 						preference={shiftCounts.total.preference}
-						available={totalAvailable}
 					/>
 					<ShiftCountCard
 						shift="morning"
 						required={shiftCounts.morning.required}
 						preference={shiftCounts.morning.preference}
-						available={shiftCounts.morning.available}
 					/>
 					<ShiftCountCard
 						shift="evening"
 						required={shiftCounts.evening.required}
 						preference={shiftCounts.evening.preference}
-						available={shiftCounts.evening.available}
 					/>
 					<ShiftCountCard
 						shift="night"
 						required={shiftCounts.night.required}
 						preference={shiftCounts.night.preference}
-						available={shiftCounts.night.available}
 					/>
 				</div>
 			</div>

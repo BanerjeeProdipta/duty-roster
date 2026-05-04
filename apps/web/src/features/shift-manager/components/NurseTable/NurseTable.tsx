@@ -164,7 +164,12 @@ function NurseTableRow({
 
 	return (
 		<>
-			<TableRow className={cn(isInvalid && "bg-red-50/30")}>
+			<TableRow
+				className={cn(
+					isInvalid && "bg-red-50/30",
+					draft.active ? "bg-white" : "bg-gray-50 opacity-75",
+				)}
+			>
 				<TableCell>
 					<div className="flex flex-col gap-1">
 						{isEditingName ? (
@@ -195,12 +200,6 @@ function NurseTableRow({
 							>
 								{draft.name}
 							</Button>
-						)}
-						{isInvalid && (
-							<span className="flex items-center gap-1 font-medium text-red-500 text-xs">
-								<AlertCircle className="h-3 w-3" />
-								Invalid distribution
-							</span>
 						)}
 					</div>
 				</TableCell>
@@ -285,7 +284,7 @@ function NurseTableRow({
 					</div>
 				</TableCell>
 			</TableRow>
-			<TableRow>
+			{/* <TableRow>
 				<TableCell colSpan={8} className="p-0">
 					<div className="px-4 py-2">
 						<FourWaySlider
@@ -304,7 +303,7 @@ function NurseTableRow({
 						/>
 					</div>
 				</TableCell>
-			</TableRow>
+			</TableRow> */}
 		</>
 	);
 }

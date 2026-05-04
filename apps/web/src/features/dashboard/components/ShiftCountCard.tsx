@@ -3,7 +3,6 @@
 import { Label } from "@Duty-Roster/ui/components/label";
 import { cn } from "@Duty-Roster/ui/lib/utils";
 import { FileUser, Moon, Sun, Sunset } from "lucide-react";
-import { bg } from "zod/v4/locales";
 
 const shiftConfig = {
 	total: {
@@ -47,7 +46,6 @@ interface ShiftCountCardProps {
 	required: number;
 	preference?: number;
 	assigned?: number;
-	available?: number;
 	capacity?: number;
 }
 
@@ -56,13 +54,11 @@ export function ShiftCountCard({
 	required,
 	preference,
 	assigned,
-	available,
 	capacity,
 }: ShiftCountCardProps) {
 	const config = shiftConfig[shift];
 	const isFulfilled = (assigned ?? preference ?? 0) >= required;
 	const displayValue = assigned ?? preference ?? 0;
-	const displayPct = required > 0 ? (displayValue / required) * 100 : 0;
 
 	return (
 		<div
@@ -90,7 +86,9 @@ export function ShiftCountCard({
 				</div>
 			</div>
 
-			<div className={cn("grid gap-2", "grid-cols-3")}>
+			<div
+				className={cn("grid gap-2", preference ? "grid-cols-2" : "grid-cols-3")}
+			>
 				<div className="flex flex-col items-center rounded-lg bg-white/60 p-2">
 					<Label className="text-[10px]">Required</Label>
 					<span className={cn("font-bold text-lg", config.text)}>
@@ -104,19 +102,6 @@ export function ShiftCountCard({
 						</Label>
 						<span className={cn("font-bold text-lg", config.text)}>
 							{displayValue}
-						</span>
-					</div>
-				)}
-				{available !== undefined && (
-					<div className="flex flex-col items-center rounded-lg bg-white/60 p-2">
-						<Label className="text-[10px]">Assignable</Label>
-						<span
-							className={cn(
-								"font-bold text-lg",
-								available >= required ? "text-green-600" : "text-rose-600",
-							)}
-						>
-							{available}
 						</span>
 					</div>
 				)}

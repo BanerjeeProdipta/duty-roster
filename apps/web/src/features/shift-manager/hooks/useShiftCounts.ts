@@ -32,7 +32,8 @@ export function useShiftCounts({
 	const activeRows = nurseRows.filter((row) => row.nurse.active ?? true);
 
 	const shiftCounts = useMemo(() => {
-		const sv = (v: number) => (v > 0 ? v : -1);
+		// Only count positive values — a 0 means "no preference", not a penalty.
+		const pos = (v: number) => (v > 0 ? v : 0);
 		return {
 			total: {
 				required: shiftRequirements?.total ?? 0,
@@ -47,12 +48,9 @@ export function useShiftCounts({
 					(sum, row) => sum + (row.preferenceWiseShiftMetrics.morning ?? 0),
 					0,
 				),
-				available: Math.max(
+				available: activeRows.reduce(
+					(s, r) => s + pos(r.preferenceWiseShiftMetrics.morning ?? 0),
 					0,
-					activeRows.reduce(
-						(s, r) => s + sv(r.preferenceWiseShiftMetrics.morning ?? 0),
-						0,
-					),
 				),
 			},
 			evening: {
@@ -61,12 +59,9 @@ export function useShiftCounts({
 					(sum, row) => sum + (row.preferenceWiseShiftMetrics.evening ?? 0),
 					0,
 				),
-				available: Math.max(
+				available: activeRows.reduce(
+					(s, r) => s + pos(r.preferenceWiseShiftMetrics.evening ?? 0),
 					0,
-					activeRows.reduce(
-						(s, r) => s + sv(r.preferenceWiseShiftMetrics.evening ?? 0),
-						0,
-					),
 				),
 			},
 			night: {
@@ -75,12 +70,9 @@ export function useShiftCounts({
 					(sum, row) => sum + (row.preferenceWiseShiftMetrics.night ?? 0),
 					0,
 				),
-				available: Math.max(
+				available: activeRows.reduce(
+					(s, r) => s + pos(r.preferenceWiseShiftMetrics.night ?? 0),
 					0,
-					activeRows.reduce(
-						(s, r) => s + sv(r.preferenceWiseShiftMetrics.night ?? 0),
-						0,
-					),
 				),
 			},
 		};
