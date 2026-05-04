@@ -2,12 +2,17 @@
 
 import type { SchedulesResponse } from "@Duty-Roster/api";
 import { SearchInput } from "@Duty-Roster/ui/components/search-input";
-import { Loader2 } from "lucide-react";
-import { useCallback, useState } from "react";
+import { Loader2, UserCheck, UserMinus } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { ShiftCountCard } from "@/features/dashboard/components/ShiftCountCard";
 import { useScheduleInit } from "@/hooks/useScheduleInit";
-import { NurseShiftCounts } from "./components/NurseShiftCounts";
+import {
+	useFlexibilityMetrics,
+	useSolverValidation,
+} from "@/hooks/useSolverValidation";
 import { NurseTable } from "./components/NurseTable/NurseTable";
-import { ShiftTotalsBar } from "./components/ShiftTotalsBar";
+import { SolverWarnings } from "./components/SolverWarnings";
+import { useShiftCounts } from "./hooks/useShiftCounts";
 
 interface ShiftAllocationsClientProps {
 	initialSchedules?: SchedulesResponse;
@@ -22,10 +27,56 @@ export default function ShiftAllocationsClient({
 		nurses,
 		nurseRows: initialNurseRows,
 	} = useScheduleInit(initialSchedules);
+
 	const [nurseRows, setNurseRows] =
 		useState<SchedulesResponse["nurseRows"]>(initialNurseRows);
 	const [searchTerm, setSearchTerm] = useState("");
 	const [language, setLanguage] = useState<"en-US" | "bn-BD">("bn-BD");
+
+	// Sync nurseRows when query refetches (e.g. after prefill)
+	useEffect(() => {
+		setNurseRows(initialNurseRows);
+	}, [initialNurseRows]);
+
+	// Extracted logic hooks
+	const { solverValidation, shiftDeficits, showExactMatchWarning } =
+		useSolverValidation({
+			nurseRows,
+			totalDays,
+			shiftRequirements: initialSchedules?.shiftRequirements ?? {
+				morning: 0,
+				evening: 0,
+				night: 0,
+				total: 0,
+			},
+		});
+
+	const shiftCounts = useShiftCounts({
+		nurseRows,
+		nurses,
+		shiftRequirements: initialSchedules?.shiftRequirements,
+	});
+
+	const flexibilityMetrics = useFlexibilityMetrics({
+		shiftRequirements: initialSchedules?.shiftRequirements,
+		shiftCounts: {
+			morning: {
+				required: shiftCounts.morning.required,
+				preference: shiftCounts.morning.preference,
+			},
+			evening: {
+				required: shiftCounts.evening.required,
+				preference: shiftCounts.evening.preference,
+			},
+			night: {
+				required: shiftCounts.night.required,
+				preference: shiftCounts.night.preference,
+			},
+		},
+		totalDays,
+		nurses,
+		nurseRows,
+	});
 
 	const showLoader = isFetching && !nurses.length;
 
@@ -69,12 +120,42 @@ export default function ShiftAllocationsClient({
 
 	return (
 		<div className="flex flex-col gap-4">
-			<NurseShiftCounts
-				nurseRows={nurseRows}
-				shiftRequirements={initialSchedules?.shiftRequirements}
+			<SolverWarnings
+				solverValidation={solverValidation}
+				totalDays={totalDays}
+				shiftDeficits={shiftDeficits}
+				showExactMatchWarning={showExactMatchWarning}
+				flexibilityMetrics={flexibilityMetrics}
 			/>
 
-			<div className="flex w-full flex-col items-center gap-4 lg:flex-row">
+			{/* Shift Count Cards */}
+			<div className="flex flex-col gap-3 rounded-xl border bg-white p-3 sm:p-4">
+				<div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
+					<ShiftCountCard
+						shift="total"
+						required={shiftCounts.total.required}
+						preference={shiftCounts.total.preference}
+					/>
+					<ShiftCountCard
+						shift="morning"
+						required={shiftCounts.morning.required}
+						preference={shiftCounts.morning.preference}
+					/>
+					<ShiftCountCard
+						shift="evening"
+						required={shiftCounts.evening.required}
+						preference={shiftCounts.evening.preference}
+					/>
+					<ShiftCountCard
+						shift="night"
+						required={shiftCounts.night.required}
+						preference={shiftCounts.night.preference}
+					/>
+				</div>
+			</div>
+
+			{/* Search Bar + Nurse Totals */}
+			<div className="flex w-full flex-col items-center justify-between sm:flex-row sm:gap-4">
 				<SearchInput
 					placeholder={language === "bn-BD" ? "নার্স খুঁজুন..." : "Search nurses..."}
 					onSearch={setSearchTerm}
@@ -82,7 +163,16 @@ export default function ShiftAllocationsClient({
 					onLanguageChange={(lang) => setLanguage(lang)}
 					className="w-full"
 				/>
-				<ShiftTotalsBar nurses={nurses} />
+				<div className="flex items-center justify-center gap-4 rounded-lg bg-slate-50 px-4 py-3">
+					<div className="inline-flex items-center gap-1 font-medium text-green-600 text-sm">
+						<UserCheck className="h-4 w-4" />
+						{shiftCounts.activeCount}
+					</div>
+					<div className="inline-flex items-center gap-1 font-medium text-rose-400 text-sm">
+						<UserMinus className="h-4 w-4" />
+						{shiftCounts.inactiveCount}
+					</div>
+				</div>
 			</div>
 
 			{showLoader && (

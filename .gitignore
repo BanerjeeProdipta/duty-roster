@@ -11,6 +11,11 @@ build
 .vercel
 .cloudflare
 
+# Generated JS and declaration files from TypeScript sources
+packages/**/*.js
+!packages/api/src/roster/solver.py
+packages/**/*.d.ts
+
 # Environment variables
 .env
 .env*.local

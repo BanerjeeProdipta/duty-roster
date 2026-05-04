@@ -37,7 +37,6 @@ export function nurseHasChanged(a: NurseState, b: NurseState): boolean {
 		a.morning !== b.morning ||
 		a.evening !== b.evening ||
 		a.night !== b.night ||
-		a.off !== b.off ||
 		a.active !== b.active
 	);
 }

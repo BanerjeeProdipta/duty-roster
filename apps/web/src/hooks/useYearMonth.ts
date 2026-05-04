@@ -15,10 +15,13 @@ export function useYearMonth() {
 	const yearParam = searchParams.get("year");
 	const monthParam = searchParams.get("month");
 	const now = new Date();
-	const year = yearParam ? Number.parseInt(yearParam, 10) : now.getFullYear();
+	const dhaka = new Date(
+		now.toLocaleString("en-US", { timeZone: "Asia/Dhaka" }),
+	);
+	const year = yearParam ? Number.parseInt(yearParam, 10) : dhaka.getFullYear();
 	const month = monthParam
 		? Number.parseInt(monthParam, 10)
-		: now.getMonth() + 1;
+		: dhaka.getMonth() + 1;
 
 	// Only update ref if year or month actually changed
 	if (

@@ -3,12 +3,10 @@
 import { Label } from "@Duty-Roster/ui/components/label";
 import { cn } from "@Duty-Roster/ui/lib/utils";
 import { FileUser, Moon, Sun, Sunset } from "lucide-react";
-import { useEffect, useState } from "react";
 
 const shiftConfig = {
 	total: {
 		label: "Shift",
-		bg: "bg-slate-400",
 		bgLight: "bg-slate-50",
 		bgDark: "bg-slate-700",
 		text: "text-slate-700",
@@ -17,51 +15,50 @@ const shiftConfig = {
 	},
 	morning: {
 		label: "Morning",
-		bg: "bg-[#FDE68A]",
 		bgLight: "bg-amber-50",
-		bgDark: "bg-amber-900",
+		bgDark: "bg-amber-700",
 		text: "text-amber-900",
 		border: "border-amber-200",
 		Icon: Sun,
 	},
 	evening: {
 		label: "Evening",
-		bg: "bg-[#BFDBFE]",
 		bgLight: "bg-blue-50",
-		bgDark: "bg-blue-900",
+		bgDark: "bg-blue-700",
 		text: "text-blue-900",
 		border: "border-blue-200",
 		Icon: Sunset,
 	},
 	night: {
 		label: "Night",
-		bg: "bg-[#C4B5FD]",
 		bgLight: "bg-violet-50",
-		bgDark: "bg-violet-900",
+		bgDark: "bg-violet-700",
 		text: "text-violet-900",
 		border: "border-violet-200",
 		Icon: Moon,
 	},
 };
 
-type ShiftType = "total" | "morning" | "evening" | "night";
+export type ShiftType = "total" | "morning" | "evening" | "night";
 
 interface ShiftCountCardProps {
 	shift: ShiftType;
 	required: number;
-	assigned: number;
-	capacity: number;
+	preference?: number;
+	assigned?: number;
+	capacity?: number;
 }
 
 export function ShiftCountCard({
 	shift,
 	required,
+	preference,
 	assigned,
 	capacity,
 }: ShiftCountCardProps) {
 	const config = shiftConfig[shift];
-	const isFulfilled = assigned >= required;
-	const assignedPct = required > 0 ? (assigned / required) * 100 : 0;
+	const isFulfilled = (assigned ?? preference ?? 0) >= required;
+	const displayValue = assigned ?? preference ?? 0;
 
 	return (
 		<div
@@ -78,7 +75,6 @@ export function ShiftCountCard({
 						{config.label}
 					</span>
 				</div>
-
 				<div
 					className={cn(
 						"inline-flex items-center gap-1 font-semibold text-sm",
@@ -86,57 +82,38 @@ export function ShiftCountCard({
 					)}
 				>
 					<Label variant="inline">Needed:</Label>
-					<p>{Math.max(0, required - assigned)}</p>
+					<p>{Math.max(0, required - displayValue)}</p>
 				</div>
 			</div>
 
-			<div className="grid grid-cols-3 gap-2">
+			<div
+				className={cn("grid gap-2", preference ? "grid-cols-2" : "grid-cols-3")}
+			>
 				<div className="flex flex-col items-center rounded-lg bg-white/60 p-2">
 					<Label className="text-[10px]">Required</Label>
-					<span
-						className={cn("font-bold text-lg", config.text)}
-						suppressHydrationWarning
-					>
+					<span className={cn("font-bold text-lg", config.text)}>
 						{required}
 					</span>
 				</div>
-				<div className="flex flex-col items-center rounded-lg bg-white/60 p-2">
-					<Label className="text-[10px]">Assigned</Label>
-					<span
-						className={cn("font-bold text-lg", config.text)}
-						suppressHydrationWarning
-					>
-						{assigned}
-					</span>
-				</div>
-				<div className="flex flex-col items-center rounded-lg bg-white/60 p-2">
-					<Label className="text-[10px]">Preference</Label>
-					<span
-						className={cn("font-bold text-lg", config.text)}
-						suppressHydrationWarning
-					>
-						{Math.round(capacity)}
-					</span>
-				</div>
-			</div>
-
-			<div className="flex flex-col gap-1">
-				<div
-					className={cn(
-						"relative h-2 w-full overflow-hidden rounded-full",
-						config.bgDark,
-					)}
-				>
-					<div
-						className={cn("absolute h-full", config.bg)}
-						style={{
-							width: `${Math.min(assignedPct, 100)}%`,
-						}}
-					/>
-				</div>
+				{(preference !== undefined || assigned !== undefined) && (
+					<div className="flex flex-col items-center rounded-lg bg-white/60 p-2">
+						<Label className="text-[10px]">
+							{assigned !== undefined ? "Assigned" : "Preference"}
+						</Label>
+						<span className={cn("font-bold text-lg", config.text)}>
+							{displayValue}
+						</span>
+					</div>
+				)}
+				{capacity !== undefined && (
+					<div className="flex flex-col items-center rounded-lg bg-white/60 p-2">
+						<Label className="text-[10px]">Preference</Label>
+						<span className={cn("font-bold text-lg", config.text)}>
+							{Math.round(capacity)}
+						</span>
+					</div>
+				)}
 			</div>
 		</div>
 	);
 }
-
-export type { ShiftType };

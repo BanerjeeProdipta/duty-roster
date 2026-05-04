@@ -8,10 +8,21 @@ import { getMonthDateRange } from "./utils";
 // ─────────────── NURSES ───────────────
 
 export async function findAllNurses() {
-	return db.select().from(nurse).orderBy(nurse.name);
+	return db
+		.select({
+			id: nurse.id,
+			name: nurse.name,
+			active: nurse.active,
+			createdAt: nurse.createdAt,
+		})
+		.from(nurse)
+		.orderBy(desc(nurse.active), nurse.name);
 }
 
-export async function updateNurse(nurseId: string, data: { name?: string }) {
+export async function updateNurse(
+	nurseId: string,
+	data: { name?: string; active?: boolean },
+) {
 	const [row] = await db
 		.update(nurse)
 		.set(data)
@@ -75,7 +86,7 @@ export async function findSchedulesAndPreferencesByDateRange(
       SELECT
         nurse.id,
         nurse.name,
-        COALESCE(BOOL_OR(nsp.active), false)                        AS active,
+        nurse.active                                                 AS active,
         COALESCE(SUM(CASE WHEN nsp.shift_id = 'shift_morning' THEN nsp.weight ELSE 0 END), 0) AS morning,
         COALESCE(SUM(CASE WHEN nsp.shift_id = 'shift_evening' THEN nsp.weight ELSE 0 END), 0) AS evening,
         COALESCE(SUM(CASE WHEN nsp.shift_id = 'shift_night'   THEN nsp.weight ELSE 0 END), 0) AS night
@@ -204,6 +215,7 @@ export async function findAllPreferredShiftsByNurse() {
 			nurse: {
 				id: nurse.id,
 				name: nurse.name,
+				active: nurse.active,
 			},
 			shiftId: nurseShiftPreference.shiftId,
 			weight: nurseShiftPreference.weight,
@@ -212,6 +224,14 @@ export async function findAllPreferredShiftsByNurse() {
 		.from(nurseShiftPreference)
 		.innerJoin(nurse, eq(nurse.id, nurseShiftPreference.nurseId))
 		.orderBy(desc(nurseShiftPreference.active), asc(nurse.name));
+}
+
+/** Delete preferences for a list of nurse IDs */
+export async function deletePreferencesForNurses(nurseIds: string[]) {
+	if (nurseIds.length === 0) return;
+	await db
+		.delete(nurseShiftPreference)
+		.where(sql`${nurseShiftPreference.nurseId} IN ${nurseIds}`);
 }
 
 /** Upsert preferences with validation - ensures total doesn't exceed daysInMonth */
@@ -252,21 +272,29 @@ export async function upsertNurseShiftPreferences(
 		}
 	}
 
-	await db
-		.insert(nurseShiftPreference)
-		.values(
-			validated.map((pref) => ({
-				nurseId: pref.nurseId,
-				shiftId: pref.shiftId,
-				weight: pref.weight,
-				active: pref.active,
-			})),
-		)
-		.onConflictDoUpdate({
-			target: [nurseShiftPreference.nurseId, nurseShiftPreference.shiftId],
-			set: {
-				weight: sql`EXCLUDED.weight`,
-				active: sql`EXCLUDED.active`,
-			},
-		});
+	try {
+		await db
+			.insert(nurseShiftPreference)
+			.values(
+				validated.map((pref) => ({
+					nurseId: pref.nurseId,
+					shiftId: pref.shiftId,
+					weight: pref.weight,
+					active: pref.active,
+				})),
+			)
+			.onConflictDoUpdate({
+				target: [nurseShiftPreference.nurseId, nurseShiftPreference.shiftId],
+				set: {
+					weight: sql`EXCLUDED.weight`,
+					active: sql`EXCLUDED.active`,
+				},
+			});
+	} catch (error) {
+		console.error("Failed to upsert nurse shift preferences:", error);
+		console.error("Validated preferences sample:", validated.slice(0, 3));
+		throw new Error(
+			`Failed query: insert into "nurse_shift_preference" - ${error instanceof Error ? error.message : String(error)}`,
+		);
+	}
 }

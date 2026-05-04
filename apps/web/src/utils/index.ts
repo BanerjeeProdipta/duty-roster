@@ -48,8 +48,11 @@ export function getMonthDates(year?: number, month?: number): string[] {
 
 export function getMonthDateRange(year?: number, month?: number) {
 	const now = new Date();
-	const y = year ?? now.getFullYear();
-	const m = month ?? now.getMonth() + 1;
+	const dhaka = new Date(
+		now.toLocaleString("en-US", { timeZone: "Asia/Dhaka" }),
+	);
+	const y = year ?? dhaka.getFullYear();
+	const m = month ?? dhaka.getMonth() + 1;
 
 	const lastDay = new Date(y, m, 0).getDate();
 	const startStr = `${y}-${String(m).padStart(2, "0")}-01`;
@@ -61,17 +64,31 @@ export function getMonthDateRange(year?: number, month?: number) {
 	};
 }
 
+export function getWeekdayCounts(year: number, month: number) {
+	const counts = { sun: 0, mon: 0, tue: 0, wed: 0, thu: 0, fri: 0, sat: 0 };
+	const lastDay = new Date(year, month - 1, 0).getDate();
+	for (let day = 1; day <= lastDay; day++) {
+		const date = new Date(year, month - 1, day);
+		const dow = date.getDay();
+		counts[Object.keys(counts)[dow] as keyof typeof counts]++;
+	}
+	return counts;
+}
+
 export async function getYearMonthFromSearchParams(
 	searchParams: Promise<{ year?: string; month?: string }>,
 ) {
 	const params = await searchParams;
-	const today = new Date();
+	const now = new Date();
+	const dhaka = new Date(
+		now.toLocaleString("en-US", { timeZone: "Asia/Dhaka" }),
+	);
 	const year = params.year
 		? Number.parseInt(params.year, 10)
-		: today.getFullYear();
+		: dhaka.getFullYear();
 	const month = params.month
 		? Number.parseInt(params.month, 10)
-		: today.getMonth() + 1;
+		: dhaka.getMonth() + 1;
 	return { year, month };
 }
 

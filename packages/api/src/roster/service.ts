@@ -1,16 +1,18 @@
-import { spawn } from "node:child_process";
-import { dirname, resolve as pathResolve } from "node:path";
-import { fileURLToPath } from "node:url";
 import * as rosterDb from "./db";
 import type { SchedulesResponse } from "./schema";
 
 import {
+	buildCoverageForMonth,
+	calculateFairShares,
 	FRIDAY_OFF_NURSES,
 	getDaysCountFromStartAndEndDate,
 	getDaysInMonth,
-	isFriday,
+	getFridayIndicesForMonth,
+	getShiftRequirementsForMonth,
+	getShiftRequirementsForRange,
 	normalizeDateKey,
 	ROSTER_CONFIG,
+	runSolver,
 	type ShiftTypeKey,
 	type ShiftUpdateResult,
 	shiftIdToShiftType,
@@ -21,128 +23,27 @@ type SolverRoster = Record<string, string[]>;
 export { FRIDAY_OFF_NURSES, ROSTER_CONFIG } from "./utils";
 export type { ShiftTypeKey, ShiftUpdateResult };
 
-async function runSolver(payload: {
-	nurses: string[];
-	days: number;
-	shifts: readonly ["morning", "evening", "night"];
-	preferences: Record<
-		string,
-		{ morning: number; evening: number; night: number }
-	>;
-	coverage: { morning: number; evening: number; night: number }[];
-	constraints: {
-		max_consecutive_nights: number;
-		max_consecutive_days: number;
-		min_days_off_per_week: number;
-	};
-}): Promise<{ success: boolean; roster?: Record<string, string[]> }> {
-	return new Promise((resolve) => {
-		let localDirname = "";
-		try {
-			if (typeof import.meta !== "undefined" && import.meta.url) {
-				localDirname = dirname(fileURLToPath(import.meta.url));
-			}
-		} catch (e) {
-			// Ignore error in environments where fileURLToPath fails
-		}
-
-		const possiblePaths = [
-			pathResolve(process.cwd(), "packages/api/src/roster/solver.py"),
-			pathResolve(process.cwd(), "src/roster/solver.py"),
-		];
-
-		if (localDirname) {
-			possiblePaths.push(pathResolve(localDirname, "solver.py"));
-		}
-
-		let solverPath = "";
-		for (const p of possiblePaths) {
-			try {
-				const fs = require("node:fs");
-				if (fs.existsSync(p)) {
-					solverPath = p;
-					break;
-				}
-			} catch {
-				// ignore
-			}
-		}
-
-		if (!solverPath) {
-			console.error("Solver not found. Searched:", possiblePaths);
-			resolve({ success: false });
-			return;
-		}
-
-		console.log("Solver path:", solverPath);
-		const python = spawn("python3", [solverPath]);
-
-		let stdout = "";
-		let stderr = "";
-
-		python.stdout?.on("data", (data: Buffer) => {
-			stdout += data.toString();
-		});
-
-		python.stderr?.on("data", (data: Buffer) => {
-			stderr += data.toString();
-		});
-
-		python.on("close", (code: number | null) => {
-			if (code !== 0) {
-				console.error("Solver error:", stderr);
-				resolve({ success: false });
-				return;
-			}
-			try {
-				// Find the last line that's valid JSON (the actual result)
-				const lines = stdout.trim().split("\n");
-				let jsonStr = "";
-				for (let i = lines.length - 1; i >= 0; i--) {
-					const line = lines[i]!.trim();
-					if (line.startsWith("{")) {
-						jsonStr = line;
-						break;
-					}
-				}
-				if (!jsonStr) {
-					console.error("❌ No JSON found in output:", stdout.slice(-500));
-					resolve({ success: false });
-					return;
-				}
-				console.log("📥 Got JSON, length:", jsonStr.length);
-				const result = JSON.parse(jsonStr);
-				// Debug first nurse's shifts
-				const firstNurse = Object.keys(result.roster || {})[0];
-				if (firstNurse) {
-					console.log(
-						`🔍 First nurse ${firstNurse} first 5 shifts:`,
-						result.roster[firstNurse].slice(0, 5),
-					);
-				}
-				resolve(result);
-			} catch (e) {
-				console.error("Failed to parse solver output:", stdout);
-				resolve({ success: false });
-			}
-		});
-
-		python.stdin?.write(JSON.stringify(payload));
-		python.stdin?.end();
-	});
-}
-
 // ───────────── PREFERENCES (merged logic) ─────────────
 
 export async function updateNurse({
 	nurseId,
 	name,
+	active,
 }: {
 	nurseId: string;
 	name?: string;
+	active?: boolean;
 }) {
-	if (name !== undefined) {
-		await rosterDb.updateNurse(nurseId, { name });
+	console.log("📝 updateNurse called:", { nurseId, name, active });
+	const data: { name?: string; active?: boolean } = {};
+	if (name !== undefined) data.name = name;
+	if (active !== undefined) data.active = active;
+	if (Object.keys(data).length > 0) {
+		console.log("📝 Updating nurse in DB:", { nurseId, data });
+		await rosterDb.updateNurse(nurseId, data);
+		console.log("✅ Nurse updated");
+	} else {
+		console.log("⚠️ No data to update");
 	}
 }
 
@@ -176,6 +77,311 @@ export async function updateNurseShiftPreferenceWeights(
 	}
 
 	await rosterDb.upsertNurseShiftPreferences(validated, daysInMonth);
+}
+
+export async function prefillFairPreferences(
+	year: number,
+	month: number,
+): Promise<{ success: boolean; updated: number }> {
+	const totalDays = getDaysInMonth(year, month);
+	const shiftRequirements = getShiftRequirementsForMonth(year, month);
+
+	const allNurses = await rosterDb.findAllNurses();
+	const activeNurses = allNurses.filter((n) => n.active !== false);
+	const nurseCount = activeNurses.length;
+
+	if (nurseCount === 0) {
+		return { success: false, updated: 0 };
+	}
+
+	// Fair: (requirement + preference) / 2
+	// Requirement per nurse = req / nurseCount
+	// Preference per nurse = what maximize would give (max working days per nurse)
+	// Maximize: nurses work ~6 days/week (1 off/week), so ~26 days/month
+	const weeksInMonth = Math.floor(totalDays / 7);
+	const extraDays = totalDays % 7;
+	const maxWorkingDaysPerNurse = weeksInMonth * 6 + Math.min(extraDays, 6);
+
+	// Preference = proportional distribution of maxWorkingDays based on req proportions
+	const totalReq =
+		shiftRequirements.morning +
+		shiftRequirements.evening +
+		shiftRequirements.night;
+
+	const calcFairWeight = (req: number) => {
+		if (req === 0) return 0;
+		const reqPerNurse = req / nurseCount;
+		// Preference per nurse for this shift type (proportional to req)
+		const prefPerNurse =
+			totalReq > 0
+				? (req / totalReq) * maxWorkingDaysPerNurse
+				: maxWorkingDaysPerNurse / 3;
+		// Fair = midpoint between req and pref
+		const fairPerNurse = (reqPerNurse + prefPerNurse) / 2;
+		return Math.min(
+			100,
+			Math.max(1, Math.round((fairPerNurse / totalDays) * 100)),
+		);
+	};
+
+	let wM = calcFairWeight(shiftRequirements.morning);
+	let wE = calcFairWeight(shiftRequirements.evening);
+	let wN = calcFairWeight(shiftRequirements.night);
+
+	// Adjust for constraints: total used = m + e + n + nightCooldown <= totalDays
+	const adjustWeights = () => {
+		const m = Math.floor((wM / 100) * totalDays);
+		const e = Math.floor((wE / 100) * totalDays);
+		const n = Math.floor((wN / 100) * totalDays);
+		const nightCooldown = Math.floor(n / 2);
+		const total = m + e + n + nightCooldown;
+
+		if (total > totalDays) {
+			const maxAllowed = totalDays - nightCooldown;
+			const currentShifts = m + e + n;
+			if (currentShifts > maxAllowed && currentShifts > 0) {
+				const scale = maxAllowed / currentShifts;
+				wM = Math.max(1, Math.floor(wM * scale));
+				wE = Math.max(1, Math.floor(wE * scale));
+				wN = Math.max(1, Math.floor(wN * scale));
+			}
+		}
+	};
+	adjustWeights();
+
+	const preferences: {
+		nurseId: string;
+		shiftId: string;
+		weight: number;
+		active: boolean;
+	}[] = [];
+
+	for (const nurse of activeNurses) {
+		preferences.push({
+			nurseId: nurse.id,
+			shiftId: "shift_morning",
+			weight: wM,
+			active: true,
+		});
+		preferences.push({
+			nurseId: nurse.id,
+			shiftId: "shift_evening",
+			weight: wE,
+			active: true,
+		});
+		preferences.push({
+			nurseId: nurse.id,
+			shiftId: "shift_night",
+			weight: wN,
+			active: true,
+		});
+	}
+
+	await rosterDb.upsertNurseShiftPreferences(preferences, totalDays);
+	return { success: true, updated: activeNurses.length };
+}
+
+export async function prefillMinimizeShifts(
+	year: number,
+	month: number,
+): Promise<{ success: boolean; updated: number }> {
+	const totalDays = getDaysInMonth(year, month);
+	const shiftRequirements = getShiftRequirementsForMonth(year, month);
+
+	const allNurses = await rosterDb.findAllNurses();
+	const activeNurses = allNurses.filter((n) => n.active !== false);
+	const nurseCount = activeNurses.length;
+
+	if (nurseCount === 0) {
+		return { success: false, updated: 0 };
+	}
+
+	// Minimize: Fill up ~requirements with minimal buffer
+	// Calculate weight so floor((w/100)*totalDays) * nurseCount >= requirement
+	// Minimal buffer: just +0.5 shift per nurse to handle floor() truncation
+	const calcMinWeight = (req: number) => {
+		if (req === 0) return 0;
+		const reqPerNurse = req / nurseCount;
+		// Just enough to meet requirement, accounting for floor() truncation
+		const targetShifts = reqPerNurse + 0.5; // Minimal buffer for floor()
+		return Math.min(
+			100,
+			Math.max(1, Math.round((targetShifts / totalDays) * 100)),
+		);
+	};
+
+	let wM = calcMinWeight(shiftRequirements.morning);
+	let wE = calcMinWeight(shiftRequirements.evening);
+	let wN = calcMinWeight(shiftRequirements.night);
+
+	// Adjust for constraints: night cooldown (1 off day per 2 nights)
+	// Total used days = morning + evening + night + nightCooldown must <= totalDays
+	const adjustWeights = () => {
+		const m = Math.floor((wM / 100) * totalDays);
+		const e = Math.floor((wE / 100) * totalDays);
+		const n = Math.floor((wN / 100) * totalDays);
+		const nightCooldown = Math.floor(n / 2);
+		const total = m + e + n + nightCooldown;
+
+		if (total > totalDays) {
+			// Scale down proportionally, preserving priority: morning > evening > night (for requirements)
+			const maxAllowed = totalDays - nightCooldown;
+			const currentShifts = m + e + n;
+			if (currentShifts > maxAllowed && currentShifts > 0) {
+				const scale = maxAllowed / currentShifts;
+				// Scale down with priority: morning (highest req) scales least
+				wN = Math.max(1, Math.floor(wN * scale));
+				wE = Math.max(1, Math.floor(wE * scale * 0.95)); // evening slightly more
+				wM = Math.max(1, Math.floor(wM * scale * 0.9)); // morning scales most
+			}
+		}
+	};
+	adjustWeights();
+
+	const preferences: {
+		nurseId: string;
+		shiftId: string;
+		weight: number;
+		active: boolean;
+	}[] = [];
+
+	for (const nurse of activeNurses) {
+		preferences.push({
+			nurseId: nurse.id,
+			shiftId: "shift_morning",
+			weight: wM,
+			active: true,
+		});
+		preferences.push({
+			nurseId: nurse.id,
+			shiftId: "shift_evening",
+			weight: wE,
+			active: true,
+		});
+		preferences.push({
+			nurseId: nurse.id,
+			shiftId: "shift_night",
+			weight: wN,
+			active: true,
+		});
+	}
+
+	await rosterDb.upsertNurseShiftPreferences(preferences, totalDays);
+	return { success: true, updated: activeNurses.length };
+}
+
+export async function prefillMaximizeShifts(
+	year: number,
+	month: number,
+): Promise<{ success: boolean; updated: number }> {
+	const totalDays = getDaysInMonth(year, month);
+	const shiftRequirements = getShiftRequirementsForMonth(year, month);
+
+	const allNurses = await rosterDb.findAllNurses();
+	const activeNurses = allNurses.filter((n) => n.active !== false);
+	const nurseCount = activeNurses.length;
+
+	if (nurseCount === 0) {
+		return { success: false, updated: 0 };
+	}
+
+	// Maximize (min off = 1 day per week): Maximize shifts worked per nurse
+	// With 1 day off per week, max working days = 6 per week
+	// For a 30-day month: 4 weeks * 6 + 2 extra days = 26 max working days per nurse
+	// But night shifts have cooldown: 2 nights -> 1 day off (NIGHT_CONSTRAIN = 2)
+	// So if nurse works n night shifts, need floor(n/2) cooldown days
+
+	// Calculate max working days per nurse (min 1 off per week)
+	const weeksInMonth = Math.floor(totalDays / 7);
+	const extraDays = totalDays % 7;
+	const maxWorkingDaysPerNurse = weeksInMonth * 6 + Math.min(extraDays, 6); // Cap extra at 6 (need 1 off)
+
+	// Proportionally distribute max working days across shift types based on requirements
+	const totalReq =
+		shiftRequirements.morning +
+		shiftRequirements.evening +
+		shiftRequirements.night;
+	const proportions = {
+		morning: totalReq > 0 ? shiftRequirements.morning / totalReq : 1 / 3,
+		evening: totalReq > 0 ? shiftRequirements.evening / totalReq : 1 / 3,
+		night: totalReq > 0 ? shiftRequirements.night / totalReq : 1 / 3,
+	};
+
+	// Calculate target shifts per nurse for each type (proportional to requirements)
+	let targetM = Math.floor(maxWorkingDaysPerNurse * proportions.morning);
+	let targetE = Math.floor(maxWorkingDaysPerNurse * proportions.evening);
+	let targetN = Math.floor(maxWorkingDaysPerNurse * proportions.night);
+
+	// Adjust for night cooldown: total used = m + e + n + floor(n/2) <= totalDays
+	const adjustForCooldown = () => {
+		const nightCooldown = Math.floor(targetN / 2);
+		const totalUsed = targetM + targetE + targetN + nightCooldown;
+		if (totalUsed > totalDays) {
+			// Reduce proportionally, prioritizing night (to maximize night shifts)
+			const excess = totalUsed - totalDays;
+			const totalShifts = targetM + targetE + targetN;
+			if (totalShifts > 0) {
+				// Reduce each proportionally
+				targetM = Math.max(
+					1,
+					targetM - Math.floor((targetM / totalShifts) * excess),
+				);
+				targetE = Math.max(
+					1,
+					targetE - Math.floor((targetE / totalShifts) * excess),
+				);
+				// Keep night as high as possible
+				const remaining = totalDays - nightCooldown - targetM - targetE;
+				targetN = Math.max(targetN, remaining);
+			}
+		}
+	};
+	adjustForCooldown();
+
+	// Convert to weights (percentage of totalDays)
+	const wM = Math.min(
+		100,
+		Math.max(1, Math.round((targetM / totalDays) * 100)),
+	);
+	const wE = Math.min(
+		100,
+		Math.max(1, Math.round((targetE / totalDays) * 100)),
+	);
+	const wN = Math.min(
+		100,
+		Math.max(1, Math.round((targetN / totalDays) * 100)),
+	);
+
+	const preferences: {
+		nurseId: string;
+		shiftId: string;
+		weight: number;
+		active: boolean;
+	}[] = [];
+
+	for (const nurse of activeNurses) {
+		preferences.push({
+			nurseId: nurse.id,
+			shiftId: "shift_morning",
+			weight: wM,
+			active: true,
+		});
+		preferences.push({
+			nurseId: nurse.id,
+			shiftId: "shift_evening",
+			weight: wE,
+			active: true,
+		});
+		preferences.push({
+			nurseId: nurse.id,
+			shiftId: "shift_night",
+			weight: wN,
+			active: true,
+		});
+	}
+
+	await rosterDb.upsertNurseShiftPreferences(preferences, totalDays);
+	return { success: true, updated: activeNurses.length };
 }
 
 // ───────────── SCHEDULES ─────────────
@@ -335,28 +541,14 @@ export async function getSchedulesByDateRange(
 		preferenceCapacity.total += pref.total ?? 0;
 	}
 
-	let fridayCount = 0;
-	let weekdayCount = 0;
-
-	for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-		const dateStr = d.toISOString().split("T")[0] ?? "";
-		if (isFriday(dateStr)) {
-			fridayCount++;
-		} else {
-			weekdayCount++;
-		}
-	}
-
 	const shiftRequirements = {
-		morning: weekdayCount * 20 + fridayCount * 3,
-		evening: (weekdayCount + fridayCount) * 3,
-		night: (weekdayCount + fridayCount) * 2,
-		total:
-			weekdayCount * 20 +
-			fridayCount * 3 +
-			(weekdayCount + fridayCount) * 3 +
-			(weekdayCount + fridayCount) * 2,
+		...getShiftRequirementsForRange(startDate, endDate),
+		total: 0,
 	};
+	shiftRequirements.total =
+		shiftRequirements.morning +
+		shiftRequirements.evening +
+		shiftRequirements.night;
 
 	return {
 		nurseRows,
@@ -431,6 +623,48 @@ export async function generateRoster({ year, month }: GenerateRosterParams) {
 	// ─────────────────────────────────────────────
 	// 1. Build nurse preference map (solver input)
 	// ─────────────────────────────────────────────
+
+	// Calculate previous month for boundary constraints
+	let prevYear = year;
+	let prevMonth = month - 1;
+	if (prevMonth === 0) {
+		prevMonth = 12;
+		prevYear--;
+	}
+	const prevMonthTotalDays = getDaysInMonth(prevYear, prevMonth);
+	// Last 2 days of prev month (using local date strings to match DB queries)
+	const prevDateMinus2 = new Date(
+		Date.UTC(prevYear, prevMonth - 1, prevMonthTotalDays - 1),
+	);
+	const prevDateMinus1 = new Date(
+		Date.UTC(prevYear, prevMonth - 1, prevMonthTotalDays),
+	);
+	const dateMinus2Str = prevDateMinus2.toISOString().split("T")[0];
+	const dateMinus1Str = prevDateMinus1.toISOString().split("T")[0];
+
+	const prevSchedules = await rosterDb.findSchedulesAndPreferencesByDateRange(
+		prevDateMinus2,
+		prevDateMinus1,
+	);
+
+	const previousShifts: Record<string, string[]> = {};
+	for (const p of prevSchedules) {
+		const shifts: string[] = ["off", "off"];
+		if (p.assignments && typeof p.assignments === "object") {
+			const assignments = p.assignments as Record<
+				string,
+				{ shiftType: string }
+			>;
+			if (assignments[dateMinus2Str])
+				shifts[0] = assignments[dateMinus2Str].shiftType;
+			if (assignments[dateMinus1Str])
+				shifts[1] = assignments[dateMinus1Str].shiftType;
+		}
+		const nurseId = (p as any).nurse?.id ?? (p as any).id;
+		if (nurseId) {
+			previousShifts[nurseId as string] = shifts;
+		}
+	}
 	const nurseShiftPreferenceMap = new Map<string, ShiftPreferences>();
 
 	// Get all unique nurse IDs from preferences (including those with active=false)
@@ -464,7 +698,25 @@ export async function generateRoster({ year, month }: GenerateRosterParams) {
 		existing.shift_off -= weight;
 	}
 
-	console.log("📋 Nurse preference map:");
+	// Filter out inactive nurses from the map (check both nurse.active and preference.active)
+	const activeNurseIds = new Set(
+		nurseShiftPreferences
+			.filter((p) => p.nurse.active !== false && p.active)
+			.map((p) => p.nurse.id),
+	);
+
+	console.log(
+		`📊 Active nurses: ${activeNurseIds.size} / ${nurseShiftPreferenceMap.size} total`,
+	);
+
+	for (const nurseId of nurseShiftPreferenceMap.keys()) {
+		if (!activeNurseIds.has(nurseId)) {
+			console.log(`   Removing inactive nurse: ${nurseId}`);
+			nurseShiftPreferenceMap.delete(nurseId);
+		}
+	}
+
+	console.log("📋 Nurse preference map (after filtering inactive):");
 	for (const [nurseId, prefs] of nurseShiftPreferenceMap.entries()) {
 		console.log(`  ${nurseId}:`, prefs);
 	}
@@ -522,28 +774,7 @@ export async function generateRoster({ year, month }: GenerateRosterParams) {
 	// ─────────────────────────────────────────────
 	// 2. Build per-day coverage (IMPORTANT FIX)
 	// ─────────────────────────────────────────────
-	const coverage: { morning: number; evening: number; night: number }[] = [];
-
-	for (let i = 0; i < totalDays; i++) {
-		// Create date in UTC to get correct day of week
-		const date = new Date(Date.UTC(year, month - 1, i + 1));
-		const dayOfWeek = date.getUTCDay();
-		const isFri = dayOfWeek === 5; // Friday = 5
-
-		coverage.push(
-			isFri
-				? {
-						morning: ROSTER_CONFIG.COVERAGE.FRIDAY.morning,
-						evening: ROSTER_CONFIG.COVERAGE.FRIDAY.evening,
-						night: ROSTER_CONFIG.COVERAGE.FRIDAY.night,
-					}
-				: {
-						morning: ROSTER_CONFIG.COVERAGE.WEEKDAY.morning,
-						evening: ROSTER_CONFIG.COVERAGE.WEEKDAY.evening,
-						night: ROSTER_CONFIG.COVERAGE.WEEKDAY.night,
-					},
-		);
-	}
+	const coverage = buildCoverageForMonth(year, month);
 
 	const totalRequiredShifts = coverage.reduce(
 		(sum, day) => sum + day.morning + day.evening + day.night,
@@ -564,13 +795,7 @@ export async function generateRoster({ year, month }: GenerateRosterParams) {
 	}
 
 	// Find all Friday indices in the month
-	const fridayIndices: number[] = [];
-	for (let i = 0; i < totalDays; i++) {
-		const date = new Date(Date.UTC(year, month - 1, i + 1));
-		if (date.getUTCDay() === 5) {
-			fridayIndices.push(i);
-		}
-	}
+	const fridayIndices = getFridayIndicesForMonth(year, month);
 	console.log(
 		`📅 Found ${fridayIndices.length} Fridays at indices: ${fridayIndices}`,
 	);
@@ -588,11 +813,13 @@ export async function generateRoster({ year, month }: GenerateRosterParams) {
 			max_consecutive_nights: ROSTER_CONFIG.CONSTRAINTS.MAX_CONSECUTIVE_NIGHTS,
 			max_consecutive_days: ROSTER_CONFIG.CONSTRAINTS.MAX_CONSECUTIVE_DAYS,
 			min_days_off_per_week: ROSTER_CONFIG.CONSTRAINTS.MIN_DAYS_OFF_PER_WEEK,
+			night_constrain: ROSTER_CONFIG.CONSTRAINTS.NIGHT_CONSTRAIN,
 		},
 		unavailable: {
 			nurses: FRIDAY_OFF_NURSES,
 			days: fridayIndices,
 		},
+		previous_shifts: previousShifts,
 	};
 
 	const solverResult = await runSolver(solverPayload);
@@ -601,9 +828,13 @@ export async function generateRoster({ year, month }: GenerateRosterParams) {
 	);
 
 	if (!solverResult.success) {
+		// Check if it's a pre-solve validation failure
+		const reason = (solverResult as any).reason;
 		return {
 			success: false,
-			error: "Solver failed to find a feasible solution",
+			error: reason
+				? `Solver failed: ${reason}`
+				: "Solver couldn't find a valid roster. Try adjusting preferences to create more flexibility (ensure some shifts have buffer > 0).",
 		};
 	}
 

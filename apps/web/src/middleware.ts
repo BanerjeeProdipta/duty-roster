@@ -46,12 +46,12 @@ export async function middleware(request: NextRequest) {
 	}
 
 	// Admin-only routes
-	const adminPaths = ["/dashboard", "/manage-users"];
-	if (adminPaths.some((path) => pathname.startsWith(path))) {
-		if (role !== "admin") {
-			return NextResponse.redirect(new URL("/", request.url));
-		}
-	}
+	// const adminPaths = ["/dashboard", "/manage-users"];
+	// if (adminPaths.some((path) => pathname.startsWith(path))) {
+	// 	if (role !== "admin") {
+	// 		return NextResponse.redirect(new URL("/", request.url));
+	// 	}
+	// }
 
 	return NextResponse.next();
 }

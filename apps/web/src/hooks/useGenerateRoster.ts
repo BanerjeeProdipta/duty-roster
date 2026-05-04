@@ -16,7 +16,14 @@ export const useGenerateRoster = () => {
 			return result;
 		},
 
-		onSuccess: async (_result, { year, month }) => {
+		onSuccess: async (result, { year, month }) => {
+			const response = result as { success: boolean; error?: string };
+			if (!response.success) {
+				toast.error("Failed to generate roster", {
+					description: response.error,
+				});
+				return;
+			}
 			toast.success("Roster generated successfully", {
 				description: `Schedule for ${month}/${year} has been created.`,
 			});

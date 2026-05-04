@@ -1,37 +1,15 @@
 import { Skeleton } from "@Duty-Roster/ui/components/skeleton";
 import { Suspense } from "react";
 import { MonthNavigator } from "@/components/MonthNavigator";
+import { PrefillButton } from "@/components/PrefillButton";
 import { ShiftCountsSkeleton } from "@/features/dashboard/components/ShiftCountsSkeleton";
 import { RosterTableSkeleton } from "@/features/dashboard/roster-table/RosterTableSkeleton";
 import ShiftAllocationsClient from "@/features/shift-manager/ShiftAllocationsClient";
+import WeekDayCounts from "@/features/shift-manager/WeekDayCounts";
 import { getMonthDateRange, getYearMonthFromSearchParams } from "@/utils";
 import { getAuthedTRPCServer } from "@/utils/trpc-server";
 
-export const revalidate = 0;
 export const runtime = "edge";
-
-async function ShiftAllocationsContent(props: {
-	searchParams: Promise<{ year?: string; month?: string; days?: string }>;
-}) {
-	const { year, month } = await getYearMonthFromSearchParams(
-		props.searchParams,
-	);
-	const trpcServer = await getAuthedTRPCServer();
-	const { startDate, endDate } = getMonthDateRange(year, month);
-	const initialSchedules = await trpcServer.roster.getSchedules.query({
-		startDate,
-		endDate,
-	});
-
-	return (
-		<div className="flex flex-col gap-6">
-			<MonthNavigator />
-			<Suspense fallback={<ShiftCountsSkeleton />}>
-				<ShiftAllocationsClient initialSchedules={initialSchedules} />
-			</Suspense>
-		</div>
-	);
-}
 
 function ShiftAllocationsLoading() {
 	return (
@@ -50,12 +28,35 @@ function ShiftAllocationsLoading() {
 	);
 }
 
-export default function ShiftAllocationsPage(props: {
+export default async function ShiftAllocationsPage(props: {
 	searchParams: Promise<{ year?: string; month?: string; days?: string }>;
 }) {
+	const { year, month } = await getYearMonthFromSearchParams(
+		props.searchParams,
+	);
+	const trpcServer = await getAuthedTRPCServer();
+	const { startDate, endDate } = getMonthDateRange(year, month);
+	const initialSchedules = await trpcServer.roster.getSchedules.query({
+		startDate,
+		endDate,
+	});
+
 	return (
 		<Suspense fallback={<ShiftAllocationsLoading />}>
-			<ShiftAllocationsContent searchParams={props.searchParams} />
+			<div className="flex flex-col gap-6">
+				<MonthNavigator />
+				<div className="flex flex-wrap items-center justify-between">
+					<WeekDayCounts month={month} year={year} />
+					<div className="flex items-center gap-2">
+						<PrefillButton year={year} month={month} mode="fairly" />
+						<PrefillButton year={year} month={month} mode="minimize" />
+						<PrefillButton year={year} month={month} mode="maximize" />
+					</div>
+				</div>
+				<Suspense fallback={<ShiftCountsSkeleton />}>
+					<ShiftAllocationsClient initialSchedules={initialSchedules} />
+				</Suspense>
+			</div>
 		</Suspense>
 	);
 }

@@ -12,7 +12,7 @@ import {
 import { VoiceInput } from "@Duty-Roster/ui/components/voice-input";
 import { cn } from "@Duty-Roster/ui/lib/utils";
 import { AlertCircle, Check, Coffee, Moon, Sun, Sunset, X } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { ShiftInput } from "@/features/shift-manager/components/ShiftInput";
 import { FourWaySlider } from "@/features/shift-manager/components/Slider";
 import { useNurseCard } from "@/features/shift-manager/hooks/useNurseCard";
@@ -42,7 +42,7 @@ export function NurseTable({
 			<Table>
 				<TableHeader>
 					<TableRow className="bg-slate-50/50">
-						<TableHead className="w-[280px] text-center">Nurse</TableHead>
+						<TableHead className="w-70 text-center">Nurse</TableHead>
 						<TableHead>Status</TableHead>
 						<TableHead className="text-center">
 							<div className="inline-flex items-center gap-1.5">
@@ -116,8 +116,6 @@ function NurseTableRow({
 }: NurseTableRowProps) {
 	const [isEditingName, setIsEditingName] = useState(false);
 	const [editName, setEditName] = useState(nurse.name);
-	const isFirstRender = useRef(true);
-	const prevActiveRef = useRef(nurse.active ?? true);
 
 	const {
 		draft,
@@ -131,23 +129,13 @@ function NurseTableRow({
 		handleCancel,
 		handleToggleActive,
 		handleUpdateName,
-	} = useNurseCard({ nurse, totalDays });
-
-	useEffect(() => {
-		if (isFirstRender.current) {
-			isFirstRender.current = false;
-			return;
-		}
-		onShiftChange?.(nurse.nurseId, draft.morning, draft.evening, draft.night);
-	}, [draft.morning, draft.evening, draft.night, nurse.nurseId, onShiftChange]);
-
-	useEffect(() => {
-		if (isFirstRender.current) return;
-		if (prevActiveRef.current !== draft.active) {
-			prevActiveRef.current = draft.active;
-			onActiveChange?.(nurse.nurseId, draft.active);
-		}
-	}, [draft.active, nurse.nurseId, onActiveChange]);
+	} = useNurseCard({
+		nurse,
+		totalDays,
+		onShiftChange: (morning, evening, night) =>
+			onShiftChange?.(nurse.nurseId, morning, evening, night),
+		onActiveChange: (active) => onActiveChange?.(nurse.nurseId, active),
+	});
 
 	const handleStartEditing = () => {
 		setEditName(draft.name);
@@ -176,7 +164,12 @@ function NurseTableRow({
 
 	return (
 		<>
-			<TableRow className={cn(isInvalid && "bg-red-50/30")}>
+			<TableRow
+				className={cn(
+					isInvalid && "bg-red-50/30",
+					draft.active ? "bg-white" : "bg-gray-50 opacity-75",
+				)}
+			>
 				<TableCell>
 					<div className="flex flex-col gap-1">
 						{isEditingName ? (
@@ -207,12 +200,6 @@ function NurseTableRow({
 							>
 								{draft.name}
 							</Button>
-						)}
-						{isInvalid && (
-							<span className="flex items-center gap-1 font-medium text-red-500 text-xs">
-								<AlertCircle className="h-3 w-3" />
-								Invalid distribution
-							</span>
 						)}
 					</div>
 				</TableCell>
@@ -247,13 +234,23 @@ function NurseTableRow({
 						max={totalDays}
 					/>
 				</TableCell>
+
 				<TableCell>
-					<ShiftInput
-						color="bg-[#E5E7EB]"
-						value={draft.off}
-						onChange={(val) => handleFieldChange("off", val)}
-						max={totalDays}
-					/>
+					<div className="relative flex h-full w-full items-center justify-center">
+						<ShiftInput
+							color="bg-[#E5E7EB]"
+							value={draft.off}
+							onChange={(val) => handleFieldChange("off", val)}
+							max={totalDays}
+						/>
+						{draft.night >= 2 ? (
+							<span className="absolute -top-1 -right-1 inline-flex items-center justify-center rounded bg-violet-100 px-1 py-0.5 font-bold text-[10px] text-violet-700">
+								+{Math.floor(draft.night / 2)}
+							</span>
+						) : (
+							<span className="text-[10px] text-slate-300">-</span>
+						)}
+					</div>
 				</TableCell>
 				<TableCell className="text-center">
 					<span
@@ -267,6 +264,9 @@ function NurseTableRow({
 						<Button
 							variant="outline"
 							size="sm"
+							className={cn(
+								hasChanged && "bg-emerald-100 hover:bg-emerald-200",
+							)}
 							onClick={handleSaveAll}
 							disabled={isSavingPending}
 						>
@@ -275,6 +275,7 @@ function NurseTableRow({
 						<Button
 							variant="outline"
 							size="sm"
+							className={cn(hasChanged && "bg-rose-100 hover:bg-rose-200")}
 							onClick={handleCancelAll}
 							disabled={isSavingPending}
 						>
@@ -283,7 +284,7 @@ function NurseTableRow({
 					</div>
 				</TableCell>
 			</TableRow>
-			<TableRow>
+			{/* <TableRow>
 				<TableCell colSpan={8} className="p-0">
 					<div className="px-4 py-2">
 						<FourWaySlider
@@ -302,7 +303,7 @@ function NurseTableRow({
 						/>
 					</div>
 				</TableCell>
-			</TableRow>
+			</TableRow> */}
 		</>
 	);
 }
