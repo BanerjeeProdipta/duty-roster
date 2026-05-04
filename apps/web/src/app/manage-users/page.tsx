@@ -47,7 +47,7 @@ export default async function ShiftAllocationsPage(props: {
 		<Suspense fallback={<ShiftAllocationsLoading />}>
 			<div className="flex flex-col gap-6">
 				<MonthNavigator />
-				<div className="flex items-center justify-between">
+				<div className="flex flex-wrap items-center justify-between">
 					<WeekDayCounts month={month} year={year} />
 					<div className="flex items-center gap-2">
 						<PrefillButton year={year} month={month} mode="fairly" />
