@@ -88,15 +88,268 @@ export async function prefillFairPreferences(
 
 	const allNurses = await rosterDb.findAllNurses();
 	const activeNurses = allNurses.filter((n) => n.active !== false);
+	const nurseCount = activeNurses.length;
 
-	if (activeNurses.length === 0) {
+	if (nurseCount === 0) {
 		return { success: false, updated: 0 };
 	}
 
-	const fairShares = calculateFairShares(
-		activeNurses.length,
-		totalDays,
-		shiftRequirements,
+	// Fair: (requirement + preference) / 2
+	// Requirement per nurse = req / nurseCount
+	// Preference per nurse = what maximize would give (max working days per nurse)
+	// Maximize: nurses work ~6 days/week (1 off/week), so ~26 days/month
+	const weeksInMonth = Math.floor(totalDays / 7);
+	const extraDays = totalDays % 7;
+	const maxWorkingDaysPerNurse = weeksInMonth * 6 + Math.min(extraDays, 6);
+
+	// Preference = proportional distribution of maxWorkingDays based on req proportions
+	const totalReq =
+		shiftRequirements.morning +
+		shiftRequirements.evening +
+		shiftRequirements.night;
+
+	const calcFairWeight = (req: number) => {
+		if (req === 0) return 0;
+		const reqPerNurse = req / nurseCount;
+		// Preference per nurse for this shift type (proportional to req)
+		const prefPerNurse =
+			totalReq > 0
+				? (req / totalReq) * maxWorkingDaysPerNurse
+				: maxWorkingDaysPerNurse / 3;
+		// Fair = midpoint between req and pref
+		const fairPerNurse = (reqPerNurse + prefPerNurse) / 2;
+		return Math.min(
+			100,
+			Math.max(1, Math.round((fairPerNurse / totalDays) * 100)),
+		);
+	};
+
+	let wM = calcFairWeight(shiftRequirements.morning);
+	let wE = calcFairWeight(shiftRequirements.evening);
+	let wN = calcFairWeight(shiftRequirements.night);
+
+	// Adjust for constraints: total used = m + e + n + nightCooldown <= totalDays
+	const adjustWeights = () => {
+		const m = Math.floor((wM / 100) * totalDays);
+		const e = Math.floor((wE / 100) * totalDays);
+		const n = Math.floor((wN / 100) * totalDays);
+		const nightCooldown = Math.floor(n / 2);
+		const total = m + e + n + nightCooldown;
+
+		if (total > totalDays) {
+			const maxAllowed = totalDays - nightCooldown;
+			const currentShifts = m + e + n;
+			if (currentShifts > maxAllowed && currentShifts > 0) {
+				const scale = maxAllowed / currentShifts;
+				wM = Math.max(1, Math.floor(wM * scale));
+				wE = Math.max(1, Math.floor(wE * scale));
+				wN = Math.max(1, Math.floor(wN * scale));
+			}
+		}
+	};
+	adjustWeights();
+
+	const preferences: {
+		nurseId: string;
+		shiftId: string;
+		weight: number;
+		active: boolean;
+	}[] = [];
+
+	for (const nurse of activeNurses) {
+		preferences.push({
+			nurseId: nurse.id,
+			shiftId: "shift_morning",
+			weight: wM,
+			active: true,
+		});
+		preferences.push({
+			nurseId: nurse.id,
+			shiftId: "shift_evening",
+			weight: wE,
+			active: true,
+		});
+		preferences.push({
+			nurseId: nurse.id,
+			shiftId: "shift_night",
+			weight: wN,
+			active: true,
+		});
+	}
+
+	await rosterDb.upsertNurseShiftPreferences(preferences, totalDays);
+	return { success: true, updated: activeNurses.length };
+}
+
+export async function prefillMinimizeShifts(
+	year: number,
+	month: number,
+): Promise<{ success: boolean; updated: number }> {
+	const totalDays = getDaysInMonth(year, month);
+	const shiftRequirements = getShiftRequirementsForMonth(year, month);
+
+	const allNurses = await rosterDb.findAllNurses();
+	const activeNurses = allNurses.filter((n) => n.active !== false);
+	const nurseCount = activeNurses.length;
+
+	if (nurseCount === 0) {
+		return { success: false, updated: 0 };
+	}
+
+	// Minimize: Fill up ~requirements with minimal buffer
+	// Calculate weight so floor((w/100)*totalDays) * nurseCount >= requirement
+	// Minimal buffer: just +0.5 shift per nurse to handle floor() truncation
+	const calcMinWeight = (req: number) => {
+		if (req === 0) return 0;
+		const reqPerNurse = req / nurseCount;
+		// Just enough to meet requirement, accounting for floor() truncation
+		const targetShifts = reqPerNurse + 0.5; // Minimal buffer for floor()
+		return Math.min(
+			100,
+			Math.max(1, Math.round((targetShifts / totalDays) * 100)),
+		);
+	};
+
+	let wM = calcMinWeight(shiftRequirements.morning);
+	let wE = calcMinWeight(shiftRequirements.evening);
+	let wN = calcMinWeight(shiftRequirements.night);
+
+	// Adjust for constraints: night cooldown (1 off day per 2 nights)
+	// Total used days = morning + evening + night + nightCooldown must <= totalDays
+	const adjustWeights = () => {
+		const m = Math.floor((wM / 100) * totalDays);
+		const e = Math.floor((wE / 100) * totalDays);
+		const n = Math.floor((wN / 100) * totalDays);
+		const nightCooldown = Math.floor(n / 2);
+		const total = m + e + n + nightCooldown;
+
+		if (total > totalDays) {
+			// Scale down proportionally, preserving priority: morning > evening > night (for requirements)
+			const maxAllowed = totalDays - nightCooldown;
+			const currentShifts = m + e + n;
+			if (currentShifts > maxAllowed && currentShifts > 0) {
+				const scale = maxAllowed / currentShifts;
+				// Scale down with priority: morning (highest req) scales least
+				wN = Math.max(1, Math.floor(wN * scale));
+				wE = Math.max(1, Math.floor(wE * scale * 0.95)); // evening slightly more
+				wM = Math.max(1, Math.floor(wM * scale * 0.9)); // morning scales most
+			}
+		}
+	};
+	adjustWeights();
+
+	const preferences: {
+		nurseId: string;
+		shiftId: string;
+		weight: number;
+		active: boolean;
+	}[] = [];
+
+	for (const nurse of activeNurses) {
+		preferences.push({
+			nurseId: nurse.id,
+			shiftId: "shift_morning",
+			weight: wM,
+			active: true,
+		});
+		preferences.push({
+			nurseId: nurse.id,
+			shiftId: "shift_evening",
+			weight: wE,
+			active: true,
+		});
+		preferences.push({
+			nurseId: nurse.id,
+			shiftId: "shift_night",
+			weight: wN,
+			active: true,
+		});
+	}
+
+	await rosterDb.upsertNurseShiftPreferences(preferences, totalDays);
+	return { success: true, updated: activeNurses.length };
+}
+
+export async function prefillMaximizeShifts(
+	year: number,
+	month: number,
+): Promise<{ success: boolean; updated: number }> {
+	const totalDays = getDaysInMonth(year, month);
+	const shiftRequirements = getShiftRequirementsForMonth(year, month);
+
+	const allNurses = await rosterDb.findAllNurses();
+	const activeNurses = allNurses.filter((n) => n.active !== false);
+	const nurseCount = activeNurses.length;
+
+	if (nurseCount === 0) {
+		return { success: false, updated: 0 };
+	}
+
+	// Maximize (min off = 1 day per week): Maximize shifts worked per nurse
+	// With 1 day off per week, max working days = 6 per week
+	// For a 30-day month: 4 weeks * 6 + 2 extra days = 26 max working days per nurse
+	// But night shifts have cooldown: 2 nights -> 1 day off (NIGHT_CONSTRAIN = 2)
+	// So if nurse works n night shifts, need floor(n/2) cooldown days
+
+	// Calculate max working days per nurse (min 1 off per week)
+	const weeksInMonth = Math.floor(totalDays / 7);
+	const extraDays = totalDays % 7;
+	const maxWorkingDaysPerNurse = weeksInMonth * 6 + Math.min(extraDays, 6); // Cap extra at 6 (need 1 off)
+
+	// Proportionally distribute max working days across shift types based on requirements
+	const totalReq =
+		shiftRequirements.morning +
+		shiftRequirements.evening +
+		shiftRequirements.night;
+	const proportions = {
+		morning: totalReq > 0 ? shiftRequirements.morning / totalReq : 1 / 3,
+		evening: totalReq > 0 ? shiftRequirements.evening / totalReq : 1 / 3,
+		night: totalReq > 0 ? shiftRequirements.night / totalReq : 1 / 3,
+	};
+
+	// Calculate target shifts per nurse for each type (proportional to requirements)
+	let targetM = Math.floor(maxWorkingDaysPerNurse * proportions.morning);
+	let targetE = Math.floor(maxWorkingDaysPerNurse * proportions.evening);
+	let targetN = Math.floor(maxWorkingDaysPerNurse * proportions.night);
+
+	// Adjust for night cooldown: total used = m + e + n + floor(n/2) <= totalDays
+	const adjustForCooldown = () => {
+		const nightCooldown = Math.floor(targetN / 2);
+		const totalUsed = targetM + targetE + targetN + nightCooldown;
+		if (totalUsed > totalDays) {
+			// Reduce proportionally, prioritizing night (to maximize night shifts)
+			const excess = totalUsed - totalDays;
+			const totalShifts = targetM + targetE + targetN;
+			if (totalShifts > 0) {
+				// Reduce each proportionally
+				targetM = Math.max(
+					1,
+					targetM - Math.floor((targetM / totalShifts) * excess),
+				);
+				targetE = Math.max(
+					1,
+					targetE - Math.floor((targetE / totalShifts) * excess),
+				);
+				// Keep night as high as possible
+				const remaining = totalDays - nightCooldown - targetM - targetE;
+				targetN = Math.max(targetN, remaining);
+			}
+		}
+	};
+	adjustForCooldown();
+
+	// Convert to weights (percentage of totalDays)
+	const wM = Math.min(
+		100,
+		Math.max(1, Math.round((targetM / totalDays) * 100)),
+	);
+	const wE = Math.min(
+		100,
+		Math.max(1, Math.round((targetE / totalDays) * 100)),
+	);
+	const wN = Math.min(
+		100,
+		Math.max(1, Math.round((targetN / totalDays) * 100)),
 	);
 
 	const preferences: {
@@ -110,25 +363,24 @@ export async function prefillFairPreferences(
 		preferences.push({
 			nurseId: nurse.id,
 			shiftId: "shift_morning",
-			weight: fairShares.morning,
+			weight: wM,
 			active: true,
 		});
 		preferences.push({
 			nurseId: nurse.id,
 			shiftId: "shift_evening",
-			weight: fairShares.evening,
+			weight: wE,
 			active: true,
 		});
 		preferences.push({
 			nurseId: nurse.id,
 			shiftId: "shift_night",
-			weight: fairShares.night,
+			weight: wN,
 			active: true,
 		});
 	}
 
 	await rosterDb.upsertNurseShiftPreferences(preferences, totalDays);
-
 	return { success: true, updated: activeNurses.length };
 }
 
@@ -408,7 +660,10 @@ export async function generateRoster({ year, month }: GenerateRosterParams) {
 			if (assignments[dateMinus1Str])
 				shifts[1] = assignments[dateMinus1Str].shiftType;
 		}
-		previousShifts[p.id] = shifts;
+		const nurseId = (p as any).nurse?.id ?? (p as any).id;
+		if (nurseId) {
+			previousShifts[nurseId as string] = shifts;
+		}
 	}
 	const nurseShiftPreferenceMap = new Map<string, ShiftPreferences>();
 

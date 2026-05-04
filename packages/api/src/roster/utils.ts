@@ -338,9 +338,10 @@ export function getShiftRequirementsForMonth(
 	month: number,
 ): ShiftCounts {
 	const totalDays = getDaysInMonth(year, month);
-	const startDate = new Date(Date.UTC(year, month - 1, 1));
-	const endDate = new Date(Date.UTC(year, month - 1, totalDays));
-	return getShiftRequirementsForRange(startDate, endDate);
+	return getShiftRequirementsForRange(
+		new Date(Date.UTC(year, month - 1, 1)),
+		new Date(Date.UTC(year, month - 1, totalDays)),
+	);
 }
 
 export function getShiftRequirementsForRange(
@@ -351,13 +352,11 @@ export function getShiftRequirementsForRange(
 		startDate,
 		endDate,
 	);
+	const { WEEKDAY, FRIDAY } = ROSTER_CONFIG.COVERAGE;
 	return {
-		morning:
-			weekdayCount * ROSTER_CONFIG.COVERAGE.WEEKDAY.morning +
-			fridayCount * ROSTER_CONFIG.COVERAGE.FRIDAY.morning,
-		evening:
-			(weekdayCount + fridayCount) * ROSTER_CONFIG.COVERAGE.WEEKDAY.evening,
-		night: (weekdayCount + fridayCount) * ROSTER_CONFIG.COVERAGE.WEEKDAY.night,
+		morning: weekdayCount * WEEKDAY.morning + fridayCount * FRIDAY.morning,
+		evening: weekdayCount * WEEKDAY.evening + fridayCount * FRIDAY.evening,
+		night: weekdayCount * WEEKDAY.night + fridayCount * FRIDAY.night,
 	};
 }
 

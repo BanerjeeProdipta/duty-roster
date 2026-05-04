@@ -1,7 +1,7 @@
 import { Skeleton } from "@Duty-Roster/ui/components/skeleton";
 import { Suspense } from "react";
 import { MonthNavigator } from "@/components/MonthNavigator";
-import { PrefillFairlyButton } from "@/components/PrefillFairlyButton";
+import { PrefillButton } from "@/components/PrefillButton";
 import { ShiftCountsSkeleton } from "@/features/dashboard/components/ShiftCountsSkeleton";
 import { RosterTableSkeleton } from "@/features/dashboard/roster-table/RosterTableSkeleton";
 import ShiftAllocationsClient from "@/features/shift-manager/ShiftAllocationsClient";
@@ -48,7 +48,11 @@ export default async function ShiftAllocationsPage(props: {
 				<MonthNavigator />
 				<div className="flex items-center justify-between">
 					<WeekDayCounts month={month} year={year} />
-					<PrefillFairlyButton year={year} month={month} />
+					<div className="flex items-center gap-2">
+						<PrefillButton year={year} month={month} mode="fairly" />
+						<PrefillButton year={year} month={month} mode="minimize" />
+						<PrefillButton year={year} month={month} mode="maximize" />
+					</div>
 				</div>
 				<Suspense fallback={<ShiftCountsSkeleton />}>
 					<ShiftAllocationsClient initialSchedules={initialSchedules} />
