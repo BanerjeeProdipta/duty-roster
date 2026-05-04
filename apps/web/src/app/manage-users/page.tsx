@@ -9,7 +9,7 @@ import WeekDayCounts from "@/features/shift-manager/WeekDayCounts";
 import { getMonthDateRange, getYearMonthFromSearchParams } from "@/utils";
 import { getAuthedTRPCServer } from "@/utils/trpc-server";
 
-export const revalidate = 0;
+export const runtime = "edge";
 
 function ShiftAllocationsLoading() {
 	return (
@@ -40,8 +40,6 @@ export default async function ShiftAllocationsPage(props: {
 		startDate,
 		endDate,
 	});
-
-	console.log("Initial schedules:", initialSchedules);
 
 	return (
 		<Suspense fallback={<ShiftAllocationsLoading />}>
