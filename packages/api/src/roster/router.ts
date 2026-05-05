@@ -126,4 +126,16 @@ export const rosterRouter = router({
 			}),
 		)
 		.mutation(({ input }) => rosterService.updateNurse(input)),
+
+	// ─────────────── ML ANALYTICS ───────────────
+
+	getMLAnalytics: publicProcedure.query(() => rosterService.getMLAnalytics()),
+
+	getMLNurses: publicProcedure.query(() => rosterService.getMLNurses()),
+
+	getMLConflicts: publicProcedure.query(() => rosterService.getMLConflicts()),
+
+	getMLOptimizations: publicProcedure.query(() =>
+		rosterService.getMLOptimizations(),
+	),
 });

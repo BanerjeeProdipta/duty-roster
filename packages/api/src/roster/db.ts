@@ -64,6 +64,20 @@ export async function findAllShifts() {
 	return db.select().from(shift);
 }
 
+// ─────────────── ALL SCHEDULES ───────────────
+
+export async function findAllSchedules() {
+	return db
+		.select({
+			id: nurseSchedule.id,
+			nurseId: nurseSchedule.nurseId,
+			shiftId: nurseSchedule.shiftId,
+			date: nurseSchedule.date,
+		})
+		.from(nurseSchedule)
+		.orderBy(desc(nurseSchedule.date));
+}
+
 // ─────────────── SCHEDULES ───────────────
 
 export async function findSchedulesAndPreferencesByDateRange(

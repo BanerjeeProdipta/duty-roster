@@ -45,7 +45,9 @@ app.use("/*", async (c, next) => {
 				origin.endsWith(".duty-roster-8cw.pages.dev") ||
 				origin === "https://duty-roster-8cw.pages.dev" ||
 				origin === "http://localhost:3000" ||
-				origin === "http://localhost:3001"
+				origin === "http://localhost:3001" ||
+				origin === "http://localhost:5000" ||
+				origin === "http://localhost:5001"
 			) {
 				return origin;
 			}

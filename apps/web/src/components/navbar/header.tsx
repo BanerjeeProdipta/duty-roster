@@ -24,6 +24,7 @@ export default function Header() {
 	const links = [
 		{ to: ROUTES.home, label: "Home" },
 		{ to: ROUTES.roster, label: "Roster" },
+		...(session?.user ? [{ to: ROUTES.insights, label: "Insights" }] : []),
 		...(session?.user && isAdmin
 			? [
 					{ to: ROUTES.dashboard, label: "Dashboard" },
@@ -76,20 +77,18 @@ export default function Header() {
 							</Link>
 						);
 					})}
-					{!isSessionPending &&
-						(session?.user ? (
-							<>
-								<Button
-									variant="secondary"
-									onClick={handleSignOut}
-									className="ml-1 inline-flex text-foreground text-sm"
-								>
-									<LogOut />
+{!isSessionPending &&
+					(session?.user ? (
+						<Button
+							variant="secondary"
+							onClick={handleSignOut}
+							className="ml-1 inline-flex text-foreground text-sm"
+						>
+							<LogOut />
 
-									<span className="">{userName}</span>
-								</Button>
-							</>
-						) : (
+							<span className="">{userName}</span>
+						</Button>
+					) : (
 							<Button
 								variant="secondary"
 								onClick={() => router.push(ROUTES.auth)}
@@ -136,20 +135,18 @@ export default function Header() {
 						})}
 						{!isSessionPending &&
 							(session?.user ? (
-								<>
-									<Button
-										variant="ghost"
-										className="w-full justify-start"
-										onClick={() => {
-											handleSignOut();
-											setIsMenuOpen(false);
-										}}
-									>
-										<LogOut />
+								<Button
+									variant="ghost"
+									className="w-full justify-start"
+									onClick={() => {
+										handleSignOut();
+										setIsMenuOpen(false);
+									}}
+								>
+									<LogOut />
 
-										<span className="text-foreground text-sm">{userName}</span>
-									</Button>
-								</>
+									<span className="text-foreground text-sm">{userName}</span>
+								</Button>
 							) : (
 								<Button
 									variant="ghost"
