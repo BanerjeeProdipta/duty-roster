@@ -1,21 +1,10 @@
 import type { AppRouter } from "@Duty-Roster/api";
-import { QueryCache, QueryClient } from "@tanstack/react-query";
 import { createTRPCClient, httpBatchLink } from "@trpc/client";
 import { createTRPCOptionsProxy } from "@trpc/tanstack-react-query";
-import { toast } from "sonner";
 
-export const queryClient = new QueryClient({
-	queryCache: new QueryCache({
-		onError: (error, query) => {
-			toast.error(error.message, {
-				action: {
-					label: "retry",
-					onClick: () => query.invalidate(),
-				},
-			});
-		},
-	}),
-});
+// Re-export queryClient so existing imports of `queryClient` from
+// "@/utils/trpc" continue to work without changes.
+export { queryClient } from "./query-client";
 
 export const trpcClient = createTRPCClient<AppRouter>({
 	links: [
@@ -33,5 +22,5 @@ export const trpcClient = createTRPCClient<AppRouter>({
 
 export const trpc = createTRPCOptionsProxy<AppRouter>({
 	client: trpcClient,
-	queryClient,
+	queryClient: (await import("./query-client")).queryClient,
 });

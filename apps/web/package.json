@@ -5,6 +5,7 @@
 	"scripts": {
 		"dev": "next dev --port 3001",
 		"build": "next build",
+		"start": "next start -p 3001",
 		"build:cf": "npm_config_user_agent=npm/10.0.0 npx @cloudflare/next-on-pages -o .cloudflare",
 		"deploy": "bunx wrangler pages deploy .cloudflare --project-name=duty-roster"
 	},
@@ -34,6 +35,7 @@
 	"devDependencies": {
 		"@Duty-Roster/config": "workspace:*",
 		"@ducanh2912/next-pwa": "^10.2.8",
+		"@next/bundle-analyzer": "^16.2.5",
 		"@tailwindcss/postcss": "^4.1.18",
 		"@tanstack/react-query-devtools": "^5.91.1",
 		"@types/node": "^20",

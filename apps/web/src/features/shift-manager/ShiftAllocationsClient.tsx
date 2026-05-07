@@ -3,6 +3,7 @@
 import type { SchedulesResponse } from "@Duty-Roster/api";
 import { SearchInput } from "@Duty-Roster/ui/components/search-input";
 import { Loader2, UserCheck, UserMinus } from "lucide-react";
+import dynamic from "next/dynamic";
 import { useCallback, useEffect, useState } from "react";
 import { ShiftCountCard } from "@/features/dashboard/components/ShiftCountCard";
 import { useScheduleInit } from "@/hooks/useScheduleInit";
@@ -11,8 +12,17 @@ import {
 	useSolverValidation,
 } from "@/hooks/useSolverValidation";
 import { NurseTable } from "./components/NurseTable/NurseTable";
-import { SolverWarnings } from "./components/SolverWarnings";
 import { useShiftCounts } from "./hooks/useShiftCounts";
+
+// ~12 kB component only needed when solver validation has issues.
+// Lazy-loading keeps it out of the initial dashboard bundle.
+const SolverWarnings = dynamic(
+	() =>
+		import("./components/SolverWarnings").then((m) => ({
+			default: m.SolverWarnings,
+		})),
+	{ ssr: false },
+);
 
 interface ShiftAllocationsClientProps {
 	initialSchedules?: SchedulesResponse;
