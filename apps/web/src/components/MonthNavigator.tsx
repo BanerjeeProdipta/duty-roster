@@ -49,7 +49,7 @@ export function MonthNavigator() {
 				<ArrowLeft className="h-4 w-4" />
 			</Button>
 
-			<div className="font-medium text-slate-800 text-sm">
+			<div className="font-medium text-gray-800 text-sm">
 				{formatMonth(monthDate)}
 			</div>
 

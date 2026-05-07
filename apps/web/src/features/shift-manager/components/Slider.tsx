@@ -81,7 +81,7 @@ export function FourWaySlider({
 	return (
 		<div
 			ref={ref}
-			className="relative h-2 w-full overflow-hidden rounded-full bg-slate-50"
+			className="relative h-2 w-full overflow-hidden rounded-full bg-gray-50"
 		>
 			{/* Segments */}
 			<div
@@ -97,7 +97,7 @@ export function FourWaySlider({
 				style={{ left: `${pct(B)}%`, width: `${pct(C - B)}%` }}
 			/>
 			<div
-				className="absolute h-full bg-slate-200"
+				className="absolute h-full bg-gray-200"
 				style={{ left: `${pct(C)}%`, width: `${pct(total - C)}%` }}
 			/>
 
@@ -126,8 +126,8 @@ function Handle({
 				onDown();
 			}}
 			className={cn(
-				"absolute top-1/2 z-10 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-slate-400",
-				disabled ? "cursor-not-allowed bg-slate-300" : "cursor-grab",
+				"absolute top-1/2 z-10 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-gray-400",
+				disabled ? "cursor-not-allowed bg-gray-300" : "cursor-grab",
 			)}
 			style={{ left: `${pos}%` }}
 		/>

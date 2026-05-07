@@ -1,4 +1,4 @@
-import { Suspense, lazy } from "react";
+import { lazy, Suspense } from "react";
 import { RosterPrintSkeleton } from "@/features/roster-preview-print/components/RosterPrintSkeleton";
 import { getMonthDateRange, getYearMonthFromSearchParams } from "@/utils";
 import { getAuthedTRPCServer } from "@/utils/trpc-server";
@@ -18,7 +18,10 @@ export async function generateStaticParams() {
 
 	return [
 		{ year: String(currentYear), month: String(currentMonth) },
-		{ year: String(currentYear), month: String(currentMonth === 1 ? 12 : currentMonth - 1) },
+		{
+			year: String(currentYear),
+			month: String(currentMonth === 1 ? 12 : currentMonth - 1),
+		},
 	];
 }
 

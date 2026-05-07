@@ -15,7 +15,7 @@ export function DayHeaderCell({
 		<div
 			className={cn(
 				"flex flex-col items-center justify-center whitespace-nowrap border-r border-b text-center font-semibold text-xs uppercase tracking-wide transition-colors",
-				date.isToday ? "bg-slate-50" : "bg-white",
+				date.isToday ? "bg-gray-50" : "bg-white",
 			)}
 			style={{
 				height: LAYOUT.headerHeight,
@@ -24,14 +24,14 @@ export function DayHeaderCell({
 				padding: "10px",
 			}}
 		>
-			<span className="mb-0.5 block font-black text-slate-900">
+			<span className="mb-0.5 block font-black text-gray-900">
 				{date.date.getUTCDate()}
 			</span>
-			<span className="mb-2 block font-medium font-mono text-slate-600 text-xs">
+			<span className="mb-2 block font-medium font-mono text-gray-600 text-xs">
 				{date.label}
 			</span>
 
-			<div className="mt-1 flex items-center justify-center gap-0.5 border-slate-100 border-t pt-1.5">
+			<div className="mt-1 flex items-center justify-center gap-0.5 border-gray-100 border-t pt-1.5">
 				<ShiftBadge
 					count={counts?.morning || 0}
 					min={isFriday ? 3 : 20}

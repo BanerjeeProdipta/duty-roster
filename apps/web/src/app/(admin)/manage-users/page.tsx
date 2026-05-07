@@ -1,5 +1,5 @@
 import { Skeleton } from "@Duty-Roster/ui/components/skeleton";
-import { Suspense, lazy } from "react";
+import { lazy, Suspense } from "react";
 import { MonthNavigator } from "@/components/MonthNavigator";
 import { PrefillButton } from "@/components/PrefillButton";
 import { ShiftCountsSkeleton } from "@/features/dashboard/components/ShiftCountsSkeleton";
@@ -32,7 +32,7 @@ function ShiftAllocationsLoading() {
 				</div>
 			</div>
 			<ShiftCountsSkeleton />
-			<div className="flex h-10 w-full animate-pulse rounded-lg bg-slate-200" />
+			<div className="flex h-10 w-full animate-pulse rounded-lg bg-gray-200" />
 			<RosterTableSkeleton />
 		</div>
 	);

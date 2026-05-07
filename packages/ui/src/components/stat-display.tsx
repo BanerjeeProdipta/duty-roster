@@ -15,7 +15,7 @@ function StatDisplay({
 	...props
 }: StatDisplayProps) {
 	const valueColorClass = {
-		default: "text-slate-800",
+		default: "text-gray-800",
 		success: "text-green-700",
 		warning: "text-amber-700",
 		error: "text-red-700",
@@ -23,7 +23,7 @@ function StatDisplay({
 
 	return (
 		<div className={cn("flex flex-col items-center", className)} {...props}>
-			<span className="font-medium text-slate-500 text-xs uppercase tracking-wide">
+			<span className="font-medium text-gray-500 text-xs uppercase tracking-wide">
 				{label}
 			</span>
 			<span className={cn("font-bold text-lg tabular-nums", valueColorClass)}>

@@ -1,4 +1,4 @@
-import { Suspense, lazy } from "react";
+import { lazy, Suspense } from "react";
 import { ShiftCountsSkeleton } from "@/features/dashboard/components/ShiftCountsSkeleton";
 import { RosterHeader } from "@/features/dashboard/roster-table/RosterHeader";
 import { RosterTableSkeleton } from "@/features/dashboard/roster-table/RosterTableSkeleton";
@@ -26,7 +26,10 @@ export async function generateStaticParams() {
 
 	return [
 		{ year: String(currentYear), month: String(currentMonth) },
-		{ year: String(currentYear), month: String(currentMonth === 1 ? 12 : currentMonth - 1) },
+		{
+			year: String(currentYear),
+			month: String(currentMonth === 1 ? 12 : currentMonth - 1),
+		},
 	];
 }
 
@@ -57,10 +60,10 @@ function DashboardLoading() {
 	return (
 		<div className="flex flex-col gap-6">
 			<div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-				<div className="h-10 w-full max-w-md animate-pulse rounded-lg bg-slate-200" />
+				<div className="h-10 w-full max-w-md animate-pulse rounded-lg bg-gray-200" />
 				<div className="flex items-center gap-4">
-					<div className="h-10 w-40 animate-pulse rounded-lg bg-slate-200" />
-					<div className="h-10 w-32 animate-pulse rounded-lg bg-slate-200" />
+					<div className="h-10 w-40 animate-pulse rounded-lg bg-gray-200" />
+					<div className="h-10 w-32 animate-pulse rounded-lg bg-gray-200" />
 				</div>
 			</div>
 			<ShiftCountsSkeleton />

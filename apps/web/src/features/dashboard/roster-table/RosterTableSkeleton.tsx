@@ -8,13 +8,13 @@ const NURSE_ROW_COUNT = 8;
 export function RosterTableSkeleton() {
 	return (
 		<div className="flex flex-col gap-4">
-			<div className="relative flex h-[calc(100vh-200px)] flex-col overflow-hidden rounded-2xl border border-slate-200/60 bg-white/80 shadow-[0_8px_30px_rgb(0,0,0,0.04)] backdrop-blur-sm">
+			<div className="relative flex h-[calc(100vh-200px)] flex-col overflow-hidden rounded-2xl border border-gray-200/60 bg-white/80 shadow-[0_8px_30px_rgb(0,0,0,0.04)] backdrop-blur-sm">
 				<div className="scrollbar-hide min-h-0 flex-1 overflow-auto">
 					<table className="w-full table-fixed border-separate border-spacing-0">
 						<thead>
 							<tr>
 								<th
-									className="sticky top-0 left-0 z-[30] border-r border-b bg-slate-50 px-3 py-3 text-center text-sm uppercase tracking-widest"
+									className="sticky top-0 left-0 z-[30] border-r border-b bg-gray-50 px-3 py-3 text-center text-sm uppercase tracking-widest"
 									style={{ width: "180px", height: "80px" }}
 								>
 									<Skeleton className="mx-auto h-4 w-16" />
@@ -23,7 +23,7 @@ export function RosterTableSkeleton() {
 									<th
 										// biome-ignore lint/suspicious/noArrayIndexKey: static skeleton
 										key={`header-${i}`}
-										className="sticky top-0 z-[10] bg-slate-100"
+										className="sticky top-0 z-[10] bg-gray-100"
 										style={{ width: "140px", height: "80px" }}
 									>
 										<div className="flex flex-col items-center gap-1">
@@ -41,7 +41,7 @@ export function RosterTableSkeleton() {
 									key={`row-${rowIndex}`}
 								>
 									<td
-										className="sticky left-0 z-20 border-slate-200 border-b bg-white"
+										className="sticky left-0 z-20 border-gray-200 border-b bg-white"
 										style={{
 											width: "100px",
 											minWidth: "100px",
@@ -63,7 +63,7 @@ export function RosterTableSkeleton() {
 									</td>
 									<td
 										colSpan={HEADER_COUNT}
-										className="border-slate-200 border-b"
+										className="border-gray-200 border-b"
 										style={{ height: "80px" }}
 									>
 										<div className="flex h-full items-center justify-center gap-2">

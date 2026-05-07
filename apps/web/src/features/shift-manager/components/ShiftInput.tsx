@@ -85,11 +85,11 @@ export function ShiftInput({
 					value={localValue}
 					disabled={disabled}
 					className={cn(
-						"h-9 w-12 rounded-md border-2 bg-slate-50/30 text-center font-extrabold text-sm transition-all",
+						"h-9 w-12 rounded-md border-2 bg-gray-50/30 text-center font-extrabold text-sm transition-all",
 						"[appearance:textfield] focus:outline-none focus:ring-4 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none",
 						c.border,
 						c.focus,
-						disabled && "cursor-not-allowed bg-slate-100 text-slate-400",
+						disabled && "cursor-not-allowed bg-gray-100 text-gray-400",
 					)}
 					onChange={(e) => {
 						const valStr = e.target.value;

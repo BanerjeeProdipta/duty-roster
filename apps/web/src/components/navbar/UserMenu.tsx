@@ -26,7 +26,11 @@ const ADMIN_LINKS = [
  * Kept separate from Header so better-auth's client SDK is NOT included
  * in the shared layout chunk — it's only loaded after hydration.
  */
-export function UserMenu({ pathname, mobile = false, onNavigate }: UserMenuProps) {
+export function UserMenu({
+	pathname,
+	mobile = false,
+	onNavigate,
+}: UserMenuProps) {
 	const router = useRouter();
 	const { data: session, isPending } = authClient.useSession();
 
@@ -34,8 +38,8 @@ export function UserMenu({ pathname, mobile = false, onNavigate }: UserMenuProps
 		return (
 			<div
 				className={cn(
-					"animate-pulse rounded-md bg-slate-100 dark:bg-slate-800",
-					mobile ? "h-8 w-full" : "h-8 w-20 ml-1",
+					"animate-pulse rounded-md bg-gray-100 dark:bg-gray-800",
+					mobile ? "h-8 w-full" : "ml-1 h-8 w-20",
 				)}
 			/>
 		);
@@ -102,4 +106,3 @@ export function UserMenu({ pathname, mobile = false, onNavigate }: UserMenuProps
 		</>
 	);
 }
-

@@ -173,7 +173,7 @@ export default function ShiftAllocationsClient({
 					onLanguageChange={(lang) => setLanguage(lang)}
 					className="w-full"
 				/>
-				<div className="flex items-center justify-center gap-4 rounded-lg bg-slate-50 px-4 py-3">
+				<div className="flex items-center justify-center gap-4 rounded-lg bg-gray-50 px-4 py-3">
 					<div className="inline-flex items-center gap-1 font-medium text-green-600 text-sm">
 						<UserCheck className="h-4 w-4" />
 						{shiftCounts.activeCount}
@@ -187,7 +187,7 @@ export default function ShiftAllocationsClient({
 
 			{showLoader && (
 				<div className="flex items-center justify-center py-8">
-					<Loader2 className="h-6 w-6 animate-spin text-slate-400" />
+					<Loader2 className="h-6 w-6 animate-spin text-gray-400" />
 				</div>
 			)}
 

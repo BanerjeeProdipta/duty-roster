@@ -174,7 +174,7 @@ function SearchInput({
 					onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
 					placeholder={placeholder}
 					className={cn(
-						"flex-1 bg-transparent text-sm outline-none placeholder:text-slate-400",
+						"flex-1 bg-transparent text-sm outline-none placeholder:text-gray-400",
 						language === "bn-BD" && "text-base",
 						inputClassName,
 					)}
@@ -188,7 +188,7 @@ function SearchInput({
 						title={ui.clear}
 						aria-label={ui.clear}
 					>
-						<X className="h-4 w-4 text-slate-400" />
+						<X className="h-4 w-4 text-gray-400" />
 					</button>
 				)}
 				<VoiceInput
@@ -200,7 +200,7 @@ function SearchInput({
 				<button
 					type="button"
 					onClick={toggleLanguage}
-					className="rounded-md border border-slate-200 px-2 py-1 font-semibold text-xs transition-colors hover:bg-slate-50"
+					className="rounded-md border border-gray-200 px-2 py-1 font-semibold text-xs transition-colors hover:bg-gray-50"
 					title={language === "bn-BD" ? "Switch to English" : "বাংলায় সুইচ করুন"}
 					aria-label={
 						language === "bn-BD" ? "Switch to English" : "বাংলায় সুইচ করুন"
@@ -228,7 +228,7 @@ function SearchInput({
 								"w-full px-3 py-2 text-left text-sm transition-colors",
 								index === highlightedIndex
 									? "bg-blue-500 text-white"
-									: "hover:bg-slate-100",
+									: "hover:bg-gray-100",
 							)}
 						>
 							{suggestion}

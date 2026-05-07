@@ -59,7 +59,7 @@ export function RosterHeader({
 				<div className="flex items-center gap-4">
 					<Link
 						href={`/roster?year=${selectedMonth.year}&month=${selectedMonth.month}`}
-						className="flex items-center gap-2 whitespace-nowrap rounded-lg border bg-slate-50 px-3 py-2.5 font-medium text-sm transition-colors hover:bg-slate-200"
+						className="flex items-center gap-2 whitespace-nowrap rounded-lg border bg-gray-50 px-3 py-2.5 font-medium text-sm transition-colors hover:bg-gray-200"
 					>
 						<FileText className="h-4 w-4" />
 						View & Print Roster

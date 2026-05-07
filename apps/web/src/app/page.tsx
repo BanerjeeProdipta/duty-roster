@@ -1,4 +1,4 @@
-import { Suspense, lazy } from "react";
+import { lazy, Suspense } from "react";
 import { RosterHeader } from "@/features/dashboard/roster-table/RosterHeader";
 import { RosterTableSkeleton } from "@/features/dashboard/roster-table/RosterTableSkeleton";
 import { getMonthDateRange, getYearMonthFromSearchParams } from "@/utils";
@@ -19,7 +19,10 @@ export async function generateStaticParams() {
 
 	return [
 		{ year: String(currentYear), month: String(currentMonth) },
-		{ year: String(currentYear), month: String(currentMonth === 1 ? 12 : currentMonth - 1) },
+		{
+			year: String(currentYear),
+			month: String(currentMonth === 1 ? 12 : currentMonth - 1),
+		},
 	];
 }
 

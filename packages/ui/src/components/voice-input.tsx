@@ -37,7 +37,7 @@ function VoiceInput({
 				"rounded-md border p-1.5 transition-colors",
 				isListening
 					? "border-green-400 bg-green-50 hover:bg-green-100"
-					: "hover:bg-slate-50",
+					: "hover:bg-gray-50",
 				className,
 			)}
 			title={isListening ? "Stop listening" : "Start voice input"}
@@ -46,7 +46,7 @@ function VoiceInput({
 			<Mic
 				className={cn(
 					"h-4 w-4",
-					isListening ? "animate-pulse text-green-500" : "text-slate-600",
+					isListening ? "animate-pulse text-green-500" : "text-gray-600",
 				)}
 			/>
 		</button>

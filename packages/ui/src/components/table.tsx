@@ -52,7 +52,7 @@ function TableRow({ className, children, ...props }: TableRowProps) {
 	return (
 		<tr
 			className={cn(
-				"border-b transition-colors hover:bg-slate-50/50 data-[state=selected]:bg-slate-50",
+				"border-b transition-colors hover:bg-gray-50/50 data-[state=selected]:bg-gray-50",
 				className,
 			)}
 			{...props}
@@ -70,7 +70,7 @@ function TableHead({ className, children, ...props }: TableHeadProps) {
 	return (
 		<th
 			className={cn(
-				"h-10 px-2 text-left align-middle font-medium text-slate-500 text-xs uppercase tracking-wider [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
+				"h-10 px-2 text-left align-middle font-medium text-gray-500 text-xs uppercase tracking-wider [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
 				className,
 			)}
 			{...props}
