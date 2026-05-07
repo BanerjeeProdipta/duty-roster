@@ -41,7 +41,7 @@ export function useRosterPageData(
 
 			return { nurses: nurseRows, dates, monthName };
 		} catch (err) {
-			console.error("Failed to process roster data:", err);
+			// Failed to process roster data, return null
 			return null;
 		}
 	}, [schedules, year, month]);
@@ -66,7 +66,6 @@ export function useRosterPageData(
 	const debugPrintPages = useCallback(() => {
 		const printRoot = document.getElementById("roster-print-root");
 		if (!printRoot) {
-			console.warn("Print root not found");
 			return;
 		}
 		const pages = printRoot.querySelectorAll(".print-page");

@@ -27,7 +27,6 @@ const getBaseUrl = () => {
 
 const getClient = cache(() => {
 	const url = getBaseUrl();
-	console.log("tRPC Client URL:", url);
 	return createTRPCClient<AppRouter>({
 		links: [
 			httpBatchLink({

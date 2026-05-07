@@ -159,11 +159,6 @@ export function useNurseCard({
 		if (updateActiveMutation.isPending) return;
 
 		const nextActive = !draft.active;
-		console.log("🔄 Toggling active:", {
-			nurseId: draft.nurseId,
-			from: draft.active,
-			to: nextActive,
-		});
 
 		// Optimistic update - update local state immediately
 		setDraft((prev) => ({ ...prev, active: nextActive }));

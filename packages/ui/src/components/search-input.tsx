@@ -65,7 +65,7 @@ function SearchInput({
 		if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
 		searchTimerRef.current = setTimeout(() => {
 			onSearch(value);
-		}, 300);
+		}, 150);
 	};
 
 	const handleValueChange = (newValue: string) => {
@@ -93,6 +93,10 @@ function SearchInput({
 
 	const handleClear = () => {
 		handleValueChange("");
+		if (onSearch) {
+			if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+			onSearch("");
+		}
 	};
 
 	const handleSelectSuggestion = (suggestion: string) => {

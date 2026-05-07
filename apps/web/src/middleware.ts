@@ -24,10 +24,6 @@ export async function middleware(request: NextRequest) {
 	const user = session?.user as { role?: string } | null;
 	const role = user?.role;
 
-	console.log(
-		`[middleware] ${pathname} | loggedIn=${isLoggedIn} | role=${role ?? "none"}`,
-	);
-
 	// Redirect logged-in users away from auth pages
 	if (isLoggedIn && pathname.startsWith("/auth")) {
 		return NextResponse.redirect(new URL("/dashboard", request.url));
@@ -65,11 +61,11 @@ async function getSession(request: NextRequest) {
 		if (!response.ok) return null;
 		const data = await response.json();
 		if (data?.user) {
-			console.log("[middleware] user:", data.user);
+			// User session retrieved successfully
 		}
 		return data;
 	} catch (e) {
-		console.error("[middleware] getSession error:", e);
+		// Session retrieval failed
 		return null;
 	}
 }

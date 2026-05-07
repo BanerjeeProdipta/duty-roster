@@ -35,7 +35,7 @@ export const rosterRouter = router({
 
 	// ─────────────── WRITES ───────────────
 
-	generateRoster: publicProcedure
+	generateRoster: adminProcedure
 		.input(
 			z.object({
 				year: z.number().int().min(2000).max(2100),

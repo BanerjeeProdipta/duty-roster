@@ -54,7 +54,6 @@ export function useUpdateNurseActive(options?: { onSuccess?: () => void }) {
 			nurseId: string;
 			active: boolean;
 		}) => {
-			console.log("📡 Updating nurse active:", { nurseId, active });
 			return trpcClient.roster.updateNurse.mutate({
 				nurseId,
 				active,

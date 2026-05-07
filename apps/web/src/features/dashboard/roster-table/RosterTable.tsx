@@ -3,6 +3,7 @@
 import type { SchedulesResponse } from "@Duty-Roster/api";
 import { useMutationState } from "@tanstack/react-query";
 import { useVirtualizer } from "@tanstack/react-virtual";
+import { useSearchParams } from "next/navigation";
 import { useRef } from "react";
 import { useShifts } from "@/hooks/useGetShifts";
 import { useRosterDates } from "@/hooks/useRosterDates";
@@ -28,6 +29,8 @@ export function RosterTable({
 	initialSchedules,
 }: RosterTableProps) {
 	const { schedules, isLoading } = useRosterTableData(initialSchedules);
+	const searchParams = useSearchParams();
+	const qParam = searchParams.get("q") ?? "";
 
 	const generatingState = useMutationState({
 		filters: { mutationKey: ["generate-roster"], status: "pending" },
@@ -40,7 +43,11 @@ export function RosterTable({
 
 	const parentRef = useRef<HTMLDivElement>(null);
 
-	const nurseRows = schedules?.nurseRows ?? [];
+	const nurseRows = qParam.trim()
+		? (schedules?.nurseRows ?? []).filter((row) =>
+				row.nurse.name.toLowerCase().includes(qParam.toLowerCase()),
+			)
+		: (schedules?.nurseRows ?? []);
 	const dailyShiftCounts = schedules?.dailyShiftCounts ?? {};
 
 	const virtualizer = useVirtualizer({

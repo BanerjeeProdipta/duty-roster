@@ -132,7 +132,13 @@ export function useVoiceSearch({
 		};
 
 		recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-			console.error("Speech Recognition Error:", event.error);
+			// "aborted" is expected when manually stopping recognition
+			if (event.error === "aborted") {
+				setIsListening(false);
+				return;
+			}
+			// Use warn instead of error to avoid Next.js error overlay
+			console.warn("Speech Recognition Error:", event.error);
 			setIsListening(false);
 		};
 
