@@ -3,6 +3,8 @@ import { RosterPrintSkeleton } from "@/features/roster-preview-print/components/
 import { getMonthDateRange, getYearMonthFromSearchParams } from "@/utils";
 import { getAuthedTRPCServer } from "@/utils/trpc-server";
 
+export const runtime = "edge";
+
 const RosterPDFViewer = lazy(() =>
 	import("@/features/roster-preview-print").then((mod) => ({
 		default: mod.RosterPDFViewer,
@@ -10,20 +12,6 @@ const RosterPDFViewer = lazy(() =>
 );
 
 export const revalidate = 60;
-
-export async function generateStaticParams() {
-	const now = new Date();
-	const currentYear = now.getFullYear();
-	const currentMonth = now.getMonth() + 1;
-
-	return [
-		{ year: String(currentYear), month: String(currentMonth) },
-		{
-			year: String(currentYear),
-			month: String(currentMonth === 1 ? 12 : currentMonth - 1),
-		},
-	];
-}
 
 async function RosterContent(props: {
 	searchParams: Promise<{ year?: string; month?: string }>;

@@ -4,6 +4,8 @@ import { RosterTableSkeleton } from "@/features/dashboard/roster-table/RosterTab
 import { getMonthDateRange, getYearMonthFromSearchParams } from "@/utils";
 import { getTRPCServer } from "@/utils/trpc-server";
 
+export const runtime = "edge";
+
 const RosterTable = lazy(() =>
 	import("@/features/dashboard/roster-table/RosterTable").then((mod) => ({
 		default: mod.RosterTable,
@@ -11,20 +13,6 @@ const RosterTable = lazy(() =>
 );
 
 export const revalidate = 60;
-
-export async function generateStaticParams() {
-	const now = new Date();
-	const currentYear = now.getFullYear();
-	const currentMonth = now.getMonth() + 1;
-
-	return [
-		{ year: String(currentYear), month: String(currentMonth) },
-		{
-			year: String(currentYear),
-			month: String(currentMonth === 1 ? 12 : currentMonth - 1),
-		},
-	];
-}
 
 async function HomeContent(props: {
 	searchParams: Promise<{ year?: string; month?: string }>;
