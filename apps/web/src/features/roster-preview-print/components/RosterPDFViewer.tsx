@@ -1,6 +1,7 @@
 "use client";
 
 import { FileText } from "lucide-react";
+import React, { useEffect, useRef, useState } from "react";
 import { MonthNavigator } from "@/components/MonthNavigator";
 import type { SchedulesResponse } from "@/features/dashboard/roster-table/RosterMatrix.types";
 import {
@@ -27,12 +28,56 @@ export function RosterPDFViewer({ initialSchedules }: RosterPDFViewerProps) {
 		handlePrint,
 	} = useRosterPageData(initialSchedules ?? undefined);
 
+	const INITIAL_BUFFER = 2;
+	const pageRefs = useRef<Map<number, HTMLDivElement>>(new Map());
+	const [visiblePages, setVisiblePages] = useState<Set<number>>(
+		new Set(Array.from({ length: INITIAL_BUFFER }, (_, i) => i)),
+	);
+
+	useEffect(() => {
+		if (typeof window === "undefined") return;
+
+		const observer = new IntersectionObserver(
+			(entries) => {
+				setVisiblePages((prev) => {
+					const next = new Set(prev);
+					entries.forEach((entry) => {
+						const pageId = Number(entry.target.getAttribute("data-page-id"));
+						if (entry.isIntersecting) {
+							next.add(pageId);
+						}
+					});
+					return next;
+				});
+			},
+			{ rootMargin: "200px", threshold: 0 },
+		);
+
+		pageRefs.current.forEach((element) => {
+			observer.observe(element);
+		});
+
+		return () => observer.disconnect();
+	}, [hasContent]);
+
+	const setPageRef = (idx: number) => (el: HTMLDivElement | null) => {
+		if (el) {
+			el.setAttribute("data-page-id", String(idx));
+			pageRefs.current.set(idx, el);
+		} else {
+			pageRefs.current.delete(idx);
+		}
+	};
+
 	const previewPages = hasContent
 		? pageChunks.map((chunk, idx) => {
 				const pageKey = chunk[0]?.Name ?? `page-${idx}`;
+				const shouldRender = visiblePages.has(idx);
+
 				return (
 					<div
 						key={`preview-${pageKey}`}
+						ref={setPageRef(idx)}
 						className="mx-auto flex-shrink-0 bg-white shadow-lg"
 						style={{
 							width: PAGE_WIDTH,
@@ -41,13 +86,17 @@ export function RosterPDFViewer({ initialSchedules }: RosterPDFViewerProps) {
 							boxSizing: "border-box",
 						}}
 					>
-						<RosterPage
-							chunk={chunk}
-							dates={(pageData as NonNullable<typeof pageData>).dates}
-							monthName={(pageData as NonNullable<typeof pageData>).monthName}
-							pageIdx={idx}
-							totalPages={pageChunks.length}
-						/>
+						{shouldRender ? (
+							<RosterPage
+								chunk={chunk}
+								dates={(pageData as NonNullable<typeof pageData>).dates}
+								monthName={(pageData as NonNullable<typeof pageData>).monthName}
+								pageIdx={idx}
+								totalPages={pageChunks.length}
+							/>
+						) : (
+							<div className="h-full w-full animate-pulse bg-gray-100" />
+						)}
 					</div>
 				);
 			})
@@ -74,10 +123,9 @@ export function RosterPDFViewer({ initialSchedules }: RosterPDFViewerProps) {
 		<>
 			<style>{PRINT_STYLES}</style>
 
-			{/* Controls */}
-			<div className="flex flex-col justify-between gap-3 rounded-lg border border-slate-200 bg-white p-4 lg:flex-row">
+			<div className="flex flex-col justify-between gap-3 rounded-lg border border-gray-200 bg-white p-4 lg:flex-row">
 				{hasContent && totalNurses > 0 && (
-					<div className="py-3 text-slate-500 text-sm">
+					<div className="py-3 text-gray-500 text-sm">
 						{totalNurses} nurses across {pageChunks.length} page
 						{pageChunks.length !== 1 ? "s" : ""}
 					</div>
@@ -92,7 +140,7 @@ export function RosterPDFViewer({ initialSchedules }: RosterPDFViewerProps) {
 						<button
 							type="button"
 							disabled={isFetching || !hasContent}
-							className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 font-medium text-sm transition-colors hover:bg-slate-50 disabled:opacity-50"
+							className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2.5 font-medium text-sm transition-colors hover:bg-gray-50 disabled:opacity-50"
 						>
 							<FileText
 								className={`h-4 w-4 ${isFetching ? "animate-pulse" : ""}`}
@@ -104,7 +152,7 @@ export function RosterPDFViewer({ initialSchedules }: RosterPDFViewerProps) {
 							<button
 								type="button"
 								onClick={handlePrint}
-								className="flex items-center gap-2 rounded-lg border border-slate-800 bg-slate-800 px-4 py-2 font-medium text-sm text-white transition-colors hover:bg-slate-700"
+								className="flex items-center gap-2 rounded-lg border border-gray-800 bg-gray-800 px-4 py-2 font-medium text-sm text-white transition-colors hover:bg-gray-700"
 							>
 								🖨️ Print / Save as PDF
 							</button>
@@ -116,16 +164,14 @@ export function RosterPDFViewer({ initialSchedules }: RosterPDFViewerProps) {
 
 			{error && <p className="text-red-600 text-sm">{error}</p>}
 
-			{/* Screen Preview */}
 			{hasContent && (
 				<div>
-					<div className="max-h-[calc(100vh-100px)] space-y-6 overflow-auto rounded-lg bg-slate-100 p-4">
+					<div className="max-h-[calc(100vh-100px)] space-y-6 overflow-auto rounded-lg bg-gray-100 p-4">
 						{previewPages}
 					</div>
 				</div>
 			)}
 
-			{/* Print-only content */}
 			{hasContent && <div id="roster-print-root">{printPages}</div>}
 		</>
 	);

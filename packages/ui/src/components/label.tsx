@@ -17,7 +17,7 @@ function Label({ className, variant = "default", ...props }: LabelProps) {
 			data-slot="label"
 			className={cn(
 				"font-medium text-xs",
-				variant === "default" && "text-slate-500 uppercase tracking-wide",
+				variant === "default" && "text-gray-500 uppercase tracking-wide",
 				className,
 			)}
 			{...props}

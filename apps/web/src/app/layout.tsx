@@ -66,7 +66,7 @@ export default function RootLayout({
 			>
 				<Providers>
 					<ServiceWorkerRegistration />
-					<div className="flex min-h-svh flex-col bg-slate-50 dark:bg-slate-950">
+					<div className="flex min-h-svh flex-col bg-gray-50 dark:bg-gray-950">
 						<Header />
 						<main className="flex-1 p-4 lg:px-20 lg:py-6">{children}</main>
 					</div>

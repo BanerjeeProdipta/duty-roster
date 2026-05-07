@@ -1,15 +1,27 @@
 import { Skeleton } from "@Duty-Roster/ui/components/skeleton";
-import { Suspense } from "react";
+import { lazy, Suspense } from "react";
 import { MonthNavigator } from "@/components/MonthNavigator";
 import { PrefillButton } from "@/components/PrefillButton";
 import { ShiftCountsSkeleton } from "@/features/dashboard/components/ShiftCountsSkeleton";
 import { RosterTableSkeleton } from "@/features/dashboard/roster-table/RosterTableSkeleton";
-import ShiftAllocationsClient from "@/features/shift-manager/ShiftAllocationsClient";
-import WeekDayCounts from "@/features/shift-manager/WeekDayCounts";
 import { getMonthDateRange, getYearMonthFromSearchParams } from "@/utils";
 import { getAuthedTRPCServer } from "@/utils/trpc-server";
 
 export const runtime = "edge";
+
+const ShiftAllocationsClient = lazy(() =>
+	import("@/features/shift-manager/ShiftAllocationsClient").then((mod) => ({
+		default: mod.default,
+	})),
+);
+
+const WeekDayCounts = lazy(() =>
+	import("@/features/shift-manager/WeekDayCounts").then((mod) => ({
+		default: mod.default,
+	})),
+);
+
+export const revalidate = 60;
 
 function ShiftAllocationsLoading() {
 	return (
@@ -22,7 +34,7 @@ function ShiftAllocationsLoading() {
 				</div>
 			</div>
 			<ShiftCountsSkeleton />
-			<div className="flex h-10 w-full animate-pulse rounded-lg bg-slate-200" />
+			<div className="flex h-10 w-full animate-pulse rounded-lg bg-gray-200" />
 			<RosterTableSkeleton />
 		</div>
 	);
@@ -46,8 +58,11 @@ export default async function ShiftAllocationsPage(props: {
 			<div className="flex flex-col gap-6">
 				<MonthNavigator />
 				<div className="flex flex-wrap items-center justify-between">
-					<WeekDayCounts month={month} year={year} />
+					<Suspense fallback={<Skeleton className="h-10 w-32" />}>
+						<WeekDayCounts month={month} year={year} />
+					</Suspense>
 					<div className="flex items-center gap-2">
+						<PrefillButton year={year} month={month} mode="default" />
 						<PrefillButton year={year} month={month} mode="fairly" />
 						<PrefillButton year={year} month={month} mode="minimize" />
 						<PrefillButton year={year} month={month} mode="maximize" />

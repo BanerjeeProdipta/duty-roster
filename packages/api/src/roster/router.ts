@@ -35,7 +35,7 @@ export const rosterRouter = router({
 
 	// ─────────────── WRITES ───────────────
 
-	generateRoster: publicProcedure
+	generateRoster: adminProcedure
 		.input(
 			z.object({
 				year: z.number().int().min(2000).max(2100),
@@ -75,6 +75,17 @@ export const rosterRouter = router({
 		)
 		.mutation(({ input }) =>
 			rosterService.prefillMaximizeShifts(input.year, input.month),
+		),
+
+	prefillDefault: adminProcedure
+		.input(
+			z.object({
+				year: z.number().int().min(2000).max(2100),
+				month: z.number().int().min(1).max(12),
+			}),
+		)
+		.mutation(({ input }) =>
+			rosterService.prefillDefault(input.year, input.month),
 		),
 
 	updateNurseShiftPreferences: adminProcedure

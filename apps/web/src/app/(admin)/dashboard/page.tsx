@@ -1,14 +1,25 @@
-import { Suspense } from "react";
-import { ShiftCounts } from "@/features/dashboard/components/ShiftCounts";
+import { lazy, Suspense } from "react";
 import { ShiftCountsSkeleton } from "@/features/dashboard/components/ShiftCountsSkeleton";
 import { RosterHeader } from "@/features/dashboard/roster-table/RosterHeader";
-import { RosterTable } from "@/features/dashboard/roster-table/RosterTable";
 import { RosterTableSkeleton } from "@/features/dashboard/roster-table/RosterTableSkeleton";
 import { getMonthDateRange, getYearMonthFromSearchParams } from "@/utils";
 import { getAuthedTRPCServer } from "@/utils/trpc-server";
 
-export const revalidate = 0;
 export const runtime = "edge";
+
+const ShiftCounts = lazy(() =>
+	import("@/features/dashboard/components/ShiftCounts").then((mod) => ({
+		default: mod.ShiftCounts,
+	})),
+);
+
+const RosterTable = lazy(() =>
+	import("@/features/dashboard/roster-table/RosterTable").then((mod) => ({
+		default: mod.RosterTable,
+	})),
+);
+
+export const revalidate = 60;
 
 async function DashboardContent(props: {
 	searchParams: Promise<{ year?: string; month?: string }>;
@@ -37,10 +48,10 @@ function DashboardLoading() {
 	return (
 		<div className="flex flex-col gap-6">
 			<div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-				<div className="h-10 w-full max-w-md animate-pulse rounded-lg bg-slate-200" />
+				<div className="h-10 w-full max-w-md animate-pulse rounded-lg bg-gray-200" />
 				<div className="flex items-center gap-4">
-					<div className="h-10 w-40 animate-pulse rounded-lg bg-slate-200" />
-					<div className="h-10 w-32 animate-pulse rounded-lg bg-slate-200" />
+					<div className="h-10 w-40 animate-pulse rounded-lg bg-gray-200" />
+					<div className="h-10 w-32 animate-pulse rounded-lg bg-gray-200" />
 				</div>
 			</div>
 			<ShiftCountsSkeleton />

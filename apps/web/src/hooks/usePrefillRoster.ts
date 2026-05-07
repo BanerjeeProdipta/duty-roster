@@ -3,12 +3,13 @@ import { toast } from "sonner";
 import { QUERY_KEYS } from "@/utils/query-keys";
 import { trpcClient } from "@/utils/trpc";
 
-type PrefillMode = "fairly" | "minimize" | "maximize";
+type PrefillMode = "fairly" | "minimize" | "maximize" | "default";
 
 const labelMap: Record<PrefillMode, string> = {
 	fairly: "Prefill Fairly",
 	minimize: "Minimize Shifts",
 	maximize: "Maximize Shifts",
+	default: "Default",
 };
 
 export const usePrefillRoster = (mode: PrefillMode) => {
@@ -34,7 +35,13 @@ export const usePrefillRoster = (mode: PrefillMode) => {
 				month,
 			});
 		}
-		return await trpcClient.roster.prefillMaximizeShifts.mutate({
+		if (mode === "maximize") {
+			return await trpcClient.roster.prefillMaximizeShifts.mutate({
+				year,
+				month,
+			});
+		}
+		return await trpcClient.roster.prefillDefault.mutate({
 			year,
 			month,
 		});

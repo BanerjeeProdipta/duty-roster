@@ -384,6 +384,176 @@ export async function prefillMaximizeShifts(
 	return { success: true, updated: activeNurses.length };
 }
 
+const DEFAULT_PREFERENCES_CSV = `"nurse_id","shift_id","weight","active"
+"nurse_1","shift_evening","0","true"
+"nurse_1","shift_morning","81","true"
+"nurse_1","shift_night","0","true"
+"nurse_10","shift_evening","0","true"
+"nurse_10","shift_morning","68","true"
+"nurse_10","shift_night","10","true"
+"nurse_11","shift_evening","0","true"
+"nurse_11","shift_morning","68","true"
+"nurse_11","shift_night","10","true"
+"nurse_12","shift_evening","13","true"
+"nurse_12","shift_morning","55","true"
+"nurse_12","shift_night","10","true"
+"nurse_13","shift_evening","0","true"
+"nurse_13","shift_morning","68","true"
+"nurse_13","shift_night","10","true"
+"nurse_14","shift_evening","0","true"
+"nurse_14","shift_morning","68","true"
+"nurse_14","shift_night","10","true"
+"nurse_15","shift_evening","0","true"
+"nurse_15","shift_morning","81","true"
+"nurse_15","shift_night","0","true"
+"nurse_16","shift_evening","13","true"
+"nurse_16","shift_morning","55","true"
+"nurse_16","shift_night","10","true"
+"nurse_17","shift_evening","0","true"
+"nurse_17","shift_morning","68","true"
+"nurse_17","shift_night","10","true"
+"nurse_18","shift_evening","10","true"
+"nurse_18","shift_morning","65","true"
+"nurse_18","shift_night","6","true"
+"nurse_19","shift_evening","10","true"
+"nurse_19","shift_morning","65","true"
+"nurse_19","shift_night","6","true"
+"nurse_2","shift_evening","0","true"
+"nurse_2","shift_morning","81","true"
+"nurse_2","shift_night","0","true"
+"nurse_20","shift_evening","68","true"
+"nurse_20","shift_morning","0","true"
+"nurse_20","shift_night","10","true"
+"nurse_21","shift_evening","13","true"
+"nurse_21","shift_morning","55","true"
+"nurse_21","shift_night","10","true"
+"nurse_22","shift_evening","13","true"
+"nurse_22","shift_morning","55","true"
+"nurse_22","shift_night","10","true"
+"nurse_23","shift_evening","0","true"
+"nurse_23","shift_morning","68","true"
+"nurse_23","shift_night","10","true"
+"nurse_24","shift_evening","6","true"
+"nurse_24","shift_morning","61","true"
+"nurse_24","shift_night","10","true"
+"nurse_25","shift_evening","0","true"
+"nurse_25","shift_morning","68","true"
+"nurse_25","shift_night","10","true"
+"nurse_26","shift_evening","68","true"
+"nurse_26","shift_morning","0","true"
+"nurse_26","shift_night","10","true"
+"nurse_27","shift_evening","0","true"
+"nurse_27","shift_morning","81","true"
+"nurse_27","shift_night","0","true"
+"nurse_28","shift_evening","0","true"
+"nurse_28","shift_morning","81","true"
+"nurse_28","shift_night","0","true"
+"nurse_29","shift_evening","13","true"
+"nurse_29","shift_morning","55","true"
+"nurse_29","shift_night","10","true"
+"nurse_3","shift_evening","0","true"
+"nurse_3","shift_morning","68","true"
+"nurse_3","shift_night","10","true"
+"nurse_30","shift_evening","0","true"
+"nurse_30","shift_morning","68","true"
+"nurse_30","shift_night","10","true"
+"nurse_31","shift_evening","68","true"
+"nurse_31","shift_morning","0","true"
+"nurse_31","shift_night","10","true"
+"nurse_32","shift_evening","0","true"
+"nurse_32","shift_morning","81","true"
+"nurse_32","shift_night","0","true"
+"nurse_4","shift_evening","0","true"
+"nurse_4","shift_morning","68","true"
+"nurse_4","shift_night","10","true"
+"nurse_5","shift_evening","0","true"
+"nurse_5","shift_morning","81","true"
+"nurse_5","shift_night","0","true"
+"nurse_6","shift_evening","13","true"
+"nurse_6","shift_morning","68","true"
+"nurse_6","shift_night","0","true"
+"nurse_7","shift_evening","0","true"
+"nurse_7","shift_morning","71","true"
+"nurse_7","shift_night","6","true"
+"nurse_8","shift_evening","0","true"
+"nurse_8","shift_morning","81","true"
+"nurse_8","shift_night","0","true"
+"nurse_9","shift_evening","13","true"
+"nurse_9","shift_morning","55","true"
+"nurse_9","shift_night","10","true"`;
+
+type CsvPreference = {
+	nurse_id: string;
+	shift_id: string;
+	weight: number;
+	active: boolean;
+};
+
+type NurseShiftPreference = {
+	nurseId: string;
+	shiftId: string;
+	weight: number;
+	active: boolean;
+};
+
+const SHIFT_TYPES = ["shift_morning", "shift_evening", "shift_night"] as const;
+
+function parseCsvPreferences(csv: string): CsvPreference[] {
+	const lines = csv.trim().split("\n");
+	const preferences: CsvPreference[] = [];
+
+	for (let i = 1; i < lines.length; i++) {
+		const match = lines[i].match(/"([^"]+)","([^"]+)","([^"]+)","([^"]+)"/);
+		if (!match) continue;
+
+		preferences.push({
+			nurse_id: match[1],
+			shift_id: match[2],
+			weight: Number.parseInt(match[3], 10),
+			active: match[4] === "true",
+		});
+	}
+
+	return preferences;
+}
+
+function buildNursePreferences(
+	nurse: { id: string },
+	nursePrefs: CsvPreference[],
+): NurseShiftPreference[] {
+	return SHIFT_TYPES.map((shiftId) => {
+		const pref = nursePrefs.find((p) => p.shift_id === shiftId);
+		return {
+			nurseId: nurse.id,
+			shiftId,
+			weight: pref?.weight ?? 0,
+			active: pref?.active ?? true,
+		};
+	});
+}
+
+export async function prefillDefault(
+	year: number,
+	month: number,
+): Promise<{ success: boolean; updated: number }> {
+	const totalDays = getDaysInMonth(year, month);
+	const allNurses = await rosterDb.findAllNurses();
+	const activeNurses = allNurses.filter((n) => n.active !== false);
+
+	if (activeNurses.length === 0) {
+		return { success: false, updated: 0 };
+	}
+
+	const csvPreferences = parseCsvPreferences(DEFAULT_PREFERENCES_CSV);
+
+	const preferences = activeNurses.flatMap((nurse) => {
+		const nursePrefs = csvPreferences.filter((p) => p.nurse_id === nurse.id);
+		return buildNursePreferences(nurse, nursePrefs);
+	});
+
+	await rosterDb.upsertNurseShiftPreferences(preferences, totalDays);
+	return { success: true, updated: activeNurses.length };
+}
 // ───────────── SCHEDULES ─────────────
 
 export async function getShifts() {

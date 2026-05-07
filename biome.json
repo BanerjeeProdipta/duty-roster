@@ -30,7 +30,9 @@
 			"!**/sw.js",
 			"!**/workbox-*.js",
 			"!**/.cloudflare",
-			"!**/.vercel"
+			"!**/.vercel",
+			"!**/.venv",
+			"!**/node_modules"
 		]
 	},
 	"formatter": {

@@ -1,11 +1,17 @@
-import { Suspense } from "react";
-import { RosterPDFViewer } from "@/features/roster-preview-print";
+import { lazy, Suspense } from "react";
 import { RosterPrintSkeleton } from "@/features/roster-preview-print/components/RosterPrintSkeleton";
 import { getMonthDateRange, getYearMonthFromSearchParams } from "@/utils";
 import { getAuthedTRPCServer } from "@/utils/trpc-server";
 
-export const revalidate = 0;
 export const runtime = "edge";
+
+const RosterPDFViewer = lazy(() =>
+	import("@/features/roster-preview-print").then((mod) => ({
+		default: mod.RosterPDFViewer,
+	})),
+);
+
+export const revalidate = 60;
 
 async function RosterContent(props: {
 	searchParams: Promise<{ year?: string; month?: string }>;

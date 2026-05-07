@@ -79,11 +79,11 @@ export function SolverWarnings({
 		variant?: "default" | "danger" | "success";
 	}) => (
 		<div
-			className={`rounded-lg px-3 py-2 text-center ${variant === "danger" ? "bg-red-100" : variant === "success" ? "bg-green-100" : "bg-slate-100"}`}
+			className={`rounded-lg px-3 py-2 text-center ${variant === "danger" ? "bg-red-100" : variant === "success" ? "bg-green-100" : "bg-gray-100"}`}
 		>
-			<div className="text-slate-500 text-xs">{label}</div>
+			<div className="text-gray-500 text-xs">{label}</div>
 			<div
-				className={`font-bold ${variant === "danger" ? "text-red-700" : variant === "success" ? "text-green-700" : "text-slate-700"}`}
+				className={`font-bold ${variant === "danger" ? "text-red-700" : variant === "success" ? "text-green-700" : "text-gray-700"}`}
 			>
 				{value}
 			</div>
@@ -101,10 +101,10 @@ export function SolverWarnings({
 							<XCircle className="h-5 w-5 text-red-600" />
 						</div>
 						<div className="min-w-0 flex-1">
-							<h4 className="font-bold text-lg text-red-800">
+							<h4 className="font-bold text-base text-red-800">
 								Schedule Cannot Be Generated
 							</h4>
-							<p className="mt-1 text-red-600 text-sm">
+							<p className="mt-1 text-red-600 text-xs">
 								Some shifts have more coverage required than available capacity.
 								Fix these issues before generating.
 							</p>
@@ -157,12 +157,12 @@ export function SolverWarnings({
 							{solverValidation?.totalCapacity &&
 								solverValidation?.totalRequired && (
 									<div className="mt-4 rounded-lg border border-red-200 bg-white/70 p-3">
-										<p className="mb-2 font-medium text-red-800 text-sm">
+										<p className="mb-2 font-medium text-red-800 text-xs">
 											Overall Capacity
 										</p>
 										<div className="mb-2 flex items-center gap-3">
 											<div className="flex-1">
-												<div className="mb-1 flex justify-between text-slate-600 text-xs">
+												<div className="mb-1 flex justify-between text-gray-600 text-xs">
 													<span>Required</span>
 													<span className="font-medium">
 														{solverValidation.totalRequired}
@@ -170,7 +170,7 @@ export function SolverWarnings({
 												</div>
 											</div>
 											<div className="flex-1">
-												<div className="mb-1 flex justify-between text-slate-600 text-xs">
+												<div className="mb-1 flex justify-between text-gray-600 text-xs">
 													<span>Available</span>
 													<span className="font-medium">
 														{solverValidation.totalCapacity}
@@ -206,10 +206,10 @@ export function SolverWarnings({
 							<TrendingDown className="h-5 w-5 text-orange-600" />
 						</div>
 						<div className="min-w-0 flex-1">
-							<h4 className="font-bold text-lg text-orange-800">
+							<h4 className="font-bold text-base text-orange-800">
 								Tight Constraints
 							</h4>
-							<p className="mt-1 text-orange-700 text-sm">
+							<p className="mt-1 text-orange-700 text-xs">
 								These shifts have minimal buffer. Small preference changes may
 								cause issues.
 							</p>
@@ -221,7 +221,7 @@ export function SolverWarnings({
 											key={shift}
 											className="flex items-center gap-2 rounded-lg border border-orange-200 bg-white/70 px-3 py-2"
 										>
-											<span className="font-medium text-orange-900 capitalize">
+											<span className="font-medium text-orange-900 text-sm capitalize">
 												{shift}
 											</span>
 											<span className="text-orange-600 text-xs">
@@ -249,10 +249,10 @@ export function SolverWarnings({
 								<AlertTriangle className="h-5 w-5 text-red-600" />
 							</div>
 							<div className="min-w-0 flex-1">
-								<h4 className="font-bold text-lg text-red-800">
+								<h4 className="font-bold text-base text-red-800">
 									Nurses Exceed Shift Limits
 								</h4>
-								<p className="mt-1 text-red-600 text-sm">
+								<p className="mt-1 text-red-600 text-xs">
 									These nurses want more shifts than their maximum capacity.
 								</p>
 
@@ -269,7 +269,7 @@ export function SolverWarnings({
 												<span className="text-red-600">
 													{nurse.assignableTotal}
 												</span>
-												<span className="text-slate-400">/</span>
+												<span className="text-gray-400">/</span>
 												<span className="font-bold text-red-700">
 													{nurse.nurseMax}
 												</span>
@@ -296,10 +296,10 @@ export function SolverWarnings({
 							<Info className="h-5 w-5 text-yellow-600" />
 						</div>
 						<div className="min-w-0 flex-1">
-							<h4 className="font-bold text-lg text-yellow-800">
+							<h4 className="font-bold text-base text-yellow-800">
 								Insufficient Preference Coverage
 							</h4>
-							<p className="mt-1 text-sm text-yellow-700">
+							<p className="mt-1 text-xs text-yellow-700">
 								Not enough nurses prefer these shifts. Solver will assign with
 								lower satisfaction.
 							</p>
@@ -340,10 +340,10 @@ export function SolverWarnings({
 								<CheckCircle2 className="h-5 w-5 text-green-600" />
 							</div>
 							<div>
-								<h4 className="font-bold text-green-800 text-lg">
+								<h4 className="font-bold text-base text-green-800">
 									All Constraints Met
 								</h4>
-								<p className="mt-0.5 text-green-700 text-sm">
+								<p className="mt-0.5 text-green-700 text-xs">
 									Schedule generation should succeed with adequate capacity.
 								</p>
 							</div>

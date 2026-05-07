@@ -2,10 +2,12 @@
 
 import type { SchedulesResponse } from "@Duty-Roster/api";
 import { useMutationState } from "@tanstack/react-query";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { useSearchParams } from "next/navigation";
+import { useRef } from "react";
 import { useShifts } from "@/hooks/useGetShifts";
 import { useRosterDates } from "@/hooks/useRosterDates";
-import { useScheduleInit } from "@/hooks/useScheduleInit";
+import { useSchedules } from "@/hooks/useSchedules";
 import { DayHeaderCell } from "./DayHeaderCell";
 import { LAYOUT } from "./Layout";
 import { NurseIdentityCell } from "./NurseIdentityCell";
@@ -17,15 +19,19 @@ interface RosterTableProps {
 	initialSchedules?: SchedulesResponse;
 }
 
+function useRosterTableData(initialSchedules?: SchedulesResponse) {
+	const { schedules, isLoading } = useSchedules(initialSchedules);
+	return { schedules, isLoading };
+}
+
 export function RosterTable({
 	editable = false,
 	initialSchedules,
 }: RosterTableProps) {
-	const { schedules, isLoading } = useScheduleInit(initialSchedules);
+	const { schedules, isLoading } = useRosterTableData(initialSchedules);
 	const searchParams = useSearchParams();
 	const qParam = searchParams.get("q") ?? "";
 
-	// Track generation mutation state
 	const generatingState = useMutationState({
 		filters: { mutationKey: ["generate-roster"], status: "pending" },
 		select: (mutation) => mutation.state.status,
@@ -35,28 +41,39 @@ export function RosterTable({
 	const shifts = useShifts();
 	const { weekDates, normalizedDates } = useRosterDates();
 
-	let nurseRows = schedules?.nurseRows ?? [];
+	const parentRef = useRef<HTMLDivElement>(null);
 
-	if (qParam.trim()) {
-		nurseRows = nurseRows.filter((row) =>
-			row.nurse.name.toLowerCase().includes(qParam.toLowerCase()),
-		);
-	}
-
+	const nurseRows = qParam.trim()
+		? (schedules?.nurseRows ?? []).filter((row) =>
+				row.nurse.name.toLowerCase().includes(qParam.toLowerCase()),
+			)
+		: (schedules?.nurseRows ?? []);
 	const dailyShiftCounts = schedules?.dailyShiftCounts ?? {};
+
+	const virtualizer = useVirtualizer({
+		count: nurseRows.length,
+		getScrollElement: () => parentRef.current,
+		estimateSize: () => LAYOUT.rowHeight,
+		overscan: 5,
+	});
+
+	const virtualItems = virtualizer.getVirtualItems();
 
 	if ((isLoading || isGenerating) && !schedules?.nurseRows?.length) {
 		return <RosterTableSkeleton />;
 	}
 
 	if (!nurseRows?.length) {
-		return <div className="p-4 text-slate-500">No schedules found</div>;
+		return <div className="p-4 text-gray-500">No schedules found</div>;
 	}
 
 	return (
 		<div className="flex flex-col gap-4">
-			<div className="relative flex h-[calc(100vh-98px)] flex-col overflow-hidden rounded-2xl border border-slate-200/60 bg-white/80 shadow-[0_8px_30px_rgb(0,0,0,0.04)] backdrop-blur-sm">
-				<div className="scrollbar-hide min-h-0 flex-1 overflow-auto">
+			<div className="relative flex h-[calc(100vh-98px)] flex-col overflow-hidden rounded-2xl border border-gray-200/60 bg-white/80 shadow-[0_8px_30px_rgb(0,0,0,0.04)] backdrop-blur-sm">
+				<div
+					ref={parentRef}
+					className="scrollbar-hide min-h-0 flex-1 overflow-auto"
+				>
 					<table
 						data-testid="roster-table"
 						className="w-full table-fixed border-separate border-spacing-0"
@@ -64,7 +81,7 @@ export function RosterTable({
 						<thead>
 							<tr>
 								<th
-									className="sticky top-0 left-0 z-[30] border-r border-b bg-slate-50 px-3 py-3 text-center text-slate-600 text-sm uppercase tracking-widest"
+									className="sticky top-0 left-0 z-[30] border-r border-b bg-gray-50 px-3 py-3 text-center text-gray-600 text-sm uppercase tracking-widest"
 									style={{
 										width: LAYOUT.nameColWidth,
 										height: LAYOUT.headerHeight,
@@ -90,16 +107,29 @@ export function RosterTable({
 							</tr>
 						</thead>
 						<tbody>
-							{nurseRows.map(
-								({
+							<tr
+								style={{
+									height: `${virtualizer.getVirtualItems()[0]?.start ?? 0}px`,
+								}}
+							/>
+							{virtualItems.map((virtualItem) => {
+								const {
 									nurse,
 									assignments,
 									preferenceWiseShiftMetrics,
 									assignedShiftMetrics,
-								}) => (
-									<tr key={nurse.id}>
+								} = nurseRows[virtualItem.index];
+								return (
+									<tr
+										key={virtualItem.key}
+										data-index={virtualItem.index}
+										ref={virtualizer.measureElement}
+										style={{
+											height: `${virtualItem.size}px`,
+										}}
+									>
 										<td
-											className="sticky left-0 z-20 border-slate-200 border-b bg-white"
+											className="sticky left-0 z-20 border-gray-200 border-r border-b bg-white"
 											style={{
 												width: LAYOUT.nameColWidth,
 												minWidth: LAYOUT.nameColWidth,
@@ -114,7 +144,7 @@ export function RosterTable({
 											/>
 										</td>
 										<td
-											className="border-slate-200 border-b"
+											className="border-gray-200"
 											style={{ height: LAYOUT.rowHeight }}
 										>
 											<NurseRow
@@ -126,8 +156,17 @@ export function RosterTable({
 											/>
 										</td>
 									</tr>
-								),
-							)}
+								);
+							})}
+							<tr
+								style={{
+									height: `${Math.max(
+										0,
+										virtualizer.getTotalSize() -
+											(virtualItems[virtualItems.length - 1]?.end ?? 0),
+									)}px`,
+								}}
+							/>
 						</tbody>
 					</table>
 				</div>

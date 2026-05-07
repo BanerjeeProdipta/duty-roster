@@ -2,6 +2,14 @@
 
 import { Skeleton } from "@Duty-Roster/ui/components/skeleton";
 
+const SKELETON_ROWS = [
+	"skel-1",
+	"skel-2",
+	"skel-3",
+	"skel-4",
+	"skel-5",
+] as const;
+
 export function RosterPrintSkeleton() {
 	return (
 		<div className="flex flex-col gap-6">
@@ -23,11 +31,8 @@ export function RosterPrintSkeleton() {
 					<Skeleton className="h-4 w-24" />
 				</div>
 				<div className="space-y-3">
-					{Array.from({ length: 5 }).map((_, i) => (
-						<div
-							key={`print-skeleton-${i}`}
-							className="flex items-center gap-4"
-						>
+					{SKELETON_ROWS.map((id) => (
+						<div key={id} className="flex items-center gap-4">
 							<Skeleton className="h-12 w-full" />
 						</div>
 					))}

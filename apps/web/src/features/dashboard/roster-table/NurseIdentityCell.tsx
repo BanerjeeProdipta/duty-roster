@@ -25,7 +25,7 @@ export function NurseIdentityCell({
 	return (
 		<div
 			className={cn(
-				"relative h-full w-full border-r border-b bg-white px-3 py-3 transition-colors duration-200 hover:bg-slate-50/80",
+				"relative h-full w-full bg-white px-3 py-3 transition-colors duration-200 hover:bg-gray-50/80",
 				nurse.active === false && "opacity-60 grayscale",
 			)}
 		>
@@ -44,7 +44,7 @@ export function NurseIdentityCell({
 						</Link>
 					) : (
 						<span
-							className={cn("truncate font-extrabold text-slate-900 text-sm")}
+							className={cn("truncate font-extrabold text-gray-900 text-sm")}
 							title={nurse.name}
 						>
 							{nurse?.name || "Nurse"}
@@ -57,7 +57,7 @@ export function NurseIdentityCell({
 								? "border-red-200 bg-red-50 text-red-700"
 								: isPerfect
 									? "border-green-200 bg-green-50 text-green-700"
-									: "border-slate-200 bg-slate-50 text-slate-600",
+									: "border-gray-200 bg-gray-50 text-gray-600",
 						)}
 						title={`Total assigned: ${totalAssigned} / Goal: ${targetWorkedDays}`}
 						suppressHydrationWarning

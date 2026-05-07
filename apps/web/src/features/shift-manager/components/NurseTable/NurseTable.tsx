@@ -41,9 +41,8 @@ export function NurseTable({
 		<div className="overflow-hidden rounded-xl border bg-white">
 			<Table>
 				<TableHeader>
-					<TableRow className="bg-slate-50/50">
+					<TableRow className="bg-gray-50/50">
 						<TableHead className="w-70 text-center">Nurse</TableHead>
-						<TableHead>Status</TableHead>
 						<TableHead className="text-center">
 							<div className="inline-flex items-center gap-1.5">
 								<div className="rounded bg-amber-200 p-1 text-amber-900">
@@ -70,7 +69,7 @@ export function NurseTable({
 						</TableHead>
 						<TableHead className="text-center">
 							<div className="inline-flex items-center gap-1.5">
-								<div className="rounded bg-slate-200 p-1 text-slate-500">
+								<div className="rounded bg-gray-200 p-1 text-gray-500">
 									<Coffee className="h-4 w-4" />
 								</div>
 								O
@@ -171,44 +170,54 @@ function NurseTableRow({
 				)}
 			>
 				<TableCell>
-					<div className="flex flex-col gap-1">
-						{isEditingName ? (
-							<div className="flex items-center gap-2">
-								<input
-									type="text"
-									value={editName}
-									onChange={(e) => setEditName(e.target.value)}
-									onKeyDown={(e) => {
-										if (e.key === "Enter") handleSaveAll();
-										if (e.key === "Escape") handleCancelAll();
-									}}
-									className="flex-1 rounded-md border border-slate-200 px-2 py-1 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-								/>
-								<VoiceInput
-									language="bn-BD"
-									onTranscript={(transcript) => setEditName(transcript)}
-								/>
-							</div>
-						) : (
-							<Button
-								variant="ghost"
+					<div className="flex items-center gap-2 pl-4">
+						<div className="relative h-4 w-4">
+							<div
 								className={cn(
-									"cursor-pointer pl-4 font-medium text-lg hover:underline",
-									!draft.active && "text-slate-900",
+									"absolute inset-0 rounded-full",
+									draft.active ? "bg-emerald-500/40" : "bg-rose-500/40",
 								)}
-								onClick={handleStartEditing}
-							>
-								{draft.name}
-							</Button>
-						)}
+							/>
+
+							<div
+								className={cn(
+									"absolute top-1/2 left-1/2 h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full",
+									draft.active ? "bg-emerald-500" : "bg-rose-500",
+								)}
+							/>
+						</div>
+						<div className="flex flex-col gap-1">
+							{isEditingName ? (
+								<div className="flex items-center gap-2">
+									<input
+										type="text"
+										value={editName}
+										onChange={(e) => setEditName(e.target.value)}
+										onKeyDown={(e) => {
+											if (e.key === "Enter") handleSaveAll();
+											if (e.key === "Escape") handleCancelAll();
+										}}
+										className="flex-1 rounded-md border border-gray-200 px-2 py-1 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+									/>
+									<VoiceInput
+										language="bn-BD"
+										onTranscript={(transcript) => setEditName(transcript)}
+									/>
+								</div>
+							) : (
+								<Button
+									variant="ghost"
+									className={cn(
+										"cursor-pointer pl-4 font-medium text-lg hover:underline",
+										!draft.active && "text-gray-900",
+									)}
+									onClick={handleStartEditing}
+								>
+									{draft.name}
+								</Button>
+							)}
+						</div>
 					</div>
-				</TableCell>
-				<TableCell>
-					<ActiveToggle
-						active={draft.active}
-						isPending={isToggleActivePending}
-						onToggle={handleToggleActive}
-					/>
 				</TableCell>
 				<TableCell>
 					<ShiftInput
@@ -236,20 +245,17 @@ function NurseTableRow({
 				</TableCell>
 
 				<TableCell>
-					<div className="relative flex h-full w-full items-center justify-center">
+					<div className="relative flex h-full w-full items-center justify-center gap-2">
 						<ShiftInput
 							color="bg-[#E5E7EB]"
 							value={draft.off}
 							onChange={(val) => handleFieldChange("off", val)}
 							max={totalDays}
 						/>
-						{draft.night >= 2 ? (
-							<span className="absolute -top-1 -right-1 inline-flex items-center justify-center rounded bg-violet-100 px-1 py-0.5 font-bold text-[10px] text-violet-700">
-								+{Math.floor(draft.night / 2)}
-							</span>
-						) : (
-							<span className="text-[10px] text-slate-300">-</span>
-						)}
+
+						<span className="inline-flex items-center justify-center rounded bg-violet-100 px-1 py-0.5 font-bold text-[10px] text-violet-700">
+							+ {draft.night >= 2 ? `${Math.floor(draft.night / 2)}` : 0}
+						</span>
 					</div>
 				</TableCell>
 				<TableCell className="text-center">
@@ -261,6 +267,11 @@ function NurseTableRow({
 				</TableCell>
 				<TableCell>
 					<div className="flex items-center justify-center gap-2">
+						<ActiveToggle
+							active={draft.active}
+							isPending={isToggleActivePending}
+							onToggle={handleToggleActive}
+						/>
 						<Button
 							variant="outline"
 							size="sm"

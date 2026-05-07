@@ -7,10 +7,10 @@ import { FileUser, Moon, Sun, Sunset } from "lucide-react";
 const shiftConfig = {
 	total: {
 		label: "Shift",
-		bgLight: "bg-slate-50",
-		bgDark: "bg-slate-700",
-		text: "text-slate-700",
-		border: "border-slate-200",
+		bgLight: "bg-gray-50",
+		bgDark: "bg-gray-700",
+		text: "text-gray-700",
+		border: "border-gray-200",
 		Icon: FileUser,
 	},
 	morning: {
@@ -78,7 +78,7 @@ export function ShiftCountCard({
 				<div
 					className={cn(
 						"inline-flex items-center gap-1 font-semibold text-sm",
-						isFulfilled ? "text-slate-600" : "text-rose-500",
+						isFulfilled ? "text-gray-600" : "text-rose-500",
 					)}
 				>
 					<Label variant="inline">Needed:</Label>

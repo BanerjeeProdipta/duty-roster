@@ -2,12 +2,12 @@ import { cn } from "@Duty-Roster/ui/lib/utils";
 import type * as React from "react";
 
 const badgeVariants = {
-	default: "border-transparent bg-slate-100 text-slate-800",
-	secondary: "border-transparent bg-slate-50 text-slate-600",
+	default: "border-transparent bg-gray-100 text-gray-800",
+	secondary: "border-transparent bg-gray-50 text-gray-600",
 	success: "border-green-200 bg-green-50 text-green-800",
 	warning: "border-amber-200 bg-amber-50 text-amber-800",
 	error: "border-red-200 bg-red-100 text-red-800",
-	outline: "border-slate-200 text-slate-700",
+	outline: "border-gray-200 text-gray-700",
 	// Shift-specific variants
 	morning: "border-amber-200 bg-amber-50 text-amber-900",
 	evening: "border-blue-200 bg-blue-50 text-blue-900",

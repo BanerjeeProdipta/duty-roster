@@ -28,7 +28,7 @@ export function RosterPage({
 					উপজেলা স্বাস্থ্য কমপ্লেক্স
 				</div>
 				<div
-					className="mb-0.5 text-slate-600"
+					className="mb-0.5 text-gray-600"
 					style={{
 						fontFamily: "var(--font-bengali), 'Noto Sans Bengali', sans-serif",
 						fontSize: "11px",
@@ -36,7 +36,7 @@ export function RosterPage({
 				>
 					নার্সেস রোস্টার — {monthName}
 				</div>
-				<div className="absolute top-0 right-0 text-slate-400 text-xs">
+				<div className="absolute top-0 right-0 text-gray-400 text-xs">
 					Page {pageIdx + 1} of {totalPages}
 				</div>
 			</div>
@@ -55,7 +55,7 @@ export function RosterPage({
 					<thead>
 						<tr style={{ height: "20px" }}>
 							<th
-								className="border border-slate-400 bg-slate-300 px-1 py-1 text-left font-bold"
+								className="border border-gray-400 bg-gray-300 px-1 py-1 text-left font-bold"
 								style={{
 									width: "50px",
 									minWidth: "50px",
@@ -68,7 +68,7 @@ export function RosterPage({
 							{dates.map((d) => (
 								<th
 									key={`h-${d.date}`}
-									className="border border-slate-400 bg-slate-300 text-center font-bold leading-tight"
+									className="border border-gray-400 bg-gray-300 text-center font-bold leading-tight"
 									style={{
 										width: "20px",
 										minWidth: "20px",
@@ -86,14 +86,14 @@ export function RosterPage({
 					</thead>
 					<tbody>
 						{chunk.map((nurse, idx) => {
-							const bgClass = idx % 2 === 1 ? "bg-slate-100" : "bg-white";
+							const bgClass = idx % 2 === 1 ? "bg-gray-100" : "bg-white";
 							const name = nurse.Name ?? "";
 
 							return (
 								// biome-ignore lint/suspicious/noArrayIndexKey: nurse name alone is not guaranteed unique; composite key with idx is safest
 								<tr key={`row-${name}-${idx}`} style={{ height: "20px" }}>
 									<td
-										className={`border border-slate-300 px-1 py-0.5 font-medium ${bgClass}`}
+										className={`border border-gray-300 px-1 py-0.5 font-medium ${bgClass}`}
 										style={{
 											fontFamily:
 												"var(--font-bengali), 'Noto Sans Bengali', sans-serif",
@@ -114,7 +114,7 @@ export function RosterPage({
 										return (
 											<td
 												key={`cell-${d.date}`}
-												className={`border border-slate-300 text-center ${bgClass}`}
+												className={`border border-gray-300 text-center ${bgClass}`}
 												style={{
 													width: "20px",
 													minWidth: "20px",
@@ -138,19 +138,19 @@ export function RosterPage({
 						}).map((_, fillerIdx) => {
 							const fillerRowIndex = chunk.length + fillerIdx;
 							const bgClass =
-								fillerRowIndex % 2 === 1 ? "bg-slate-100" : "bg-white";
+								fillerRowIndex % 2 === 1 ? "bg-gray-100" : "bg-white";
 
 							return (
 								// biome-ignore lint/suspicious/noArrayIndexKey: filler rows are anonymous placeholders with no identity
 								<tr key={`filler-${fillerIdx}`} style={{ height: "20px" }}>
 									<td
-										className={`border border-slate-300 ${bgClass}`}
+										className={`border border-gray-300 ${bgClass}`}
 										style={{ height: "20px" }}
 									/>
 									{dates.map((d) => (
 										<td
 											key={`filler-cell-${d.date}`}
-											className={`border border-slate-300 ${bgClass}`}
+											className={`border border-gray-300 ${bgClass}`}
 											style={{
 												width: "20px",
 												maxWidth: "20px",
@@ -167,7 +167,7 @@ export function RosterPage({
 
 			{/* Legend */}
 			<div
-				className="roster-legend flex gap-6 text-slate-600"
+				className="roster-legend flex gap-6 text-gray-600"
 				style={{ flexShrink: 0, fontSize: "12px", marginTop: "4mm" }}
 			>
 				<span>

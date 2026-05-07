@@ -28,7 +28,7 @@ const shiftIconBg: Record<ShiftType, string> = {
 	morning: "bg-amber-200 text-amber-900",
 	evening: "bg-blue-200 text-blue-900",
 	night: "bg-violet-200 text-violet-900",
-	off: "bg-slate-200 text-slate-500",
+	off: "bg-gray-200 text-gray-500",
 };
 
 const defaultLabel: Record<ShiftType, string> = {
@@ -95,7 +95,7 @@ export function ShiftBadge({
 				isPending && "animate-pulse opacity-70",
 				editable &&
 					"cursor-pointer transition-all duration-200 hover:translate-y-[1px] hover:scale-105",
-				!assignmentId && "border-2 border-slate-300 border-dashed",
+				!assignmentId && "border-2 border-gray-300 border-dashed",
 				SHIFT_STYLES[type],
 			)}
 			title={`${nurseName} - ${formatDateDMY(date)}: ${label} (${timeRange})`}
@@ -144,7 +144,7 @@ export function ShiftBadge({
 							value={item.value}
 							className={cn(
 								"mb-2 flex cursor-pointer items-center gap-3 rounded-md px-2 py-1 transition-all duration-200 ease-out",
-								type === item.value ? "bg-primary/10" : "hover:bg-slate-50",
+								type === item.value ? "bg-primary/10" : "hover:bg-gray-50",
 							)}
 						>
 							<div

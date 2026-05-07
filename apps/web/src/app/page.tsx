@@ -1,12 +1,18 @@
-import { Suspense } from "react";
+import { lazy, Suspense } from "react";
 import { RosterHeader } from "@/features/dashboard/roster-table/RosterHeader";
-import { RosterTable } from "@/features/dashboard/roster-table/RosterTable";
 import { RosterTableSkeleton } from "@/features/dashboard/roster-table/RosterTableSkeleton";
 import { getMonthDateRange, getYearMonthFromSearchParams } from "@/utils";
 import { getTRPCServer } from "@/utils/trpc-server";
 
-export const revalidate = 0;
 export const runtime = "edge";
+
+const RosterTable = lazy(() =>
+	import("@/features/dashboard/roster-table/RosterTable").then((mod) => ({
+		default: mod.RosterTable,
+	})),
+);
+
+export const revalidate = 60;
 
 async function HomeContent(props: {
 	searchParams: Promise<{ year?: string; month?: string }>;

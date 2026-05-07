@@ -1,110 +1,90 @@
 "use client";
 
-import { Button } from "@Duty-Roster/ui/components/button";
 import { cn } from "@Duty-Roster/ui/lib/utils";
-import { LogOut, Menu, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
+import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { toast } from "sonner";
-import { authClient } from "@/lib/auth-client";
 import { ROUTES } from "@/lib/paths";
 
+// Dynamic import — better-auth's client SDK (~40 kB) is NOT bundled
+// into the root layout chunk. It loads as a separate chunk after hydration.
+const UserMenu = dynamic(
+	() => import("./UserMenu").then((m) => ({ default: m.UserMenu })),
+	{
+		ssr: false,
+		// Placeholder matches the approximate size of the UserMenu button
+		// to prevent layout shift while better-auth resolves the session.
+		loading: () => (
+			<div className="ml-1 h-8 w-20 animate-pulse rounded-md bg-gray-100 dark:bg-gray-800" />
+		),
+	},
+);
+
+// Static nav links that don't require auth state.
+// Admin-only links (Dashboard, Manage) are rendered by UserMenu after
+// the session resolves client-side, avoiding an auth-gated server render.
+const NAV_LINKS = [
+	{ to: ROUTES.home, label: "Home" },
+	{ to: ROUTES.roster, label: "Roster" },
+] as const;
+
+/**
+ * Header is a Client Component only because it needs pathname for active-link
+ * highlighting and mobile menu open/close state.
+ * The auth-dependent UI (session, sign-out) is fully isolated in <UserMenu>
+ * so better-auth's client SDK is NOT pulled into the shared layout chunk.
+ */
 export default function Header() {
 	const pathname = usePathname();
-	const router = useRouter();
 	const [isMenuOpen, setIsMenuOpen] = useState(false);
-	const { data: session, isPending: isSessionPending } =
-		authClient.useSession();
-
-	const isAdmin = (session?.user as { role?: string })?.role === "admin";
-	const userName = (session?.user as { name?: string })?.name;
-
-	const links = [
-		{ to: ROUTES.home, label: "Home" },
-		{ to: ROUTES.roster, label: "Roster" },
-		...(session?.user && isAdmin
-			? [
-					{ to: ROUTES.dashboard, label: "Dashboard" },
-					{ to: ROUTES.manageUsers, label: "Manage" },
-				]
-			: []),
-	] as const;
-
-	const handleSignOut = async () => {
-		await authClient.signOut();
-		router.push(ROUTES.home);
-		router.refresh();
-		toast.success("Signed out successfully");
-	};
 
 	return (
-		<header className="sticky top-0 z-[100] w-full border-border/50 border-b bg-white dark:bg-slate-950">
-			<div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6">
-				<Link href="/" className="flex h-10 w-10 items-center">
+		<header className="sticky top-0 z-[100] w-full border-border/50 border-b bg-white dark:bg-gray-950">
+			<div className="mx-auto flex h-14 items-center justify-between px-4 sm:px-12 lg:px-20">
+				<Link href="/" className="flex h-10 items-center gap-2">
 					<Image
 						src="/logo.png"
 						alt="logo"
-						height={100}
-						width={100}
+						height={40}
+						width={40}
 						className="rounded-sm"
 						priority
 					/>
 					<p className="font-semibold text-xl tracking-tight">
-						<span className="text-slate-900 dark:text-slate-100">simple</span>
-						<span className="text-slate-500 dark:text-slate-400">roster</span>
+						<span className="text-gray-900 dark:text-gray-100">simple</span>
+						<span className="text-gray-500 dark:text-gray-400">roster</span>
 					</p>
 				</Link>
 
 				{/* Desktop Navigation */}
 				<nav className="hidden items-center gap-1 md:flex">
-					{links.map(({ to, label }) => {
-						const isActive = pathname === to;
-						return (
-							<Link
-								key={to}
-								href={to}
-								className={cn(
-									"px-3 py-1.5 font-medium text-sm transition-colors",
-									isActive
-										? "text-foreground underline underline-offset-4"
-										: "text-muted-foreground hover:text-foreground",
-								)}
-							>
-								{label}
-							</Link>
-						);
-					})}
-					{!isSessionPending &&
-						(session?.user ? (
-							<>
-								<Button
-									variant="secondary"
-									onClick={handleSignOut}
-									className="ml-1 inline-flex text-foreground text-sm"
-								>
-									<LogOut />
-
-									<span className="">{userName}</span>
-								</Button>
-							</>
-						) : (
-							<Button
-								variant="secondary"
-								onClick={() => router.push(ROUTES.auth)}
-								className="ml-1"
-							>
-								Sign In
-							</Button>
-						))}
+					{NAV_LINKS.map(({ to, label }) => (
+						<Link
+							key={to}
+							href={to}
+							className={cn(
+								"px-3 py-1.5 font-medium text-sm transition-colors",
+								pathname === to
+									? "text-foreground underline underline-offset-4"
+									: "text-muted-foreground hover:text-foreground",
+							)}
+						>
+							{label}
+						</Link>
+					))}
+					{/* Auth-dependent links + sign-out — isolated client component */}
+					<UserMenu pathname={pathname} />
 				</nav>
 
 				{/* Mobile Menu Button */}
 				<button
 					type="button"
 					className="flex h-8 w-8 items-center justify-center text-foreground md:hidden"
-					onClick={() => setIsMenuOpen(!isMenuOpen)}
+					onClick={() => setIsMenuOpen((v) => !v)}
+					aria-label="Toggle menu"
 				>
 					{isMenuOpen ? (
 						<X className="h-4 w-4" />
@@ -118,50 +98,24 @@ export default function Header() {
 			{isMenuOpen && (
 				<div className="border-border/50 border-t bg-background p-4 md:hidden">
 					<div className="flex flex-col gap-1">
-						{links.map(({ to, label }) => {
-							const isActive = pathname === to;
-							return (
-								<Link
-									key={to}
-									href={to}
-									onClick={() => setIsMenuOpen(false)}
-									className={cn(
-										"px-3 py-2 font-medium text-sm transition-colors",
-										isActive ? "text-foreground" : "text-muted-foreground",
-									)}
-								>
-									{label}
-								</Link>
-							);
-						})}
-						{!isSessionPending &&
-							(session?.user ? (
-								<>
-									<Button
-										variant="ghost"
-										className="w-full justify-start"
-										onClick={() => {
-											handleSignOut();
-											setIsMenuOpen(false);
-										}}
-									>
-										<LogOut />
-
-										<span className="text-foreground text-sm">{userName}</span>
-									</Button>
-								</>
-							) : (
-								<Button
-									variant="ghost"
-									className="mt-2 w-full justify-start"
-									onClick={() => {
-										router.push(ROUTES.auth);
-										setIsMenuOpen(false);
-									}}
-								>
-									Sign In
-								</Button>
-							))}
+						{NAV_LINKS.map(({ to, label }) => (
+							<Link
+								key={to}
+								href={to}
+								onClick={() => setIsMenuOpen(false)}
+								className={cn(
+									"px-3 py-2 font-medium text-sm transition-colors",
+									pathname === to ? "text-foreground" : "text-muted-foreground",
+								)}
+							>
+								{label}
+							</Link>
+						))}
+						<UserMenu
+							pathname={pathname}
+							mobile
+							onNavigate={() => setIsMenuOpen(false)}
+						/>
 					</div>
 				</div>
 			)}
