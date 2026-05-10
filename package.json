@@ -36,6 +36,8 @@
 		"check-types": "turbo check-types",
 		"dev:web": "turbo -F web dev",
 		"dev:server": "turbo -F server dev",
+		"dev:stt": "python stt/server.py",
+		"dev:voice": "turbo -F stt-server dev",
 		"start:web": "turbo -F web start",
 		"start:server": "turbo -F server start",
 		"start": "bun run start:server & bun run start:web",

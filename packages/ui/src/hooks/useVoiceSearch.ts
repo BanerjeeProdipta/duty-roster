@@ -1,47 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-// Ambient declarations for vendor-prefixed / experimental browser APIs
-declare global {
-	interface Window {
-		webkitAudioContext: typeof AudioContext;
-		SpeechRecognition: typeof SpeechRecognition;
-		webkitSpeechRecognition: typeof SpeechRecognition;
-	}
-
-	interface SpeechRecognition extends EventTarget {
-		continuous: boolean;
-		interimResults: boolean;
-		lang: string;
-		onstart: (() => void) | null;
-		onend: (() => void) | null;
-		onresult: ((event: SpeechRecognitionEvent) => void) | null;
-		onerror: ((event: SpeechRecognitionErrorEvent) => void) | null;
-		start(): void;
-		stop(): void;
-		abort(): void;
-	}
-
-	interface SpeechRecognitionEvent extends Event {
-		readonly resultIndex: number;
-		readonly results: SpeechRecognitionResultList;
-	}
-
-	interface SpeechRecognitionErrorEvent extends Event {
-		readonly error: string;
-		readonly message: string;
-	}
-
-	const SpeechRecognition: {
-		prototype: SpeechRecognition;
-		new (): SpeechRecognition;
-	};
-}
-
 type Language = "en-US" | "bn-BD";
 
 interface UseVoiceSearchOptions {
 	language?: Language;
 	onTranscript?: (transcript: string) => void;
+	onInterim?: (transcript: string) => void;
 }
 
 interface UseVoiceSearchReturn {
@@ -51,10 +15,13 @@ interface UseVoiceSearchReturn {
 	stopListening: () => void;
 }
 
+const TARGET_SAMPLE_RATE = 16_000;
+
 const playSound = (type: "start" | "stop") => {
 	if (typeof window === "undefined") return;
 
-	const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+	const AC = window.AudioContext || (window as any).webkitAudioContext;
+	const audioContext = new AC();
 	const oscillator = audioContext.createOscillator();
 	const gainNode = audioContext.createGain();
 
@@ -79,87 +46,148 @@ const playSound = (type: "start" | "stop") => {
 	oscillator.stop(audioContext.currentTime + 0.15);
 };
 
+function float32ToPcm16(
+	samples: Float32Array,
+	sampleRate: number,
+): ArrayBuffer {
+	const ratio = sampleRate / TARGET_SAMPLE_RATE;
+	const newLen = Math.floor(samples.length / ratio);
+	const buf = new ArrayBuffer(newLen * 2);
+	const view = new DataView(buf);
+
+	for (let i = 0; i < newLen; i++) {
+		const s = Math.max(-1, Math.min(1, samples[Math.floor(i * ratio)] ?? 0));
+		view.setInt16(i * 2, s < 0 ? s * 0x8000 : s * 0x7fff, true);
+	}
+
+	return buf;
+}
+
+const VOICE_SERVER_URL =
+	(typeof process !== "undefined" &&
+		(process as any).env?.NEXT_PUBLIC_VOICE_SERVER_URL) ??
+	"ws://localhost:3002";
+
 export function useVoiceSearch({
-	language = "bn-BD",
 	onTranscript,
+	onInterim,
 }: UseVoiceSearchOptions = {}): UseVoiceSearchReturn {
 	const [isListening, setIsListening] = useState(false);
 	const [isBrowserSupported, setIsBrowserSupported] = useState(true);
-	const recognitionRef = useRef<SpeechRecognition | null>(null);
 
-	useEffect(() => {
-		const SpeechRecognition =
-			typeof window !== "undefined" &&
-			(window.SpeechRecognition || window.webkitSpeechRecognition);
-		setIsBrowserSupported(!!SpeechRecognition);
+	const wsRef = useRef<WebSocket | null>(null);
+	const audioCtxRef = useRef<AudioContext | null>(null);
+	const streamRef = useRef<MediaStream | null>(null);
+	const processorRef = useRef<ScriptProcessorNode | null>(null);
+	const sourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
+
+	const isListeningRef = useRef(false);
+
+	const cleanup = useCallback(() => {
+		if (processorRef.current && sourceRef.current && audioCtxRef.current) {
+			sourceRef.current.disconnect();
+			processorRef.current.disconnect();
+		}
+		if (audioCtxRef.current) {
+			audioCtxRef.current.close();
+		}
+		if (streamRef.current) {
+			streamRef.current.getTracks().forEach((t) => t.stop());
+		}
+		processorRef.current = null;
+		sourceRef.current = null;
+		audioCtxRef.current = null;
+		streamRef.current = null;
+		wsRef.current = null;
+		isListeningRef.current = false;
 	}, []);
 
-	const startListening = useCallback(() => {
-		const SpeechRecognition =
-			typeof window !== "undefined" &&
-			(window.SpeechRecognition || window.webkitSpeechRecognition);
-
-		if (!SpeechRecognition) return;
-
-		const recognition = new SpeechRecognition();
-		recognitionRef.current = recognition;
-
-		recognition.continuous = false;
-		recognition.interimResults = true;
-		recognition.lang = language;
-
-		let finalTranscript = "";
-
-		recognition.onstart = () => {
-			setIsListening(true);
-			playSound("start");
-		};
-
-		recognition.onresult = (event: SpeechRecognitionEvent) => {
-			let _interimTranscript = "";
-			finalTranscript = "";
-
-			for (let i = event.resultIndex; i < event.results.length; i++) {
-				const result = event.results[i];
-				if (!result) continue;
-				const transcript = result[0]?.transcript ?? "";
-				if (result.isFinal) {
-					finalTranscript += `${transcript} `;
-				} else {
-					_interimTranscript += transcript;
-				}
-			}
-		};
-
-		recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-			// "aborted" is expected when manually stopping recognition
-			if (event.error === "aborted") {
-				setIsListening(false);
-				return;
-			}
-			// Use warn instead of error to avoid Next.js error overlay
-			console.warn("Speech Recognition Error:", event.error);
-			setIsListening(false);
-		};
-
-		recognition.onend = () => {
-			setIsListening(false);
-			playSound("stop");
-			if (finalTranscript.trim()) {
-				onTranscript?.(finalTranscript.trim());
-			}
-		};
-
-		recognition.start();
-	}, [language, onTranscript]);
-
 	const stopListening = useCallback(() => {
-		if (recognitionRef.current) {
-			recognitionRef.current.abort();
-			recognitionRef.current = null;
-			setIsListening(false);
-			playSound("stop");
+		if (wsRef.current) {
+			wsRef.current.close();
 		}
+		cleanup();
+		setIsListening(false);
+		playSound("stop");
+	}, [cleanup]);
+
+	const startListening = useCallback(() => {
+		if (isListeningRef.current) return;
+
+		const ws = new WebSocket(`${VOICE_SERVER_URL}/voice/stream`);
+		ws.binaryType = "arraybuffer";
+		wsRef.current = ws;
+
+		ws.onopen = async () => {
+			try {
+				const stream = await navigator.mediaDevices.getUserMedia({
+					audio: {
+						sampleRate: TARGET_SAMPLE_RATE,
+						channelCount: 1,
+						echoCancellation: true,
+						noiseSuppression: true,
+					},
+				});
+				streamRef.current = stream;
+
+				const audioCtx = new AudioContext();
+				audioCtxRef.current = audioCtx;
+
+				const source = audioCtx.createMediaStreamSource(stream);
+				sourceRef.current = source;
+
+				const processor = audioCtx.createScriptProcessor(4096, 1, 1);
+				processorRef.current = processor;
+
+				const inputSampleRate = audioCtx.sampleRate ?? TARGET_SAMPLE_RATE;
+
+				processor.onaudioprocess = (event) => {
+					if (ws.readyState !== WebSocket.OPEN) return;
+					const input = event.inputBuffer.getChannelData(0);
+					ws.send(float32ToPcm16(input, inputSampleRate));
+				};
+
+				source.connect(processor);
+				processor.connect(audioCtx.destination);
+
+				isListeningRef.current = true;
+				setIsListening(true);
+				playSound("start");
+			} catch {
+				ws.close();
+				setIsBrowserSupported(false);
+			}
+		};
+
+		ws.onmessage = (event) => {
+			try {
+				const data = JSON.parse(event.data);
+				if (data.type === "partial") {
+					onInterim?.(data.text);
+				} else if (data.type === "result" && data.text) {
+					onTranscript?.(data.text);
+				}
+			} catch {
+				// ignore malformed messages
+			}
+		};
+
+		ws.onclose = () => {
+			setIsListening(false);
+			cleanup();
+		};
+
+		ws.onerror = () => {
+			setIsBrowserSupported(false);
+			cleanup();
+		};
+	}, [onTranscript, onInterim, cleanup]);
+
+	useEffect(() => {
+		setIsBrowserSupported(
+			typeof window !== "undefined" &&
+				typeof navigator.mediaDevices?.getUserMedia === "function",
+		);
 	}, []);
 
 	return { isListening, isBrowserSupported, startListening, stopListening };
