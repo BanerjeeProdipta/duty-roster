@@ -1,18 +1,18 @@
-import type { ParsedCommand, NameRecord } from "./types";
+import { formatDateKey, parseDate } from "./date-parser";
 import { matchName } from "./name-mapper";
-import { parseDate, formatDateKey } from "./date-parser";
+import type { NameRecord, ParsedCommand } from "./types";
 
 const SHIFT_KEYWORDS: Record<string, string> = {
-	"morning": "morning",
+	morning: "morning",
 	"morning shift": "morning",
 	"day shift": "morning",
-	"evening": "evening",
+	evening: "evening",
 	"evening shift": "evening",
-	"night": "night",
+	night: "night",
 	"night shift": "night",
-	"off": "off",
+	off: "off",
 	"day off": "off",
-	"leave": "off",
+	leave: "off",
 	"off duty": "off",
 };
 
@@ -43,12 +43,39 @@ function extractNameAndDate(
 	const dateKey = date ? formatDateKey(date) : null;
 
 	const stopwords = new Set([
-		"set", "assign", "put", "schedule", "make", "change", "move",
-		"to", "a", "the", "for", "on", "as", "be", "please", "can", "you",
-		"i", "want", "need", "would", "like", "could",
-		"morning", "evening", "night", "off",
-		"shift", "day", "leave", "duty",
-		"today", "tomorrow",
+		"set",
+		"assign",
+		"put",
+		"schedule",
+		"make",
+		"change",
+		"move",
+		"to",
+		"a",
+		"the",
+		"for",
+		"on",
+		"as",
+		"be",
+		"please",
+		"can",
+		"you",
+		"i",
+		"want",
+		"need",
+		"would",
+		"like",
+		"could",
+		"morning",
+		"evening",
+		"night",
+		"off",
+		"shift",
+		"day",
+		"leave",
+		"duty",
+		"today",
+		"tomorrow",
 	]);
 
 	const nameWords = beforeDate

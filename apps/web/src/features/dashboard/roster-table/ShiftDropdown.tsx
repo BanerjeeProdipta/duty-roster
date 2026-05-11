@@ -91,7 +91,7 @@ export function ShiftBadge({
     <div
       data-testid={`shift-cell-${nurseId}-${date}`}
       className={cn(
-        "flex h-12 w-12 items-center justify-center rounded-lg font-bold text-lg shadow-sm",
+        "flex h-12 w-12 items-center justify-center rounded-lg font-bold text-lg",
         isPending && "animate-pulse opacity-70",
         editable &&
           "cursor-pointer transition-all duration-200 hover:translate-y-[1px] hover:scale-105",

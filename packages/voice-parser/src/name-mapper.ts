@@ -1,8 +1,12 @@
-import type { NameMatch, NameRecord } from "./types";
 import { PHONETIC_MAP } from "./phonetic-map";
+import type { NameMatch, NameRecord } from "./types";
 
 function normalize(text: string): string {
-	return text.toLowerCase().replace(/[^a-z0-9 ]/g, "").replace(/\s+/g, " ").trim();
+	return text
+		.toLowerCase()
+		.replace(/[^a-z0-9 ]/g, "")
+		.replace(/\s+/g, " ")
+		.trim();
 }
 
 export function buildNameCandidates(nurses: NameRecord[]): string[][] {
@@ -43,7 +47,10 @@ function scoreExact(input: string, candidates: string[][]): NameMatch | null {
 	return null;
 }
 
-function scoreSubstring(input: string, candidates: string[][]): NameMatch | null {
+function scoreSubstring(
+	input: string,
+	candidates: string[][],
+): NameMatch | null {
 	const key = normalize(input);
 	if (!key || key.length < 2) return null;
 
@@ -54,7 +61,8 @@ function scoreSubstring(input: string, candidates: string[][]): NameMatch | null
 		const alias = normalize(c[0] ?? "");
 		if (!alias) continue;
 		if (alias.includes(key) || key.includes(alias)) {
-			const score = Math.min(alias.length, key.length) / Math.max(alias.length, key.length);
+			const score =
+				Math.min(alias.length, key.length) / Math.max(alias.length, key.length);
 			results.push({ idx: i, score });
 		}
 	}
@@ -64,10 +72,17 @@ function scoreSubstring(input: string, candidates: string[][]): NameMatch | null
 	const best = results[0]!;
 	const match = candidates[best.idx];
 	if (!match) return null;
-	return { bengaliName: match[1] ?? "", nurseId: match[2] ?? "", confidence: best.score * 0.85 };
+	return {
+		bengaliName: match[1] ?? "",
+		nurseId: match[2] ?? "",
+		confidence: best.score * 0.85,
+	};
 }
 
-function scoreCharacterOverlap(input: string, nurses: NameRecord[]): NameMatch | null {
+function scoreCharacterOverlap(
+	input: string,
+	nurses: NameRecord[],
+): NameMatch | null {
 	const key = normalize(input);
 	if (!key || key.length < 2) return null;
 
@@ -79,11 +94,13 @@ function scoreCharacterOverlap(input: string, nurses: NameRecord[]): NameMatch |
 			if (name.includes(ch)) overlap++;
 		}
 		const score =
-			key.length <= name.length
-				? overlap / name.length
-				: overlap / key.length;
+			key.length <= name.length ? overlap / name.length : overlap / key.length;
 		if (score > 0.5 && (!best || score > best.confidence)) {
-			best = { bengaliName: nurse.name, nurseId: nurse.id, confidence: score * 0.6 };
+			best = {
+				bengaliName: nurse.name,
+				nurseId: nurse.id,
+				confidence: score * 0.6,
+			};
 		}
 	}
 	return best;

@@ -1,13 +1,13 @@
-export { parseShiftCommand } from "./shift-parser";
-export { matchName, buildNameCandidates } from "./name-mapper";
-export { parseDate, formatDateKey } from "./date-parser";
-export { bestNameMatch } from "./phonetic-names";
+export { formatDateKey, parseDate } from "./date-parser";
 export { parseDateFromText } from "./date-utils";
+export { buildNameCandidates, matchName } from "./name-mapper";
+export { bestNameMatch } from "./phonetic-names";
+export { parseShiftCommand } from "./shift-parser";
 export type {
-	ParsedCommand,
-	SetShiftCommand,
-	UnknownCommand,
 	NameMatch,
 	NameRecord,
+	ParsedCommand,
+	SetShiftCommand,
 	ShiftType,
+	UnknownCommand,
 } from "./types";

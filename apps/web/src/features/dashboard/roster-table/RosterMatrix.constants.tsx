@@ -9,12 +9,12 @@ export const SHIFT_BADGE_STYLES: Record<string, string> = {
 
 export const SHIFT_STYLES: Record<ShiftType, string> = {
   morning:
-    "bg-gradient-to-br from-amber-100 to-amber-300 text-amber-900 border-amber-300 shadow-sm shadow-amber-200/50",
+    "bg-gradient-to-br from-amber-100 to-amber-300 text-amber-900 border-amber-300 shadow-amber-200/50",
   evening:
-    "bg-gradient-to-br from-blue-200 to-blue-300 text-blue-900 border-blue-200 shadow-sm shadow-blue-200/50",
+    "bg-gradient-to-br from-blue-200 to-blue-300 text-blue-900 border-blue-200 shadow-blue-200/50",
   night:
-    "bg-gradient-to-br from-violet-200 to-violet-300 text-violet-900 border-violet-300 shadow-sm shadow-violet-300/50",
-  off: "bg-gray-50 text-gray-400 border-gray-100 ring-1 ring-gray-100/50 shadow-sm",
+    "bg-gradient-to-br from-violet-200 to-violet-300 text-violet-900 border-violet-300 shadow-violet-300/50",
+  off: "bg-gray-50 text-gray-400 border-gray-100 ring-1 ring-gray-100/50",
 };
 
 export const SHIFT_LABELS: Record<ShiftType, string> = {
