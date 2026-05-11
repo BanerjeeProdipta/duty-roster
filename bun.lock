@@ -65,6 +65,7 @@
         "@Duty-Roster/auth": "workspace:*",
         "@Duty-Roster/env": "workspace:*",
         "@Duty-Roster/ui": "workspace:*",
+        "@Duty-Roster/voice-parser": "workspace:*",
         "@tanstack/react-form": "catalog:",
         "@tanstack/react-query": "catalog:",
         "@tanstack/react-virtual": "^3.13.24",
@@ -192,6 +193,14 @@
         "typescript": "^5.9.3",
       },
     },
+    "packages/voice-parser": {
+      "name": "@Duty-Roster/voice-parser",
+      "version": "0.0.0",
+      "devDependencies": {
+        "@Duty-Roster/config": "workspace:*",
+        "typescript": "^5",
+      },
+    },
   },
   "catalog": {
     "@better-auth/expo": "1.5.5",
@@ -226,6 +235,8 @@
     "@Duty-Roster/env": ["@Duty-Roster/env@workspace:packages/env"],
 
     "@Duty-Roster/ui": ["@Duty-Roster/ui@workspace:packages/ui"],
+
+    "@Duty-Roster/voice-parser": ["@Duty-Roster/voice-parser@workspace:packages/voice-parser"],
 
     "@alloc/quick-lru": ["@alloc/quick-lru@5.2.0", "", {}, "sha512-UrcABB+4bUrFABwbluTIBErXwvbsU/V7TZWfmbgJfbkwiBuziS9gxdODUyuiecfdGQ85jglMW6juS3+z5TsKLw=="],
 

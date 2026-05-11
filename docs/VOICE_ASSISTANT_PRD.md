@@ -5,7 +5,7 @@
 **Scope**: Get Vosk running, WebSocket plumbed end-to-end, transcript confirmed in browser
 **Next doc**: name mapper + shift parser + NeonDB update
 
-**Status**: Part 1 ✅ Complete | Part 2 ✅ Complete | Part 3 ✅ Complete | Part 4 ⏳ Pending | Part 5 ⏳ Pending
+**Status**: Part 1 ✅ Complete | Part 2 ✅ Complete | Part 3 ✅ Complete | Part 4 ✅ Complete | Part 5 ✅ Complete | Part 6 🔄 In Progress
 
 ---
 
@@ -83,17 +83,20 @@ incrementally, and streams back partial + final transcriptions in real time.
 ### 1.1 Install ✅ DONE
 
 **Python dependencies:**
+
 ```bash
 pip install -r stt/requirements.txt
 ```
 
 `stt/requirements.txt`:
+
 ```
 vosk==0.3.44
 websockets>=13.0
 ```
 
 **Vosk model** (not committed — ~68MB, downloaded via script):
+
 ```bash
 bash scripts/setup-stt.sh
 ```
@@ -311,7 +314,10 @@ app.get(
             }
           } catch {
             ws.send(
-              JSON.stringify({ type: "error", message: "Invalid text message" }),
+              JSON.stringify({
+                type: "error",
+                message: "Invalid text message",
+              }),
             );
           }
           return;
@@ -340,6 +346,7 @@ export default { fetch: app.fetch, websocket, port: PORT };
 ```
 
 **Key design decisions:**
+
 - **WebSocket relay, not HTTP proxy**: Audio is forwarded as binary WS messages instead of base64-encoded HTTP POST bodies. This reduces overhead and enables streaming partial results back to the browser.
 - **STT connection lifecycle**: A dedicated WebSocket to Vosk is opened per browser connection and closed when the browser disconnects.
 - **`restart` command**: The browser can send `{"type":"restart"}` to reset the STT connection without re-establishing its own WebSocket.
@@ -400,16 +407,16 @@ bun dev:web
 
 ### Port assignments
 
-| Service                       | Port | Runtime  | Start command     | Status       |
-| ----------------------------- | ---- | -------- | ----------------- | ------------ |
-| Next.js                       | 3001 | Bun      | `bun dev:web`     | ⏳ Pending   |
-| Cloudflare Workers (wrangler) | 3000 | Workerd  | `bun dev:server`  | ✅ Untouched |
-| Voice server                  | 3002 | Bun      | `bun dev:voice`   | ✅ Running   |
-| Vosk STT                      | 5001 | Python   | `bun dev:stt`     | ✅ Running   |
+| Service                       | Port | Runtime | Start command    | Status     |
+| ----------------------------- | ---- | ------- | ---------------- | ---------- |
+| Next.js                       | 3001 | Bun     | `bun dev:web`    | ✅ Running |
+| Cloudflare Workers (wrangler) | 3000 | Workerd | `bun dev:server` | ✅ Running |
+| Voice server                  | 3002 | Bun     | `bun dev:voice`  | ✅ Running |
+| Vosk STT                      | 5001 | Python  | `bun dev:stt`    | ✅ Running |
 
 ---
 
-## Part 4 — Next.js Frontend ✅ COMPLETE (Audio Processor Only)
+## Part 4 — Next.js Frontend ✅ COMPLETE
 
 ### 4.1 `apps/web/public/pcm-processor.js` ✅ IMPLEMENTED
 
@@ -435,38 +442,58 @@ class PCMProcessor extends AudioWorkletProcessor {
 registerProcessor("pcm-processor", PCMProcessor);
 ```
 
-### 4.2 `apps/web/hooks/useVoice.ts` ⏳ PENDING
+### 4.2 `apps/web/src/features/voice-assistant/hooks/useVoice.ts` ✅ IMPLEMENTED
 
-Needs implementation. This hook should:
-- Request `AudioContext` with `{ sampleRate: 16000 }`
-- Load the `pcm-processor.js` AudioWorklet
-- Open WebSocket to `ws://localhost:3002/voice/stream`
-- Forward Int16 PCM buffers from the worklet as binary messages on the WS
-- Listen for `"partial"`, `"result"`, and error message types
-- Manage reconnection (send `{"type":"restart"}` on STT disconnect)
-- Return reactive state: `{ transcript, partial, isListening, confidence, start, stop }`
+Fully implemented hook with:
 
-### 4.3 `apps/web/.env.local` ⏳ PENDING
+- AudioContext at 16kHz with mono channel
+- PCMProcessor AudioWorklet integration
+- WebSocket connection to voice-server at `ws://localhost:3002/voice/stream`
+- Binary PCM forwarding from worklet to WS
+- `"partial"`, `"result"`, `"stt_ready"`, `"stt_disconnected"` message handling
+- Auto-reconnection via `{"type":"restart"}` on STT disconnect
+- Silence detection with 2-second auto-stop
+- Real-time audio levels (frequency data visualization)
+- TTS (Text-to-Speech) using Web Speech API with greeting on start
+- Proper resource cleanup on stop/unmount
+
+Returns: `{ transcript, partial, isListening, ready, confidence, levels, start, stop }`
+
+### 4.3 `apps/web/.env.local` ✅ IMPLEMENTED
 
 ```env
-# Voice server URL for the browser WebSocket connection
 NEXT_PUBLIC_VOICE_WS_URL=ws://localhost:3002/voice/stream
 ```
 
-### 4.4 `apps/web/components/VoiceTrigger.tsx` ⏳ PENDING
+### 4.4 `apps/web/src/features/voice-assistant/components/VoiceTrigger.tsx` ✅ IMPLEMENTED
 
-Needs implementation. Floating microphone button that:
-- Toggles listening on click
-- Shows a pulsing animation while recording
-- Displays partial transcript in a floating bubble
-- Displays final transcript with confidence on stop
-- Uses the `useVoice` hook internally
+Floating microphone button with:
+
+- Toggles listening on click (shows Bot icon when closed, mic controls when open)
+- WaveAnimation visualization during recording
+- Chat UI showing parsed commands (recognized vs unrecognized)
+- Text input fallback for manual entry
+- Extracted `MessageItem` component for message rendering
+- Extracted `WaveAnimation` component for audio visualization
+
+### 4.5 Modular Components ✅ IMPLEMENTED
+
+**`MessageItem.tsx`** — Extracted component for rendering voice messages:
+- Displays "Extracted" for recognized commands, "Unrecognized" otherwise
+- Shows extracted fields: action, nurse name, shift, date
+- Toggle button to show/hide raw transcript
+
+**`utils/commandParser.ts`** — Extracted command parsing logic:
+- `parseCommand(text)` - parses voice input for shift, date, nurse name, action
+- Uses `packages/voice-parser` for name matching and date parsing
+- `SHIFT_WORDS` constant: ["morning", "evening", "night", "off"]
+- `SKIP_WORDS` constant: common words to filter out
 
 ---
 
-## Part 5 — Verify End-to-End ⏳ NEXT
+## Part 5 — Verify End-to-End ✅ COMPLETE
 
-Work through in order. Each layer must pass before moving to the next.
+All verification steps passed:
 
 ```
 [✅] python stt/server.py starts cleanly                  → ws://localhost:5001
@@ -475,21 +502,44 @@ Work through in order. Each layer must pass before moving to the next.
 [✅] bun dev:voice starts on port 3002                     → ws://localhost:3002
 [✅] curl http://localhost:3002/health                     → {"status":"ok"}
 
-[⏳] bun dev:web — Next.js running on port 3001
-[⏳] Click "Speak" → browser asks for mic permission
-[⏳] Say anything → browser console logs transcript + confidence
-[⏳] Partial results stream in real time
-[⏳] No errors in browser console, voice-server terminal, or stt terminal
+[✅] bun dev:web — Next.js running on port 3001
+[✅] Click voice trigger → browser asks for mic permission
+[✅] Speak command → transcript appears in UI
+[✅] Partial results stream in real time
+[✅] TTS greeting plays on start
+[✅] Auto-stop after 2 seconds of silence
+[✅] Command parsing extracts: nurse name, shift, date
 ```
 
-### Troubleshooting
+### Additional Features Implemented
 
-**Empty transcript** — sampleRate is wrong. Confirm `new AudioContext({ sampleRate: 16000 })`.
+- **Text input fallback** — Type commands instead of speaking
+- **Speech synthesis** — "Hey, how can I help?" greeting via Web Speech API
+- **Audio visualization** — Real-time frequency bars during recording
+- **Toggle raw transcript** — Show/hide original voice input
+- **Modular architecture** — Separation of concerns with extracted components
 
-**WebSocket error on connect** — voice-server not running, or port mismatch. Check `NEXT_PUBLIC_VOICE_WS_URL`.
+## Part 6 — Command Parsing & Action 🔄 IN PROGRESS
 
-**STT disconnected then `stt_ready` never arrives** — `stt/server.py` not running or crashed on model load.
-The `restart` mechanism is available: send `{"type":"restart"}` from the browser to reconnect.
+### Current State
+
+The UI now displays extracted commands but doesn't execute any actions. The parsed command structure is:
+
+```typescript
+interface ParsedCommand {
+  shift: string | null;      // "morning" | "evening" | "night" | "off"
+  date: string | null;        // parsed date string
+  nurseName: string | null;   // matched nurse name
+  action: string | null;     // "update" when all fields present
+}
+```
+
+### What's Pending
+
+1. **tRPC mutation** — Add `shift.update` mutation in `apps/server`
+2. **Execute action** — VoiceTrigger sends command to backend after user confirms
+3. **Confirmation UI** — Show success/error after DB update
+4. **Name mapping** — Full integration with `packages/voice-parser` for Bengali name matching
 
 ---
 
@@ -503,10 +553,7 @@ The `restart` mechanism is available: send `{"type":"restart"}` from the browser
 
 ## What's Next ⏳
 
-Once all checkboxes pass:
-
-1. **Frontend implementation** — `useVoice.ts`, `VoiceTrigger.tsx`, `.env.local`
-2. `packages/voice-parser` — name mapper (phonetic → Bengali) + shift command parser
-3. New tRPC mutation in `apps/server` — `shift.update`
-4. Voice server calls the tRPC mutation after parsing
-5. UI shows confirmation after successful update
+1. **Execute parsed commands** — Connect UI to backend via tRPC
+2. **Add tRPC mutation** — `shift.update` in `apps/server`
+3. **Confirmation UI** — Show success/error after DB write
+4. **Voice-parser integration** — Full Bengali name matching

@@ -1,0 +1,51 @@
+import { bestNameMatch, parseDateFromText } from "@Duty-Roster/voice-parser";
+
+const SHIFT_WORDS = ["morning", "evening", "night", "off"] as const;
+
+const SKIP_WORDS = new Set([
+  ...SHIFT_WORDS,
+  "assign",
+  "sign",
+  "set",
+  "put",
+  "schedule",
+  "change",
+  "to",
+  "on",
+  "a",
+  "the",
+  "for",
+  "as",
+  "at",
+  "tomorrow",
+  "today",
+  "can",
+  "you",
+  "i",
+  "want",
+  "would",
+  "shift",
+  "please",
+  "an",
+  "of",
+]);
+
+export interface ParsedCommand {
+  shift: string | null;
+  date: string | null;
+  nurseName: string | null;
+  action: string | null;
+}
+
+export function parseCommand(text: string): ParsedCommand {
+  const lower = text.toLowerCase().replace(/[.,!?;:]/g, "");
+  const words = lower.split(/\s+/).filter(Boolean);
+
+  const shift = SHIFT_WORDS.find((s) => words.includes(s)) ?? null;
+  const date = parseDateFromText(words);
+  const nameWords = words.filter((w) => !SKIP_WORDS.has(w));
+  const nurseName = bestNameMatch(nameWords);
+  const action = shift && date && nurseName ? "update" : null;
+
+  return { shift, date, nurseName, action };
+}

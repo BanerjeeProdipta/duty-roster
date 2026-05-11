@@ -38,6 +38,7 @@
 		"dev:server": "turbo -F server dev",
 		"dev:stt": "python stt/server.py",
 		"dev:voice": "turbo -F stt-server dev",
+		"dev:all": "trap 'kill 0' EXIT; bun run dev:stt & bun run dev:voice & bun run dev:server & bun run dev:web & wait",
 		"start:web": "turbo -F web start",
 		"start:server": "turbo -F server start",
 		"start": "bun run start:server & bun run start:web",
