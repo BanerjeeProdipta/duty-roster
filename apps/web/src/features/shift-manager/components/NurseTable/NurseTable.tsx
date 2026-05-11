@@ -200,7 +200,6 @@ function NurseTableRow({
 										className="flex-1 rounded-md border border-gray-200 px-2 py-1 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
 									/>
 									<VoiceInput
-										language="bn-BD"
 										onTranscript={(transcript) => setEditName(transcript)}
 									/>
 								</div>

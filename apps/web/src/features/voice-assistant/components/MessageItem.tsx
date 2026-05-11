@@ -63,7 +63,7 @@ export function MessageItem({
 
   if (isSystem) {
     return (
-      <div className="mt-4 flex w-full items-start gap-3">
+      <div className="mt-4 flex w-full items-start gap-1.5">
         <BotIcon />
         <div className="flex-1 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3">
           <p className="text-sm text-gray-800">{raw}</p>
@@ -75,7 +75,7 @@ export function MessageItem({
   if (isRecognized) {
     return (
       <div className="flex w-full items-start gap-3">
-        <div className="flex-1 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3">
+        <div className="mt-4 flex-1 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3">
           <div className="flex items-center justify-between">
             <p className="font-medium text-xs uppercase tracking-wider text-emerald-500">
               Extracted
