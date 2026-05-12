@@ -1,312 +1,299 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useSpeechSynthesis } from "./useSpeechSynthesis";
 
 const WS_URL =
-	process.env.NEXT_PUBLIC_VOICE_WS_URL ?? "ws://localhost:3002/voice/stream";
+  process.env.NEXT_PUBLIC_VOICE_WS_URL ?? "ws://localhost:3002/voice/stream";
 
 interface UseVoiceReturn {
-	transcript: string;
-	partial: string;
-	isListening: boolean;
-	ready: boolean;
-	confidence: number;
-	levels: number[];
-	start: () => void;
-	stop: () => void;
+  transcript: string;
+  partial: string;
+  isListening: boolean;
+  ready: boolean;
+  confidence: number;
+  levels: number[];
+  start: () => void;
+  stop: () => void;
 }
 
 function log(...args: unknown[]) {
-	console.log(`[Voice ${new Date().toISOString()}]`, ...args);
-}
-
-function speak(text: string): Promise<void> {
-	return new Promise((resolve) => {
-		if (typeof window === "undefined" || !window.speechSynthesis) {
-			resolve();
-			return;
-		}
-		window.speechSynthesis.cancel();
-		const utterance = new SpeechSynthesisUtterance(text);
-		utterance.rate = 1.1;
-		utterance.pitch = 1;
-		utterance.onend = () => resolve();
-		utterance.onerror = () => resolve();
-		window.speechSynthesis.speak(utterance);
-	});
+  console.log(`[Voice ${new Date().toISOString()}]`, ...args);
 }
 
 function cleanupResources(
-	workerNode: AudioWorkletNode | null,
-	source: MediaStreamAudioSourceNode | null,
-	audioCtx: AudioContext | null,
-	stream: MediaStream | null,
-	ws: WebSocket | null,
+  workerNode: AudioWorkletNode | null,
+  source: MediaStreamAudioSourceNode | null,
+  audioCtx: AudioContext | null,
+  stream: MediaStream | null,
+  ws: WebSocket | null,
 ): void {
-	if (workerNode) {
-		workerNode.disconnect();
-	}
-	if (source) {
-		source.disconnect();
-	}
-	if (audioCtx && audioCtx.state !== "closed") {
-		audioCtx.close();
-	}
-	if (stream) {
-		stream.getTracks().forEach((t) => t.stop());
-	}
-	if (
-		ws &&
-		(ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)
-	) {
-		ws.close();
-	}
+  if (workerNode) {
+    workerNode.disconnect();
+  }
+  if (source) {
+    source.disconnect();
+  }
+  if (audioCtx && audioCtx.state !== "closed") {
+    audioCtx.close();
+  }
+  if (stream) {
+    stream.getTracks().forEach((t) => t.stop());
+  }
+  if (
+    ws &&
+    (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)
+  ) {
+    ws.close();
+  }
 }
 
 export function useVoice(): UseVoiceReturn {
-	const [transcript, setTranscript] = useState("");
-	const [partial, setPartial] = useState("");
-	const [isListening, setIsListening] = useState(false);
-	const [ready, setReady] = useState(false);
-	const [confidence, setConfidence] = useState(0);
-	const [levels, setLevels] = useState<number[]>(() => Array(25).fill(0));
+  const [transcript, setTranscript] = useState("");
+  const [partial, setPartial] = useState("");
+  const [isListening, setIsListening] = useState(false);
+  const [ready, setReady] = useState(false);
+  const [confidence, setConfidence] = useState(0);
+  const [levels, setLevels] = useState<number[]>(() => Array(25).fill(0));
 
-	const wsRef = useRef<WebSocket | null>(null);
-	const audioCtxRef = useRef<AudioContext | null>(null);
-	const streamRef = useRef<MediaStream | null>(null);
-	const sourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
-	const workerNodeRef = useRef<AudioWorkletNode | null>(null);
-	const analyserRef = useRef<AnalyserNode | null>(null);
-	const rafRef = useRef<number>(0);
-	const startingRef = useRef(false);
-	const greetedRef = useRef(false);
-	const silenceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-	const stopRef = useRef<() => void>(() => {});
+  const { speak } = useSpeechSynthesis();
 
-	const cleanup = useCallback(() => {
-		log("cleanup");
-		if (silenceRef.current) clearTimeout(silenceRef.current);
-		silenceRef.current = null;
-		if (rafRef.current) cancelAnimationFrame(rafRef.current);
-		analyserRef.current = null;
-		cleanupResources(
-			workerNodeRef.current,
-			sourceRef.current,
-			audioCtxRef.current,
-			streamRef.current,
-			wsRef.current,
-		);
-		workerNodeRef.current = null;
-		sourceRef.current = null;
-		audioCtxRef.current = null;
-		streamRef.current = null;
-		wsRef.current = null;
-		startingRef.current = false;
-		setIsListening(false);
-		setReady(false);
-		setLevels(Array(25).fill(0));
-		greetedRef.current = false;
-		if (typeof window !== "undefined" && window.speechSynthesis) {
-			window.speechSynthesis.cancel();
-		}
-	}, []);
+  const wsRef = useRef<WebSocket | null>(null);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const sourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
+  const workerNodeRef = useRef<AudioWorkletNode | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const rafRef = useRef<number>(0);
+  const startingRef = useRef(false);
+  const greetedRef = useRef(false);
+  const silenceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const stopRef = useRef<() => void>(() => {});
 
-	const stop = useCallback(() => {
-		log("stop");
-		if (silenceRef.current) clearTimeout(silenceRef.current);
-		silenceRef.current = null;
-		cleanup();
-		setPartial("");
-	}, [cleanup]);
+  const cleanup = useCallback(() => {
+    log("cleanup");
+    if (silenceRef.current) clearTimeout(silenceRef.current);
+    silenceRef.current = null;
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    analyserRef.current = null;
+    cleanupResources(
+      workerNodeRef.current,
+      sourceRef.current,
+      audioCtxRef.current,
+      streamRef.current,
+      wsRef.current,
+    );
+    workerNodeRef.current = null;
+    sourceRef.current = null;
+    audioCtxRef.current = null;
+    streamRef.current = null;
+    wsRef.current = null;
+    startingRef.current = false;
+    setIsListening(false);
+    setReady(false);
+    setLevels(Array(25).fill(0));
+    greetedRef.current = false;
+    if (typeof window !== "undefined" && window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
+  }, []);
 
-	stopRef.current = stop;
+  const stop = useCallback(() => {
+    log("stop");
+    if (silenceRef.current) clearTimeout(silenceRef.current);
+    silenceRef.current = null;
+    cleanup();
+    setPartial("");
+  }, [cleanup]);
 
-	function setupMic(ws: WebSocket) {
-		ws.onopen = async () => {
-			log("ws open");
-			try {
-				const stream = await navigator.mediaDevices.getUserMedia({
-					audio: {
-						sampleRate: 16000,
-						channelCount: 1,
-						echoCancellation: true,
-						noiseSuppression: true,
-					},
-				});
-				streamRef.current = stream;
-				log("mic stream acquired");
+  stopRef.current = stop;
 
-				const audioCtx = new AudioContext({ sampleRate: 16000 });
-				audioCtxRef.current = audioCtx;
+  function setupMic(ws: WebSocket) {
+    ws.onopen = async () => {
+      log("ws open");
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            sampleRate: 16000,
+            channelCount: 1,
+            echoCancellation: true,
+            noiseSuppression: true,
+          },
+        });
+        streamRef.current = stream;
+        log("mic stream acquired");
 
-				await audioCtx.audioWorklet.addModule("/pcm-processor.js");
-				log("audio worklet loaded");
+        const audioCtx = new AudioContext({ sampleRate: 16000 });
+        audioCtxRef.current = audioCtx;
 
-				const source = audioCtx.createMediaStreamSource(stream);
-				sourceRef.current = source;
+        await audioCtx.audioWorklet.addModule("/pcm-processor.js");
+        log("audio worklet loaded");
 
-				const workletNode = new AudioWorkletNode(audioCtx, "pcm-processor");
-				workerNodeRef.current = workletNode;
+        const source = audioCtx.createMediaStreamSource(stream);
+        sourceRef.current = source;
 
-				workletNode.port.onmessage = (event) => {
-					if (ws.readyState === WebSocket.OPEN) {
-						ws.send(event.data);
-					}
-				};
+        const workletNode = new AudioWorkletNode(audioCtx, "pcm-processor");
+        workerNodeRef.current = workletNode;
 
-				source.connect(workletNode);
+        workletNode.port.onmessage = (event) => {
+          if (ws.readyState === WebSocket.OPEN) {
+            ws.send(event.data);
+          }
+        };
 
-				const analyser = audioCtx.createAnalyser();
-				analyser.fftSize = 64;
-				analyserRef.current = analyser;
-				source.connect(analyser);
+        source.connect(workletNode);
 
-				const bufferLength = analyser.frequencyBinCount;
-				const dataArray = new Uint8Array(bufferLength);
-				const BAR_COUNT = 25;
+        const analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 64;
+        analyserRef.current = analyser;
+        source.connect(analyser);
 
-				const update = () => {
-					analyser.getByteFrequencyData(dataArray);
-					const next = Array.from({ length: BAR_COUNT }, (_, i) => {
-						const startBin = Math.floor((i / BAR_COUNT) * bufferLength);
-						const endBin = Math.floor(((i + 1) / BAR_COUNT) * bufferLength);
-						let sum = 0;
-						for (let j = startBin; j < endBin; j++) {
-							sum += dataArray[j]! / 255;
-						}
-						return Math.min(1, sum / (endBin - startBin));
-					});
-					setLevels(next);
-					rafRef.current = requestAnimationFrame(update);
-				};
-				rafRef.current = requestAnimationFrame(update);
+        const bufferLength = analyser.frequencyBinCount;
+        const dataArray = new Uint8Array(bufferLength);
+        const BAR_COUNT = 25;
 
-				startingRef.current = false;
-				setIsListening(true);
-				log("listening started");
+        const update = () => {
+          analyser.getByteFrequencyData(dataArray);
+          const next = Array.from({ length: BAR_COUNT }, (_, i) => {
+            const startBin = Math.floor((i / BAR_COUNT) * bufferLength);
+            const endBin = Math.floor(((i + 1) / BAR_COUNT) * bufferLength);
+            let sum = 0;
+            for (let j = startBin; j < endBin; j++) {
+              sum += dataArray[j]! / 255;
+            }
+            return Math.min(1, sum / (endBin - startBin));
+          });
+          setLevels(next);
+          rafRef.current = requestAnimationFrame(update);
+        };
+        rafRef.current = requestAnimationFrame(update);
 
-				if (silenceRef.current) clearTimeout(silenceRef.current);
-				silenceRef.current = setTimeout(() => {
-					log("silence timeout — auto-stopping");
-					stopRef.current();
-				}, 6000);
-			} catch (err) {
-				log("mic/audio setup failed", err);
-				startingRef.current = false;
-				ws.close();
-				cleanupResources(
-					workerNodeRef.current,
-					sourceRef.current,
-					audioCtxRef.current,
-					streamRef.current,
-					null,
-				);
-			}
-		};
+        startingRef.current = false;
+        setIsListening(true);
+        log("listening started");
 
-		function resetSilenceTimer() {
-			if (silenceRef.current) clearTimeout(silenceRef.current);
-			silenceRef.current = setTimeout(() => {
-				log("silence timeout — auto-stopping");
-				stopRef.current();
-			}, 3000);
-		}
+        if (silenceRef.current) clearTimeout(silenceRef.current);
+        silenceRef.current = setTimeout(() => {
+          log("silence timeout — auto-stopping");
+          stopRef.current();
+        }, 6000);
+      } catch (err) {
+        log("mic/audio setup failed", err);
+        startingRef.current = false;
+        ws.close();
+        cleanupResources(
+          workerNodeRef.current,
+          sourceRef.current,
+          audioCtxRef.current,
+          streamRef.current,
+          null,
+        );
+      }
+    };
 
-		ws.onmessage = (event) => {
-			try {
-				const data = JSON.parse(event.data as string);
-				switch (data.type) {
-					case "partial": {
-						log("partial", data.text);
-						setPartial(data.text);
-						resetSilenceTimer();
-						break;
-					}
-					case "result": {
-						log("result", data.text, data.confidence);
-						setTranscript(data.text);
-						setConfidence(data.confidence ?? 0);
-						setPartial("");
-						resetSilenceTimer();
-						break;
-					}
-					case "stt_ready": {
-						setReady(true);
-						break;
-					}
-					case "stt_disconnected": {
-						log("stt disconnected — sending restart");
-						if (ws.readyState === WebSocket.OPEN) {
-							ws.send(JSON.stringify({ type: "restart" }));
-						}
-						break;
-					}
-				}
-			} catch {
-				log("malformed ws message", event.data);
-			}
-		};
+    function resetSilenceTimer() {
+      if (silenceRef.current) clearTimeout(silenceRef.current);
+      silenceRef.current = setTimeout(() => {
+        log("silence timeout — auto-stopping");
+        stopRef.current();
+      }, 3000);
+    }
 
-		ws.onclose = () => {
-			log("ws closed");
-			setIsListening(false);
-			startingRef.current = false;
-		};
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data as string);
+        switch (data.type) {
+          case "partial": {
+            log("partial", data.text);
+            setPartial(data.text);
+            resetSilenceTimer();
+            break;
+          }
+          case "result": {
+            log("result", data.text, data.confidence);
+            setTranscript(data.text);
+            setConfidence(data.confidence ?? 0);
+            setPartial("");
+            resetSilenceTimer();
+            break;
+          }
+          case "stt_ready": {
+            setReady(true);
+            break;
+          }
+          case "stt_disconnected": {
+            log("stt disconnected — sending restart");
+            if (ws.readyState === WebSocket.OPEN) {
+              ws.send(JSON.stringify({ type: "restart" }));
+            }
+            break;
+          }
+        }
+      } catch {
+        log("malformed ws message", event.data);
+      }
+    };
 
-		ws.onerror = (err) => {
-			log("ws error", err);
-			startingRef.current = false;
-			cleanup();
-		};
-	}
+    ws.onclose = () => {
+      log("ws closed");
+      setIsListening(false);
+      startingRef.current = false;
+    };
 
-	const start = useCallback(() => {
-		if (wsRef.current || startingRef.current) {
-			log("start skipped — already starting/started");
-			return;
-		}
-		startingRef.current = true;
-		log("start");
+    ws.onerror = (err) => {
+      log("ws error", err);
+      startingRef.current = false;
+      cleanup();
+    };
+  }
 
-		setTranscript("");
-		setPartial("");
-		setConfidence(0);
-		setReady(false);
+  const start = useCallback(() => {
+    if (wsRef.current || startingRef.current) {
+      log("start skipped — already starting/started");
+      return;
+    }
+    startingRef.current = true;
+    log("start");
 
-		const afterGreeting = () => {
-			setReady(true);
-			if (startingRef.current === false) return;
+    setTranscript("");
+    setPartial("");
+    setConfidence(0);
+    setReady(false);
 
-			const ws = new WebSocket(WS_URL);
-			ws.binaryType = "arraybuffer";
-			wsRef.current = ws;
+    const afterGreeting = () => {
+      setReady(true);
+      if (startingRef.current === false) return;
 
-			setupMic(ws);
-		};
+      const ws = new WebSocket(WS_URL);
+      ws.binaryType = "arraybuffer";
+      wsRef.current = ws;
 
-		if (greetedRef.current) {
-			log("greeting already spoken, skipping");
-			afterGreeting();
-		} else {
-			greetedRef.current = true;
-			speak("Hey, how can I help?").then(afterGreeting);
-		}
-	}, [cleanup]);
+      setupMic(ws);
+    };
 
-	useEffect(() => {
-		return () => {
-			cleanup();
-		};
-	}, [cleanup]);
+    if (greetedRef.current) {
+      log("greeting already spoken, skipping");
+      afterGreeting();
+    } else {
+      greetedRef.current = true;
+      speak("Hey, how can I help?").then(afterGreeting);
+    }
+  }, [cleanup]);
 
-	return {
-		transcript,
-		partial,
-		isListening,
-		ready,
-		confidence,
-		levels,
-		start,
-		stop,
-	};
+  useEffect(() => {
+    return () => {
+      cleanup();
+    };
+  }, [cleanup]);
+
+  return {
+    transcript,
+    partial,
+    isListening,
+    ready,
+    confidence,
+    levels,
+    start,
+    stop,
+  };
 }
