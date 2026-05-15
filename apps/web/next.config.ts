@@ -28,6 +28,20 @@ const nextConfig: NextConfig = {
 			transform: "lucide-react/dist/esm/icons/{{member}}",
 		},
 	},
+	webpack: (config, { isServer, nextRuntime }) => {
+		if (!isServer || nextRuntime === "edge") {
+			config.resolve.fallback = {
+				...config.resolve.fallback,
+				fs: false,
+				path: false,
+				child_process: false,
+				net: false,
+				tls: false,
+				crypto: false,
+			};
+		}
+		return config;
+	},
 };
 
 export default withAnalyzer(nextConfig);
