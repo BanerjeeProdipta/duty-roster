@@ -30,8 +30,8 @@ export function MessageList({
     <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 pb-3">
       {messages.length === 0 && !isListening && (
         <div className="flex h-full flex-col items-center justify-center text-center">
-          <div className="mb-3 flex size-12 items-center justify-center rounded-full bg-blue-50">
-            <Bot className="size-6 text-blue-600" />
+          <div className="mb-3 flex size-12 items-center justify-center rounded-full bg-accent-primary-light">
+            <Bot className="size-6 text-accent-primary" />
           </div>
           <p className="font-medium text-gray-700 text-sm">
             Hey, how can I help?

@@ -11,7 +11,7 @@ export function VoiceHeader({ isListening, ready }: VoiceHeaderProps) {
   return (
     <div className="flex items-center justify-between border-gray-100 border-b bg-gray-50 px-4 py-3">
       <div className="flex items-center gap-2">
-        <div className="flex size-8 items-center justify-center rounded-full bg-blue-600">
+        <div className="flex size-8 items-center justify-center rounded-full bg-accent-primary">
           <Bot className="size-4 text-white" />
         </div>
         <div>

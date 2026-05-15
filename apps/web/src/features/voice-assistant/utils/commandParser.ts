@@ -1,4 +1,4 @@
-import { bestNameMatch, parseDateFromText } from "@Duty-Roster/voice-parser";
+import { bestNameMatch, bengaliToEnglish, parseDateFromText } from "@Duty-Roster/voice-parser";
 
 const SHIFT_WORDS = ["morning", "evening", "night", "off"] as const;
 
@@ -44,6 +44,7 @@ export interface ParsedCommand {
   shift: string | null;
   date: string | null;
   nurseName: string | null;
+  englishName: string | null;
   action: string | null;
   missingFields: string[];
 }
@@ -56,6 +57,7 @@ export function parseCommand(text: string): ParsedCommand {
   const date = parseDateFromText(words);
   const nameWords = words.filter((w) => !SKIP_WORDS.has(w));
   const nurseName = bestNameMatch(nameWords);
+  const englishName = nurseName ? bengaliToEnglish(nurseName) : null;
 
   const missingFields: string[] = [];
   if (!nurseName) missingFields.push("nurse");
@@ -64,5 +66,5 @@ export function parseCommand(text: string): ParsedCommand {
 
   const action = missingFields.length === 0 ? "update" : null;
 
-  return { shift, date, nurseName, action, missingFields };
+  return { shift, date, nurseName, englishName, action, missingFields };
 }

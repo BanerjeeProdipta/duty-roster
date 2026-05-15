@@ -3,11 +3,13 @@
 	"version": "0.1.0",
 	"private": true,
 	"scripts": {
-		"dev": "next dev --port 3001",
-		"build": "next build",
+		"dev": "bash scripts/download-piper-assets.sh && next dev --port 3001",
+		"build": "bash scripts/download-piper-assets.sh && node scripts/patch-piper-tts-web.mjs && next build",
 		"start": "next start -p 3001",
-		"build:cf": "npm_config_user_agent=npm/10.0.0 npx @cloudflare/next-on-pages -o .cloudflare",
-		"deploy": "bunx wrangler pages deploy .cloudflare --project-name=duty-roster"
+		"build:cf": "bash scripts/download-piper-assets.sh && node scripts/patch-piper-tts-web.mjs && npm_config_user_agent=npm/10.0.0 npx @cloudflare/next-on-pages -o .cloudflare",
+		"deploy": "bunx wrangler pages deploy .cloudflare --project-name=duty-roster",
+		"postinstall": "node scripts/patch-piper-tts-web.mjs",
+		"download:piper": "bash scripts/download-piper-assets.sh"
 	},
 	"dependencies": {
 		"@Duty-Roster/api": "workspace:*",
@@ -15,6 +17,7 @@
 		"@Duty-Roster/env": "workspace:*",
 		"@Duty-Roster/ui": "workspace:*",
 		"@Duty-Roster/voice-parser": "workspace:*",
+		"@mintplex-labs/piper-tts-web": "^1.0.4",
 		"@tanstack/react-form": "catalog:",
 		"@tanstack/react-query": "catalog:",
 		"@tanstack/react-virtual": "^3.13.24",
@@ -28,6 +31,7 @@
 		"next": "^15.1.0",
 		"next-themes": "catalog:",
 		"ogl": "^1.0.11",
+		"onnxruntime-web": "^1.26.0",
 		"react": "^19.0.0",
 		"react-dom": "^19.0.0",
 		"sonner": "catalog:",

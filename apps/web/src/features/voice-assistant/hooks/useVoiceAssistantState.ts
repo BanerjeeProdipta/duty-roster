@@ -5,6 +5,7 @@ import type { ParsedMessage } from "../components/MessageItem";
 
 interface PendingConfirmation {
   nurseName: string;
+  englishName: string | null;
   shift: string;
   date: string;
 }

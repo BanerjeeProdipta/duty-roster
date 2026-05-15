@@ -6,6 +6,7 @@ import { useUpdateShift } from "@/hooks/useUpdateShift";
 
 interface PendingConfirmation {
 	nurseName: string;
+	englishName: string | null;
 	shift: string;
 	date: string;
 }

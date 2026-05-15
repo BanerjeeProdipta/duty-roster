@@ -5,7 +5,7 @@
 **Scope**: Get Vosk running, WebSocket plumbed end-to-end, transcript confirmed in browser
 **Next doc**: name mapper + shift parser + NeonDB update
 
-**Status**: Part 1 ✅ Complete | Part 2 ✅ Complete | Part 3 ✅ Complete | Part 4 ✅ Complete | Part 5 ✅ Complete | Part 6 ✅ Complete
+**Status**: Part 1 ✅ Complete | Part 2 ✅ Complete | Part 3 ✅ Complete | Part 4 ✅ Complete | Part 5 ✅ Complete | Part 6 ✅ Complete | TTS (Piper) ✅ Complete
 
 ---
 
@@ -27,7 +27,8 @@ duty-roster/
 ├── apps/
 │   ├── web/              ← Next.js (port 3001)
 │   ├── server/           ← Cloudflare Workers + Hono + tRPC + Better Auth (port 3000, unchanged)
-│   └── voice-server/     ← ✅ IMPLEMENTED — Bun + Hono WebSocket (voice relay, port 3002)
+│   ├── voice-server/     ← ✅ IMPLEMENTED — Bun + Hono WebSocket (voice relay, port 3002)
+│   └── tts/              ← ✅ IMPLEMENTED — FastAPI Piper TTS server (port 8001)
 ├── packages/
 │   ├── api/
 │   ├── auth/
@@ -77,6 +78,80 @@ Browser mic ──Float32──> AudioWorklet ──Int16 PCM──> useVoice ho
 **Why two WebSocket hops?** The voice-server is a thin relay. It connects the browser WS
 to the STT WS so the browser never needs to know about the Python process. This also lets
 us swap STT backends later without changing frontend code.
+
+---
+
+## TTS (Text-to-Speech) — Piper Browser WASM ✅ IMPLEMENTED
+
+**Overview**: Piper TTS runs entirely in-browser via WebAssembly (WASM)
+using [`@mintplex-labs/piper-tts-web`](https://www.npmjs.com/package/@mintplex-labs/piper-tts-web).
+No server needed — the ONNX model is downloaded from HuggingFace CDN on first use
+and cached in the browser's OPFS (Origin Private File System).
+
+### Architecture
+
+```
+useSpeechSynthesis              @mintplex-labs/piper-tts-web       HuggingFace CDN
+     │                                      │                           │
+speak("hello")                              │                           │
+     │─────────────────────────────────────▶│                           │
+     │                                 TtsSession.predict("hello")     │
+     │                                      │──────────────────────────▶│
+     │                                      │   en_US-hfc_female.onnx  │
+     │                                      │   (downloaded once,      │
+     │                                      │    ~63MB, cached in OPFS)│
+     │                                      │ ◀─────────────────────────│
+     │                                      │                           │
+     │ ◀── WAV Blob ────────────────────────│                           │
+     │                                      │                           │
+  new Audio(URL.createObjectURL(blob))      │                           │
+  audio.play()                              │                           │
+     │                                      │                           │
+```
+
+### Pipeline
+
+```
+Browser Piper → fails? → Server Piper (local Python, optional) → fails? → Web Speech API
+```
+
+### Features
+
+- **Voice**: en_US-hfc_female-medium (female voice, 63MB model)
+- **Runtime**: ONNX Runtime Web (WASM), loaded once and cached
+- **Caching**: Model files saved to OPFS after first download — subsequent loads are instant
+- **Zero server**: Works on Cloudflare Pages, static hosting, anywhere
+- **Fallback chain**: Browser Piper → Server Piper (local dev) → Web Speech API
+
+### Client Integration (useSpeechSynthesis.ts)
+
+Three-tier fallback in `useSpeechSynthesis.ts`:
+
+1. **Browser Piper** (primary) — `@mintplex-labs/piper-tts-web` loaded via dynamic import
+   - Singleton `TtsSession` created on first use
+   - `session.predict(text)` returns a WAV `Blob`
+   - Played via `new Audio(URL.createObjectURL(blob))`
+
+2. **Server Piper** (fallback 1) — For local dev where the old Python server still exists
+   - Fetches WAV from `NEXT_PUBLIC_TTS_URL` (default `http://localhost:8001`)
+   - Decodes with `AudioContext.decodeAudioData()`
+
+3. **Web Speech API** (fallback 2) — `window.speechSynthesis.speak(utterance)`
+
+### Echo Protection
+
+In `VoiceTrigger.tsx`, a `transcriptSkippedWhileSpeakingRef` flag discards:
+- Any transcript that arrives while `isSpeakingRef.current` is true
+- The first transcript after `isSpeakingRef` becomes false (residual echo from STT hearing TTS output through speakers)
+
+### Performance Notes
+
+- **First load**: ~63MB model download + ~155KB WASM. Takes 5-15s on first visit.
+- **Subsequent loads**: Instant (OPFS cache)
+- **Latency**: ~500-1000ms per inference (CPU-bound WASM)
+- **Model memory**: ~100MB in browser tab
+- **Browser support**: Chrome, Firefox, Safari, Edge (any browser with WASM + OPFS)
+- **Sample rate**: 22050Hz (Piper native), resampled by browser to output device
 
 ---
 
@@ -320,8 +395,8 @@ app.get(
           } catch {
             ws.send(
               JSON.stringify({
-                "type": "error",
-                "message": "Invalid text message",
+                type: "error",
+                message: "Invalid text message",
               }),
             );
           }
@@ -367,10 +442,14 @@ manage all services:
 {
   "scripts": {
     "dev": "turbo dev",
-    "dev:stt": "python stt/server.py",
+    "dev:stt": ".venv/bin/python stt/server.py",
+    "dev:tts": ".venv/bin/python apps/tts/app.py",
     "dev:voice": "turbo -F stt-server dev",
     "dev:web": "turbo -F web dev",
-    "dev:server": "turbo -F server dev"
+    "dev:server": "turbo -F server dev",
+    "dev:setup:tts": ".venv/bin/pip install -r apps/tts/requirements.txt",
+    "dev:setup:stt": ".venv/bin/pip install -r stt/requirements.txt",
+    "dev:all": "trap 'kill 0' EXIT; bun run dev:stt & bun run dev:tts & bun run dev:voice & bun run dev:server & bun run dev:web & wait"
   }
 }
 ```
@@ -378,37 +457,48 @@ manage all services:
 ### One-time setup
 
 ```bash
+# Install Python dependencies (venv)
+.venv/bin/pip install -r apps/tts/requirements.txt
+.venv/bin/pip install -r stt/requirements.txt
+
 # Download the Vosk ML model (only needed once per clone)
 bash scripts/setup-stt.sh
+
+# Download the Piper TTS voice model (only needed once per clone)
+.venv/bin/python -m piper.download_voices --download-dir apps/tts/voices en_US-hfc_female-medium
 ```
 
 ### Running all services locally
 
-Open **four terminals** (or use a tool like `tmux`):
+Option A — Single terminal (all services in one process group):
+
+```bash
+bun run dev:all
+```
+
+Option B — Individual terminals:
 
 ```bash
 # Terminal 1 — STT (Python/Vosk)
 bun dev:stt
 # → STT streaming WS ready → ws://localhost:5001
 
-# Terminal 2 — Voice relay (Bun/Hono)
+# Terminal 2 — TTS (Python/Piper)
+bun dev:tts
+# → INFO:     Uvicorn running on http://0.0.0.0:8001
+
+# Terminal 3 — Voice relay (Bun/Hono)
 bun dev:voice
 # → Voice server ready → ws://localhost:3002
 
-# Terminal 3 — Server (Cloudflare Workers / Hono)
+# Terminal 4 — Server (Cloudflare Workers / Hono)
 bun dev:server
 # → Server ready on port 3000
 
-# Terminal 4 — Web (Next.js)
+# Terminal 5 — Web (Next.js)
 bun dev:web
 # → http://localhost:3001
 ```
-
-> **Why Turbo can't run all four**: Turbo requires persistent task output to stay
-> attached. The STT server and voice server are long-running processes. Turbo's
-> `"persistent": true` flag works for the web/server tasks but doesn't multiplex
-> multiple persistent processes in one terminal. Running side-by-side terminals
-> is the most reliable approach.
 
 ### Port assignments
 
@@ -418,6 +508,7 @@ bun dev:web
 | Cloudflare Workers (wrangler) | 3000 | Workerd | `bun dev:server` | ✅ Running |
 | Voice server                  | 3002 | Bun     | `bun dev:voice`  | ✅ Running |
 | Vosk STT                      | 5001 | Python  | `bun dev:stt`    | ✅ Running |
+| Piper TTS                     | 8001 | Python  | `bun dev:tts`    | ✅ Running |
 
 ---
 
@@ -457,9 +548,9 @@ Fully implemented hook with:
 - Binary PCM forwarding from worklet to WS
 - `"partial"`, `"result"`, `"stt_ready"`, `"stt_disconnected"` message handling
 - Auto-reconnection via `{"type":"restart"}` on STT disconnect
-- Silence detection with 2-second auto-stop
+- Silence detection: 6s initial timeout, 3s after partial, 30s after final result
 - Real-time audio levels (frequency data visualization)
-- TTS (Text-to-Speech) using Web Speech API with greeting on start
+- TTS via Piper with "Hey, how can I help?" greeting on start
 - Proper resource cleanup on stop/unmount
 
 Returns: `{ transcript, partial, isListening, ready, confidence, levels, start, stop }`
@@ -473,6 +564,7 @@ NEXT_PUBLIC_VOICE_WS_URL=ws://localhost:3002/voice/stream
 ### 4.4 `apps/web/src/features/voice-assistant/components/VoiceTrigger.tsx` ✅ IMPLEMENTED
 
 Floating microphone button with:
+
 - Toggles listening on click (shows Bot icon when closed, mic controls when open)
 - WaveAnimation visualization during recording
 - Chat UI showing parsed commands (recognized vs unrecognized)
@@ -483,11 +575,13 @@ Floating microphone button with:
 ### 4.5 Modular Components ✅ IMPLEMENTED
 
 **`MessageItem.tsx`** — Extracted component for rendering voice messages:
+
 - Displays "Extracted" for recognized commands, "Unrecognized" otherwise
 - Shows extracted fields: action, nurse name, shift, date
 - Toggle button to show/hide raw transcript
 
 **`utils/commandParser.ts`** — Extracted command parsing logic:
+
 - `parseCommand(text)` - parses voice input for shift, date, nurse name, action
 - Uses `packages/voice-parser` for name matching and date parsing
 - `SHIFT_WORDS` constant: ["morning", "evening", "night", "off"]
@@ -518,10 +612,13 @@ All verification steps passed:
 ### Additional Features Implemented
 
 - **Text input fallback** — Type commands instead of speaking
-- **Speech synthesis** — "Hey, how can I help?" greeting via Web Speech API
+- **Speech synthesis** — "Hey, how can I help?" greeting via Piper TTS (fallback: Web Speech API)
 - **Audio visualization** — Real-time frequency bars during recording
 - **Toggle raw transcript** — Show/hide original voice input
 - **Modular architecture** — Separation of concerns with extracted components
+- **English name display** — Bengali nurse names mapped to English aliases (e.g., জয়শ্রী → Joysree) for spoken responses
+- **Echo protection** — Stale transcripts from TTS speaker echo are discarded before processing
+- **Auto-close on confirm** — Mic stops, says "Done", then closes the assistant popover
 
 ---
 
@@ -549,13 +646,14 @@ User Input → parseCommand() → Check if all required fields present
 
 Central hook managing the conversation flow:
 
-- **Accumulated data**: Stores partial data across multiple utterances
+- **Accumulated data**: Stores partial data (nurse, shift, date, englishName) across multiple utterances
 - **Missing field detection**: Identifies which fields (nurse, shift, date) are missing
 - **Confirmation flow**: Asks user to confirm yes/no after parsing a complete command
-- **TTS integration**: Speaks questions and confirmations via Web Speech API
+- **TTS integration**: Speaks questions and confirmations via Piper TTS with Bengali→English name mapping
 - **Message management**: Maintains conversation history
 
 Key functions:
+
 - `askForMissingFields()` — Asks user for missing info (e.g., "Which nurse?")
 - `askForConfirmation()` — Asks user to confirm the parsed command
 - `processMessage()` — Main handler that routes incoming text through the flow
@@ -573,6 +671,7 @@ Handles executing the shift update via tRPC:
 ### 6.3 `useVoiceAssistantState.ts` ✅ IMPLEMENTED
 
 State management hook providing:
+
 - `pendingConfirmation` — Current confirmation state
 - `messages` — Conversation history (array of ParsedMessage)
 - `awaitingResponse` — Whether waiting for user input
@@ -580,10 +679,12 @@ State management hook providing:
 
 ### 6.4 `useSpeechSynthesis.ts` ✅ IMPLEMENTED
 
-TTS hook wrapping Web Speech API:
-- `speak(text)` — Speak the given text
-- `stop()` — Stop current speech
-- `isSpeakingRef` — Ref for checking if currently speaking (useful for UI state)
+TTS hook with Piper engine + Web Speech API fallback:
+
+- `speak(text)` — Speak the given text via Piper TTS (falls back to Web Speech API)
+- `isSpeakingRef` — Ref for checking if currently speaking (used to guard echo transcripts)
+- **Echo protection**: 1.5s cooldown after speech ends before processing new transcripts
+- **Silence timeout**: 30s after final result to give user time to respond to assistant
 
 ### 6.5 New Components ✅ IMPLEMENTED
 
@@ -598,22 +699,22 @@ TTS hook wrapping Web Speech API:
 ### 6.6 End-to-End Flow ✅ VERIFIED
 
 ```
-User speaks: "Assign nurse Prodipta morning May 12"
+User speaks: "Joysree morning May 27"
     │
     ▼
-parseCommand() extracts: nurseName="Prodipta", shift="morning", date="May 12"
+parseCommand() extracts: nurseName="জয়শ্রী", englishName="Joysree", shift="morning", date="May 27"
     │
     ▼
-askForConfirmation("Prodipta", "morning", "May 12")
+askForConfirmation("জয়শ্রী", "Joysree", "morning", "May 27")
     │
     ▼
-TTS: "Do you want to update Prodipta's shift to morning on May 12? To confirm say yes, to cancel say no."
+TTS: "Do you want to update Joysree's shift to morning on May 27? To confirm say yes, to cancel say no."
     │
     ▼
 User says: "yes"
     │
     ▼
-confirmShiftUpdate({ nurseName, shift, date })
+confirmShiftUpdate({ nurseName, englishName, shift, date })
     │
     ▼
 trpcClient.roster.getSchedules.query({ dateKey })
@@ -622,7 +723,7 @@ trpcClient.roster.getSchedules.query({ dateKey })
 updateShift.mutate({ id, shiftId, nurseId, dateKey })
     │
     ▼
-Success → UI reflects updated roster
+Success → Mic stops → TTS says "Done" → Assistant closes
 ```
 
 ---
@@ -637,8 +738,8 @@ Success → UI reflects updated roster
 
 ## What's Next
 
-1. **Bengali name matching** — Full integration with `packages/voice-parser` for Bengali name matching
+1. ~~**Bengali name matching**~~ ✅ Done — `packages/voice-parser` with DISPLAY_NAMES map
 2. **Error handling UX** — Show user-friendly errors when shift update fails
 3. **Undo functionality** — Allow users to undo recent voice commands
-4. **Voice activity detection tuning** — Improve silence detection sensitivity
+4. ~~**Voice activity detection tuning**~~ ✅ Done — 30s timeout after result, echo protection
 5. **Offline mode** — Cache model locally for offline voice commands

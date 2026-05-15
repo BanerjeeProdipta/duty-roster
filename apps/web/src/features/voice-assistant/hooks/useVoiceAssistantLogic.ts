@@ -8,6 +8,7 @@ import { useSpeechSynthesis } from "./useSpeechSynthesis";
 
 interface PendingConfirmation {
   nurseName: string;
+  englishName: string | null;
   shift: string;
   date: string;
 }
@@ -38,7 +39,8 @@ export function useVoiceAssistantLogic({
     shift: string | null;
     date: string | null;
     nurseName: string | null;
-  }>({ shift: null, date: null, nurseName: null });
+    englishName: string | null;
+  }>({ shift: null, date: null, nurseName: null, englishName: null });
 
   const askForMissingFields = useCallback(
     (missingFields: string[]) => {
@@ -59,9 +61,10 @@ export function useVoiceAssistantLogic({
   );
 
   const askForConfirmation = useCallback(
-    (nurseName: string, shift: string, date: string) => {
-      const msg = `Do you want to update ${nurseName}'s shift to ${shift} on ${date}? To confirm say yes, to cancel say no.`;
-      setPendingConfirmation({ nurseName, shift, date });
+    (nurseName: string, englishName: string | null, shift: string, date: string) => {
+      const displayName = englishName ?? nurseName;
+      const msg = `Do you want to update ${displayName}'s shift to ${shift} on ${date}? To confirm say yes, to cancel say no.`;
+      setPendingConfirmation({ nurseName, englishName, shift, date });
       setMessages((prev) => [
         ...prev,
         {
@@ -144,11 +147,13 @@ export function useVoiceAssistantLogic({
           shift: parsed.shift ?? accumulatedDataRef.current.shift,
           date: parsed.date ?? accumulatedDataRef.current.date,
           nurseName: parsed.nurseName ?? accumulatedDataRef.current.nurseName,
+          englishName: parsed.englishName ?? accumulatedDataRef.current.englishName,
         };
         finalParsed = {
           shift: accumulatedDataRef.current.shift,
           date: accumulatedDataRef.current.date,
           nurseName: accumulatedDataRef.current.nurseName,
+          englishName: accumulatedDataRef.current.englishName,
           action:
             accumulatedDataRef.current.shift &&
             accumulatedDataRef.current.date &&
@@ -166,6 +171,7 @@ export function useVoiceAssistantLogic({
           shift: parsed.shift,
           date: parsed.date,
           nurseName: parsed.nurseName,
+          englishName: parsed.englishName,
         };
       }
 
@@ -180,9 +186,11 @@ export function useVoiceAssistantLogic({
           shift: null,
           date: null,
           nurseName: null,
+          englishName: null,
         };
         askForConfirmation(
           finalParsed.nurseName,
+          finalParsed.englishName,
           finalParsed.shift,
           finalParsed.date,
         );

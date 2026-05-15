@@ -191,12 +191,12 @@ export function useVoice(): UseVoiceReturn {
       }
     };
 
-    function resetSilenceTimer() {
+    function resetSilenceTimer(delay = 3000) {
       if (silenceRef.current) clearTimeout(silenceRef.current);
       silenceRef.current = setTimeout(() => {
         log("silence timeout — auto-stopping");
         stopRef.current();
-      }, 3000);
+      }, delay);
     }
 
     ws.onmessage = (event) => {
@@ -206,7 +206,7 @@ export function useVoice(): UseVoiceReturn {
           case "partial": {
             log("partial", data.text);
             setPartial(data.text);
-            resetSilenceTimer();
+            resetSilenceTimer(3000);
             break;
           }
           case "result": {
@@ -214,7 +214,7 @@ export function useVoice(): UseVoiceReturn {
             setTranscript(data.text);
             setConfidence(data.confidence ?? 0);
             setPartial("");
-            resetSilenceTimer();
+            resetSilenceTimer(30000);
             break;
           }
           case "stt_ready": {

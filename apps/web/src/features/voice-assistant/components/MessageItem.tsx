@@ -11,7 +11,7 @@ export function WaveAnimation({ levels }: { levels: number[] }) {
       {levels.map((level, i) => (
         <div
           key={i}
-          className="w-[3px] bg-blue-600 transition-all"
+          className="w-[3px] bg-accent-primary transition-all"
           style={{
             height: `${Math.max(4, level * MAX_BAR_HEIGHT)}px`,
             transitionDuration: "0.05s",
@@ -27,6 +27,7 @@ interface ParsedCommand {
   shift: string | null;
   date: string | null;
   nurseName: string | null;
+  englishName: string | null;
   action: string | null;
   missingFields: string[];
 }

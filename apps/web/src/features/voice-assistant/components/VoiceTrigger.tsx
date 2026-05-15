@@ -36,6 +36,7 @@ export function VoiceTrigger() {
   });
 
   const lastProcessedTranscriptRef = useRef("");
+  const transcriptSkippedWhileSpeakingRef = useRef(false);
 
   const toggleMic = useCallback(() => {
     isListening ? stop() : start();
@@ -48,7 +49,14 @@ export function VoiceTrigger() {
     setInputValue("");
     setPendingConfirmation(null);
     setAwaitingResponse(false);
-  }, [stop, setOpen, setMessages, setInputValue, setPendingConfirmation, setAwaitingResponse]);
+  }, [
+    stop,
+    setOpen,
+    setMessages,
+    setInputValue,
+    setPendingConfirmation,
+    setAwaitingResponse,
+  ]);
 
   const handleOpen = useCallback(() => {
     setOpen(true);
@@ -57,10 +65,48 @@ export function VoiceTrigger() {
   }, [setOpen, setLastAction, start]);
 
   useEffect(() => {
-    if (!transcript || transcript === lastProcessedTranscriptRef.current || isSpeakingRef.current || lastAction) return;
+    if (
+      !transcript ||
+      transcript === lastProcessedTranscriptRef.current ||
+      lastAction
+    )
+      return;
+
+    if (isSpeakingRef.current) {
+      transcriptSkippedWhileSpeakingRef.current = true;
+      lastProcessedTranscriptRef.current = transcript;
+      return;
+    }
+
+    if (transcriptSkippedWhileSpeakingRef.current) {
+      transcriptSkippedWhileSpeakingRef.current = false;
+      lastProcessedTranscriptRef.current = transcript;
+      return;
+    }
+
     lastProcessedTranscriptRef.current = transcript;
     processMessage(transcript);
   }, [transcript, lastAction, processMessage, isSpeakingRef]);
+
+  const confirmedRef = useRef(false);
+  useEffect(() => {
+    if (lastAction === "confirmed" && !confirmedRef.current) {
+      confirmedRef.current = true;
+      stop();
+      speak("Done").then(() => {
+        setOpen(false);
+        setMessages([]);
+        setInputValue("");
+        setPendingConfirmation(null);
+        setAwaitingResponse(false);
+        setLastAction(null);
+        confirmedRef.current = false;
+      });
+    }
+    if (lastAction !== "confirmed") {
+      confirmedRef.current = false;
+    }
+  }, [lastAction, stop, speak, setOpen, setMessages, setInputValue, setPendingConfirmation, setAwaitingResponse, setLastAction]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -111,7 +157,7 @@ export function VoiceTrigger() {
       <button
         type="button"
         onClick={open ? handleClose : handleOpen}
-        className="flex h-14 w-14 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg transition-all hover:scale-105 hover:bg-blue-700"
+        className="flex h-14 w-14 items-center justify-center rounded-full bg-accent-primary text-white shadow-lg transition-all hover:scale-105 hover:bg-accent-primary-dark focus:outline-none focus:ring-2 focus:ring-accent-primary-light focus:ring-offset-2"
         aria-label={open ? "Close assistant" : "Open voice assistant"}
       >
         {open ? <X className="h-6 w-6" /> : <Bot className="h-6 w-6" />}

@@ -29,7 +29,7 @@ export function VoiceInput({
             onChange={(e) => onInputChange(e.target.value)}
             onKeyDown={onKeyDown}
             placeholder="Type a command..."
-            className="w-full rounded-full border border-gray-200 bg-gray-50 px-3 py-2 pr-10 text-sm outline-none transition-all focus:border-blue-400 focus:bg-white focus:ring-1 focus:ring-blue-400"
+            className="w-full rounded-full border border-gray-200 bg-gray-50 px-3 py-2 pr-10 text-sm outline-none transition-all focus:border-accent-primary focus:bg-white focus:ring-1 focus:ring-accent-primary-light"
           />
         </div>
 
@@ -39,11 +39,15 @@ export function VoiceInput({
           className={`flex size-9 shrink-0 items-center justify-center rounded-full transition-all ${
             isListening
               ? "animate-pulse bg-red-500 text-white"
-              : "bg-blue-600 text-white hover:bg-blue-700"
+              : "bg-accent-primary text-white hover:bg-accent-primary-dark"
           }`}
           aria-label={isListening ? "Stop recording" : "Start recording"}
         >
-          {isListening ? <MicOff className="size-4" /> : <Mic className="size-4" />}
+          {isListening ? (
+            <MicOff className="size-4" />
+          ) : (
+            <Mic className="size-4" />
+          )}
         </button>
 
         {inputValue.trim() && (

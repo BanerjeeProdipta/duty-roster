@@ -1,4 +1,14 @@
-import { PHONETIC_MAP } from "./phonetic-map";
+import { DISPLAY_NAMES, PHONETIC_MAP } from "./phonetic-map";
+
+export function bengaliToEnglish(bengali: string): string | null {
+	const key = bengali.toLowerCase().replace(/[^a-z0-9\u0980-\u09FF ]/g, "").trim();
+	for (const [bn, en] of Object.entries(DISPLAY_NAMES)) {
+		if (bn.toLowerCase().includes(key) || key.includes(bn.toLowerCase())) {
+			return en;
+		}
+	}
+	return null;
+}
 
 export function bestNameMatch(words: string[]): string | null {
 	const all = words.join(" ").toLowerCase();
