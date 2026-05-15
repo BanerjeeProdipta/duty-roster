@@ -1,6 +1,3 @@
-import { spawn } from "node:child_process";
-import { dirname, resolve as pathResolve } from "node:path";
-import { fileURLToPath } from "node:url";
 
 // ───────────── TYPES ─────────────
 
@@ -477,14 +474,20 @@ export async function runSolver(payload: {
 	previous_shifts?: Record<string, string[]>;
 }): Promise<{ success: boolean; roster?: Record<string, string[]> }> {
 	return new Promise((resolve) => {
+		(async () => {
+			const { spawn } = await import("node:child_process");
+			const { dirname, resolve: pathResolve } = await import("node:path");
+			const { fileURLToPath } = await import("node:url");
+			const fs = await import("node:fs");
+
 		let localDirname = "";
 		try {
 			if (typeof import.meta !== "undefined" && import.meta.url) {
 				localDirname = dirname(fileURLToPath(import.meta.url));
 			}
-		} catch (e) {
-			// Ignore error in environments where fileURLToPath fails
-		}
+			} catch (_e) {
+				// Ignore error in environments where fileURLToPath fails
+			}
 
 		const possiblePaths = [
 			pathResolve(process.cwd(), "packages/api/src/roster/solver.py"),
@@ -498,7 +501,6 @@ export async function runSolver(payload: {
 		let solverPath = "";
 		for (const p of possiblePaths) {
 			try {
-				const fs = require("node:fs");
 				if (fs.existsSync(p)) {
 					solverPath = p;
 					break;
@@ -539,8 +541,8 @@ export async function runSolver(payload: {
 				const lines = stdout.trim().split("\n");
 				let jsonStr = "";
 				for (let i = lines.length - 1; i >= 0; i--) {
-					const line = lines[i]!.trim();
-					if (line.startsWith("{")) {
+					const line = lines[i]?.trim();
+					if (line && line.startsWith("{")) {
 						jsonStr = line;
 						break;
 					}
@@ -561,11 +563,11 @@ export async function runSolver(payload: {
 					);
 				}
 				resolve(result);
-			} catch (e) {
+			} catch (_e) {
 				console.error("Failed to parse solver output:", stdout);
 				resolve({ success: false });
 			}
-		});
+		})();
 
 		python.stdin?.write(JSON.stringify(payload));
 		python.stdin?.end();

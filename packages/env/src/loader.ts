@@ -1,6 +1,3 @@
-import { existsSync } from "node:fs";
-import path from "node:path";
-import dotenv from "dotenv";
 
 interface LoadEnvOptions {
 	/** Base directory to search for .env files */
@@ -21,7 +18,12 @@ interface LoadEnvOptions {
  * 3. .env.<mode> (environment-specific)
  * 4. .env.<mode>.local (environment-specific local overrides)
  */
-export function loadEnv(options: LoadEnvOptions = {}) {
+async function resolvePath(baseDir: string, ...segments: string[]) {
+	const path = await import("node:path");
+	return path.resolve(baseDir, ...segments);
+}
+
+export async function loadEnv(options: LoadEnvOptions = {}) {
 	if (typeof process === "undefined" || typeof process.cwd !== "function") {
 		return;
 	}
@@ -32,17 +34,18 @@ export function loadEnv(options: LoadEnvOptions = {}) {
 		customPaths = [],
 	} = options;
 
-	const envFiles = [
-		path.resolve(baseDir, ".env"),
-		path.resolve(baseDir, ".env.local"),
-		mode && path.resolve(baseDir, `.env.${mode}`),
-		mode && path.resolve(baseDir, `.env.${mode}.local`),
-		...customPaths,
-	].filter(Boolean) as string[];
+	const [env, envLocal, envMode, envModeLocal] = await Promise.all([
+		resolvePath(baseDir, ".env"),
+		resolvePath(baseDir, ".env.local"),
+		mode ? resolvePath(baseDir, `.env.${mode}`) : null,
+		mode ? resolvePath(baseDir, `.env.${mode}.local`) : null,
+	]);
 
-	// Load each env file, later files override earlier ones
+	const envFiles = [env, envLocal, envMode, envModeLocal, ...customPaths].filter(Boolean) as string[];
+
+	const dotenv = await import("dotenv");
 	for (const envFile of envFiles) {
-		dotenv.config({ path: envFile, override: true, quiet: true });
+		dotenv.default.config({ path: envFile, override: true, quiet: true });
 	}
 }
 
@@ -64,10 +67,13 @@ export function loadWorkerEnv() {
 	}
 }
 
-function getWorkspaceRoot() {
+async function getWorkspaceRoot() {
 	if (typeof process === "undefined" || typeof process.cwd !== "function") {
 		return null;
 	}
+
+	const { existsSync } = await import("node:fs");
+	const path = await import("node:path");
 
 	const cwd = process.cwd();
 	const candidates = [
@@ -90,10 +96,11 @@ function getWorkspaceRoot() {
  * Initialize environment for web (Next.js) applications.
  * Loads from root .env first, then app-specific .env.<mode> overrides.
  */
-export function initWebEnv() {
-	const rootDir = getWorkspaceRoot();
+export async function initWebEnv() {
+	const rootDir = await getWorkspaceRoot();
 	if (!rootDir) return;
 
+	const path = await import("node:path");
 	const webDir = path.resolve(rootDir, "apps/web");
 	const mode = (process.env.NODE_ENV as any) ?? "production";
 
@@ -104,10 +111,11 @@ export function initWebEnv() {
 /**
  * Initialize environment for server (Hono/Cloudflare) applications.
  */
-export function initServerEnv() {
-	const rootDir = getWorkspaceRoot();
+export async function initServerEnv() {
+	const rootDir = await getWorkspaceRoot();
 	if (!rootDir) return;
 
+	const path = await import("node:path");
 	const serverDir = path.resolve(rootDir, "apps/server");
 	const mode = (process.env.NODE_ENV as any) ?? "production";
 
@@ -118,8 +126,8 @@ export function initServerEnv() {
 /**
  * Initialize environment for database package.
  */
-export function initDbEnv() {
-	const rootDir = getWorkspaceRoot();
+export async function initDbEnv() {
+	const rootDir = await getWorkspaceRoot();
 	if (!rootDir) return;
 	loadEnv({ baseDir: rootDir, mode: process.env.NODE_ENV as any });
 }
@@ -127,8 +135,8 @@ export function initDbEnv() {
 /**
  * Initialize environment for auth package.
  */
-export function initAuthEnv() {
-	const rootDir = getWorkspaceRoot();
+export async function initAuthEnv() {
+	const rootDir = await getWorkspaceRoot();
 	if (!rootDir) return;
 	loadEnv({ baseDir: rootDir, mode: process.env.NODE_ENV as any });
 }
