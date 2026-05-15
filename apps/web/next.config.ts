@@ -1,5 +1,6 @@
 import { setupDevPlatform } from "@cloudflare/next-on-pages/next-dev";
 import "@Duty-Roster/env/web";
+import path from "node:path";
 import withBundleAnalyzer from "@next/bundle-analyzer";
 import type { NextConfig } from "next";
 
@@ -32,8 +33,8 @@ const nextConfig: NextConfig = {
 		if (!isServer || nextRuntime === "edge") {
 			config.resolve.alias = {
 				...config.resolve.alias,
-				fs: false,
-				path: false,
+				fs: path.join(process.cwd(), "src/shims/fs.js"),
+				path: path.join(process.cwd(), "src/shims/path.js"),
 				child_process: false,
 				net: false,
 				tls: false,
