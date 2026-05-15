@@ -3,8 +3,6 @@ import { RosterPrintSkeleton } from "@/features/roster-preview-print/components/
 import { getMonthDateRange, getYearMonthFromSearchParams } from "@/utils";
 import { getAuthedTRPCServer } from "@/utils/trpc-server";
 
-export const runtime = "edge";
-
 const RosterPDFViewer = lazy(() =>
 	import("@/features/roster-preview-print").then((mod) => ({
 		default: mod.RosterPDFViewer,

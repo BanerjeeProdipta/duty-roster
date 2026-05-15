@@ -7,8 +7,6 @@ import { RosterTableSkeleton } from "@/features/dashboard/roster-table/RosterTab
 import { getMonthDateRange, getYearMonthFromSearchParams } from "@/utils";
 import { getAuthedTRPCServer } from "@/utils/trpc-server";
 
-export const runtime = "edge";
-
 const ShiftAllocationsClient = lazy(() =>
 	import("@/features/shift-manager/ShiftAllocationsClient").then((mod) => ({
 		default: mod.default,

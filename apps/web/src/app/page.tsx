@@ -4,8 +4,6 @@ import { RosterTableSkeleton } from "@/features/dashboard/roster-table/RosterTab
 import { getMonthDateRange, getYearMonthFromSearchParams } from "@/utils";
 import { getTRPCServer } from "@/utils/trpc-server";
 
-export const runtime = "edge";
-
 const RosterTable = lazy(() =>
 	import("@/features/dashboard/roster-table/RosterTable").then((mod) => ({
 		default: mod.RosterTable,
