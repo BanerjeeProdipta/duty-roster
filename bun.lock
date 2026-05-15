@@ -97,7 +97,6 @@
         "@types/react-dom": "catalog:",
         "tailwindcss": "^4.1.18",
         "typescript": "^5",
-        "vercel": "^41.0.0",
       },
     },
     "packages/api": {
