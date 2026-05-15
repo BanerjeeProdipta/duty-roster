@@ -1,7 +1,11 @@
 import { setupDevPlatform } from "@cloudflare/next-on-pages/next-dev";
 import "@Duty-Roster/env/web";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import withBundleAnalyzer from "@next/bundle-analyzer";
 import type { NextConfig } from "next";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 if (process.env.NODE_ENV === "development") {
 	void setupDevPlatform();
@@ -28,41 +32,18 @@ const nextConfig: NextConfig = {
 			transform: "lucide-react/dist/esm/icons/{{member}}",
 		},
 	},
-	webpack: (config, { isServer, nextRuntime }) => {
+	webpack: (config, { isServer }) => {
 		if (!isServer) {
-			// Prevent bundling Node.js modules for client-side code
-			if (!config.externals) config.externals = {};
-			if (typeof config.externals === "function") {
-				const origExternals = config.externals;
-				config.externals = async (
-					context: string,
-					request: string,
-					callback: (err?: Error | null, result?: string) => void,
-				) => {
-					const nodeModules = [
-						"fs",
-						"path",
-						"fs/promises",
-						"child_process",
-						"net",
-						"tls",
-						"module",
-					];
-					if (nodeModules.includes(request)) {
-						return callback(null, `commonjs ${request}`);
-					}
-					return origExternals(context, request, callback);
-				};
-			} else {
-				const externalsObj = config.externals as Record<string, string>;
-				externalsObj.fs = "commonjs fs";
-				externalsObj.path = "commonjs path";
-				externalsObj["fs/promises"] = "commonjs fs/promises";
-				externalsObj.child_process = "commonjs child_process";
-				externalsObj.net = "commonjs net";
-				externalsObj.tls = "commonjs tls";
-				externalsObj.module = "commonjs module";
-			}
+			config.resolve.alias = {
+				...config.resolve.alias,
+				fs: path.resolve(__dirname, "src/shims/fs.js"),
+				path: path.resolve(__dirname, "src/shims/path.js"),
+				child_process: false,
+				net: false,
+				tls: false,
+				crypto: false,
+				module: false,
+			};
 		}
 		return config;
 	},

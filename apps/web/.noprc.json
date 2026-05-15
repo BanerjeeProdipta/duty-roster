@@ -1,4 +1,0 @@
-{
-	"buildCommand": "bash scripts/download-piper-assets.sh && node scripts/patch-piper-tts-web.mjs && next build",
-	"skipBuild": false
-}
