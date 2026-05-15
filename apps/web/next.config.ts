@@ -30,8 +30,8 @@ const nextConfig: NextConfig = {
 	},
 	webpack: (config, { isServer, nextRuntime }) => {
 		if (!isServer || nextRuntime === "edge") {
-			config.resolve.fallback = {
-				...config.resolve.fallback,
+			config.resolve.alias = {
+				...config.resolve.alias,
 				fs: false,
 				path: false,
 				child_process: false,
