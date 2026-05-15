@@ -11,12 +11,12 @@ interface ShiftInputsProps {
 
 const shiftColor: Record<
 	ShiftField,
-	"bg-[#FDE68A]" | "bg-[#BFDBFE]" | "bg-[#C4B5FD]" | "bg-[#E5E7EB]"
+	"bg-shift-morning" | "bg-shift-evening" | "bg-shift-night" | "bg-shift-off"
 > = {
-	morning: "bg-[#FDE68A]",
-	evening: "bg-[#BFDBFE]",
-	night: "bg-[#C4B5FD]",
-	off: "bg-[#E5E7EB]",
+	morning: "bg-shift-morning",
+	evening: "bg-shift-evening",
+	night: "bg-shift-night",
+	off: "bg-shift-off",
 };
 
 const SHIFT_FIELDS: ShiftField[] = ["morning", "evening", "night", "off"];

@@ -86,7 +86,7 @@ export default function ForgotPasswordPage() {
 					{({ canSubmit, isSubmitting }) => (
 						<Button
 							type="submit"
-							className="w-full"
+							className="mt-8 h-12 w-full bg-accent-primary text-white hover:bg-accent-primary-hover"
 							disabled={!canSubmit || isSubmitting}
 						>
 							{isSubmitting ? "Sending..." : "Send Reset Link"}

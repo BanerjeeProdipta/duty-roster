@@ -7,7 +7,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { authClient } from "@/lib/auth-client";
-import { ROUTES } from "@/lib/paths";
+import { ROUTE_ICONS, ROUTES } from "@/lib/paths";
 
 interface UserMenuProps {
 	pathname: string;
@@ -17,8 +17,8 @@ interface UserMenuProps {
 
 // Admin-only links — only shown after session resolves to an admin user.
 const ADMIN_LINKS = [
-	{ to: ROUTES.dashboard, label: "Dashboard" },
-	{ to: ROUTES.manageUsers, label: "Manage" },
+	{ to: ROUTES.dashboard, label: "Dashboard", icon: ROUTE_ICONS.dashboard },
+	{ to: ROUTES.manageUsers, label: "Manage", icon: ROUTE_ICONS.manageUsers },
 ] as const;
 
 /**
@@ -75,19 +75,20 @@ export function UserMenu({
 		<>
 			{/* Admin-only nav links — rendered after session resolves */}
 			{isAdmin &&
-				ADMIN_LINKS.map(({ to, label }) => (
+				ADMIN_LINKS.map(({ to, label, icon: Icon }) => (
 					<Link
 						key={to}
 						href={to}
 						onClick={onNavigate}
 						className={cn(
-							"font-medium text-sm transition-colors",
+							"flex items-center gap-1.5 font-medium text-sm transition-colors",
 							mobile ? "px-3 py-2" : "px-3 py-1.5",
 							pathname === to
-								? "text-foreground underline underline-offset-4"
+								? "text-foreground"
 								: "text-muted-foreground hover:text-foreground",
 						)}
 					>
+						<Icon className="h-4 w-4" />
 						{label}
 					</Link>
 				))}

@@ -1,5 +1,6 @@
 import Image from "next/image";
 import type React from "react";
+import Grainient from "@/components/ui/Grainient";
 
 export default function AuthLayout({
 	children,
@@ -8,19 +9,30 @@ export default function AuthLayout({
 }) {
 	return (
 		<div className="flex min-h-[calc(100vh-100px)] items-center justify-center bg-gray-50 p-4 font-sans selection:bg-primary/10">
-			<div className="flex w-full max-w-[1100px] overflow-hidden rounded-[2rem] border border-gray-200/70 bg-white shadow-[0_20px_50px_rgba(15,23,42,0.08)]">
-				<div className="flex w-full flex-col justify-center px-8 py-12 sm:px-16 lg:w-1/2">
+			<div className="flex w-full max-w-[1100px] overflow-hidden rounded-[2rem] border border-gray-200/70 bg-white shadow-[0_20px_50px_rgba(15,23,42,0.08)] lg:flex-row">
+				<div className="flex w-full flex-col justify-center px-8 py-12 sm:w-full sm:px-16 lg:w-1/2">
 					<div className="mx-auto flex w-full max-w-sm flex-col">
 						{children}
 					</div>
 				</div>
 
-				<div className="relative hidden w-1/2 overflow-hidden bg-gray-950 lg:block">
-					<div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.14),transparent_34%),linear-gradient(135deg,rgba(15,23,42,0.95),rgba(15,23,42,0.88))]" />
-					<div className="absolute -top-24 -right-24 h-96 w-96 rounded-full bg-primary/10 blur-[120px]" />
-					<div className="absolute -bottom-24 -left-24 h-96 w-96 rounded-full bg-white/10 blur-[120px]" />
-
-					<div className="relative flex h-full items-center justify-center p-16">
+				<div className="relative hidden h-[600px] w-1/2 overflow-hidden lg:block">
+					<Grainient
+						className="absolute inset-0"
+						color1="var(--color-gradient-start)"
+						color2="var(--color-gradient-middle)"
+						color3="var(--color-gradient-end)"
+						grainAnimated={false}
+					/>
+					<div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 text-center">
+						<p className="font-cursive font-medium text-4xl text-white/90 leading-snug lg:text-5xl">
+							Scheduling
+						</p>
+						<p className="font-cursive font-medium text-4xl text-white/90 leading-snug lg:text-5xl">
+							made simple!
+						</p>
+					</div>
+					<div className="relative z-20 flex h-full items-center justify-center p-16">
 						<Image
 							src="/logo.png"
 							alt="Duty-Roster logo"

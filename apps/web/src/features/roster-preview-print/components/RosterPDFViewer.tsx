@@ -137,17 +137,6 @@ export function RosterPDFViewer({ initialSchedules }: RosterPDFViewerProps) {
 				)}
 				<div className="flex flex-col items-center gap-2 lg:flex-row">
 					<div className="flex flex-row items-center gap-2">
-						<button
-							type="button"
-							disabled={isFetching || !hasContent}
-							className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2.5 font-medium text-sm transition-colors hover:bg-gray-50 disabled:opacity-50"
-						>
-							<FileText
-								className={`h-4 w-4 ${isFetching ? "animate-pulse" : ""}`}
-							/>
-							{isFetching ? "Loading..." : "Roster Ready"}
-						</button>
-
 						{hasContent && (
 							<button
 								type="button"

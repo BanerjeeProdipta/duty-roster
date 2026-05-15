@@ -4,7 +4,7 @@ import type * as React from "react";
 const badgeVariants = {
 	default: "border-transparent bg-gray-100 text-gray-800",
 	secondary: "border-transparent bg-gray-50 text-gray-600",
-	success: "border-green-200 bg-green-50 text-green-800",
+	success: "border-emerald-200 bg-emerald-50 text-emerald-800",
 	warning: "border-amber-200 bg-amber-50 text-amber-800",
 	error: "border-red-200 bg-red-100 text-red-800",
 	outline: "border-gray-200 text-gray-700",

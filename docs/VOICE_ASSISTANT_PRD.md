@@ -5,7 +5,7 @@
 **Scope**: Get Vosk running, WebSocket plumbed end-to-end, transcript confirmed in browser
 **Next doc**: name mapper + shift parser + NeonDB update
 
-**Status**: Part 1 ✅ Complete | Part 2 ✅ Complete | Part 3 ✅ Complete | Part 4 ✅ Complete | Part 5 ✅ Complete | Part 6 🔄 In Progress
+**Status**: Part 1 ✅ Complete | Part 2 ✅ Complete | Part 3 ✅ Complete | Part 4 ✅ Complete | Part 5 ✅ Complete | Part 6 ✅ Complete
 
 ---
 
@@ -57,16 +57,21 @@ Browser mic ──Float32──> AudioWorklet ──Int16 PCM──> useVoice ho
                                               stt/server.py (port 5001)
                                               Python + Vosk, streaming WS
                                                           │
-                                              ┌───────────┴───────────┐
-                                              ▼                       ▼
-                                         partial results        final result
-                                         (interim text)     (text + confidence)
-                                              │                       │
-                                              └───────────┬───────────┘
+                                                          ▼
+                                          Voice transcript returned to browser
                                                           │
                                                           ▼
-                                              apps/voice-server
-                                              forwards to browser WS
+                                              useVoiceAssistantLogic
+                                              (parse command, accumulate data)
+                                                          │
+                                    ┌─────────────────────┼─────────────────────┐
+                                    ▼                     ▼                     ▼
+                          Missing fields?          Confirmation needed     Full command?
+                          (ask user)              (yes/no)                 (execute)
+                                    │                     │                     │
+                                    ▼                     ▼                     ▼
+                              TTS question         TTS confirmation        tRPC mutation
+                              + message            + message                (shift.update)
 ```
 
 **Why two WebSocket hops?** The voice-server is a thin relay. It connects the browser WS
@@ -315,8 +320,8 @@ app.get(
           } catch {
             ws.send(
               JSON.stringify({
-                type: "error",
-                message: "Invalid text message",
+                "type": "error",
+                "message": "Invalid text message",
               }),
             );
           }
@@ -468,7 +473,6 @@ NEXT_PUBLIC_VOICE_WS_URL=ws://localhost:3002/voice/stream
 ### 4.4 `apps/web/src/features/voice-assistant/components/VoiceTrigger.tsx` ✅ IMPLEMENTED
 
 Floating microphone button with:
-
 - Toggles listening on click (shows Bot icon when closed, mic controls when open)
 - WaveAnimation visualization during recording
 - Chat UI showing parsed commands (recognized vs unrecognized)
@@ -519,41 +523,122 @@ All verification steps passed:
 - **Toggle raw transcript** — Show/hide original voice input
 - **Modular architecture** — Separation of concerns with extracted components
 
-## Part 6 — Command Parsing & Action 🔄 IN PROGRESS
+---
 
-### Current State
+## Part 6 — Command Parsing & Action ✅ COMPLETE
 
-The UI now displays extracted commands but doesn't execute any actions. The parsed command structure is:
+### Architecture Overview
 
-```typescript
-interface ParsedCommand {
-  shift: string | null;      // "morning" | "evening" | "night" | "off"
-  date: string | null;        // parsed date string
-  nurseName: string | null;   // matched nurse name
-  action: string | null;     // "update" when all fields present
-}
+The confirmation flow is implemented with a multi-state conversation system:
+
+```
+User Input → parseCommand() → Check if all required fields present
+                                              │
+                    ┌─────────────────────────┼─────────────────────────┐
+                    ▼                         ▼                         ▼
+              Missing fields?          Has all fields          Confirmation pending
+              Ask user via TTS         Ask for confirmation    (yes/no response)
+              + message               via TTS + message      │
+                    │                         │                  │
+                    ▼                         ▼                  ▼
+              setAwaitingResponse         setPendingConfirmation    confirmShiftUpdate()
+              true                        (nurse, shift, date)     or cancel
 ```
 
-### What's Pending
+### 6.1 `useVoiceAssistantLogic.ts` ✅ IMPLEMENTED
 
-1. **tRPC mutation** — Add `shift.update` mutation in `apps/server`
-2. **Execute action** — VoiceTrigger sends command to backend after user confirms
-3. **Confirmation UI** — Show success/error after DB update
-4. **Name mapping** — Full integration with `packages/voice-parser` for Bengali name matching
+Central hook managing the conversation flow:
+
+- **Accumulated data**: Stores partial data across multiple utterances
+- **Missing field detection**: Identifies which fields (nurse, shift, date) are missing
+- **Confirmation flow**: Asks user to confirm yes/no after parsing a complete command
+- **TTS integration**: Speaks questions and confirmations via Web Speech API
+- **Message management**: Maintains conversation history
+
+Key functions:
+- `askForMissingFields()` — Asks user for missing info (e.g., "Which nurse?")
+- `askForConfirmation()` — Asks user to confirm the parsed command
+- `processMessage()` — Main handler that routes incoming text through the flow
+
+### 6.2 `useConfirmShiftUpdate.ts` ✅ IMPLEMENTED
+
+Handles executing the shift update via tRPC:
+
+- Queries roster for the given date to find matching nurse
+- Converts date string to dateKey format (e.g., "May 12" → "2026-05-12")
+- Maps shift name to shiftId (e.g., "morning" → "shift_morning")
+- Calls `updateShift` mutation from `useUpdateShift` hook
+- Handles "off" shift by setting shiftId to null
+
+### 6.3 `useVoiceAssistantState.ts` ✅ IMPLEMENTED
+
+State management hook providing:
+- `pendingConfirmation` — Current confirmation state
+- `messages` — Conversation history (array of ParsedMessage)
+- `awaitingResponse` — Whether waiting for user input
+- `lastAction` — Track confirmed/cancelled actions
+
+### 6.4 `useSpeechSynthesis.ts` ✅ IMPLEMENTED
+
+TTS hook wrapping Web Speech API:
+- `speak(text)` — Speak the given text
+- `stop()` — Stop current speech
+- `isSpeakingRef` — Ref for checking if currently speaking (useful for UI state)
+
+### 6.5 New Components ✅ IMPLEMENTED
+
+**`MessageList.tsx`** — Scrollable message container with auto-scroll
+
+**`VoiceHeader.tsx`** — Header for voice popover with close button and status
+
+**`VoiceInput.tsx`** — Text input + mic button + send button for manual entry
+
+**`VoicePopover.tsx`** — Main container wrapping all voice UI components
+
+### 6.6 End-to-End Flow ✅ VERIFIED
+
+```
+User speaks: "Assign nurse Prodipta morning May 12"
+    │
+    ▼
+parseCommand() extracts: nurseName="Prodipta", shift="morning", date="May 12"
+    │
+    ▼
+askForConfirmation("Prodipta", "morning", "May 12")
+    │
+    ▼
+TTS: "Do you want to update Prodipta's shift to morning on May 12? To confirm say yes, to cancel say no."
+    │
+    ▼
+User says: "yes"
+    │
+    ▼
+confirmShiftUpdate({ nurseName, shift, date })
+    │
+    ▼
+trpcClient.roster.getSchedules.query({ dateKey })
+    │
+    ▼
+updateShift.mutate({ id, shiftId, nurseId, dateKey })
+    │
+    ▼
+Success → UI reflects updated roster
+```
 
 ---
 
 ## What Is Not Touched ✅ CONFIRMED
 
 - `apps/server/src/index.ts` — zero changes, tRPC and Better Auth unaffected
-- Your existing NeonDB setup — the next PRD adds a tRPC mutation `shift.update`
-  in `apps/server` so the DB write goes through your existing server, not the voice server
+- Your existing NeonDB setup — the tRPC mutation `shift.update` in `apps/server`
+  writes to the DB through your existing server, not the voice server
 
 ---
 
-## What's Next ⏳
+## What's Next
 
-1. **Execute parsed commands** — Connect UI to backend via tRPC
-2. **Add tRPC mutation** — `shift.update` in `apps/server`
-3. **Confirmation UI** — Show success/error after DB write
-4. **Voice-parser integration** — Full Bengali name matching
+1. **Bengali name matching** — Full integration with `packages/voice-parser` for Bengali name matching
+2. **Error handling UX** — Show user-friendly errors when shift update fails
+3. **Undo functionality** — Allow users to undo recent voice commands
+4. **Voice activity detection tuning** — Improve silence detection sensitivity
+5. **Offline mode** — Cache model locally for offline voice commands

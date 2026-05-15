@@ -4,10 +4,10 @@ import { cn } from "@Duty-Roster/ui/lib/utils";
 import { useEffect, useState } from "react";
 
 const colorMap = {
-	green: {
-		bg: "bg-green-500",
-		border: "!border-green-500",
-		focus: "focus:ring-green-500/20",
+	emerald: {
+		bg: "bg-emerald-500",
+		border: "!border-emerald-500",
+		focus: "focus:ring-emerald-500/20",
 	},
 	red: {
 		bg: "bg-red-500",
@@ -25,27 +25,23 @@ const colorMap = {
 		focus: "focus:ring-yellow-500/20",
 	},
 	// Light variants matching NurseCard usage
-	"bg-[#FDE68A]": {
-		// light yellow - Day shift
-		bg: "bg-[#FDE68A]",
+	"bg-shift-morning": {
+		bg: "bg-shift-morning",
 		border: "!border-amber-300",
 		focus: "focus:ring-amber-200",
 	},
-	"bg-[#BFDBFE]": {
-		// light blue - Eve shift
-		bg: "bg-[#BFDBFE]",
+	"bg-shift-evening": {
+		bg: "bg-shift-evening",
 		border: "!border-blue-300",
 		focus: "focus:ring-blue-200",
 	},
-	"bg-[#C4B5FD]": {
-		// light violet - Night shift
-		bg: "bg-[#C4B5FD]",
+	"bg-shift-night": {
+		bg: "bg-shift-night",
 		border: "!border-violet-300",
 		focus: "focus:ring-violet-200",
 	},
-	"bg-[#E5E7EB]": {
-		// light gray - Off shift
-		bg: "bg-[#E5E7EB]",
+	"bg-shift-off": {
+		bg: "bg-shift-off",
 		border: "!border-gray-300",
 		focus: "focus:ring-gray-200",
 	},
