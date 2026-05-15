@@ -480,96 +480,97 @@ export async function runSolver(payload: {
 			const { fileURLToPath } = await import("node:url");
 			const fs = await import("node:fs");
 
-		let localDirname = "";
-		try {
-			if (typeof import.meta !== "undefined" && import.meta.url) {
-				localDirname = dirname(fileURLToPath(import.meta.url));
-			}
+			let localDirname = "";
+			try {
+				if (typeof import.meta !== "undefined" && import.meta.url) {
+					localDirname = dirname(fileURLToPath(import.meta.url));
+				}
 			} catch (_e) {
 				// Ignore error in environments where fileURLToPath fails
 			}
 
-		const possiblePaths = [
-			pathResolve(process.cwd(), "packages/api/src/roster/solver.py"),
-			pathResolve(process.cwd(), "src/roster/solver.py"),
-		];
+			const possiblePaths = [
+				pathResolve(process.cwd(), "packages/api/src/roster/solver.py"),
+				pathResolve(process.cwd(), "src/roster/solver.py"),
+			];
 
-		if (localDirname) {
-			possiblePaths.push(pathResolve(localDirname, "solver.py"));
-		}
-
-		let solverPath = "";
-		for (const p of possiblePaths) {
-			try {
-				if (fs.existsSync(p)) {
-					solverPath = p;
-					break;
-				}
-			} catch {
-				// ignore
+			if (localDirname) {
+				possiblePaths.push(pathResolve(localDirname, "solver.py"));
 			}
-		}
 
-		if (!solverPath) {
-			console.error("Solver not found. Searched:", possiblePaths);
-			resolve({ success: false });
-			return;
-		}
+			let solverPath = "";
+			for (const p of possiblePaths) {
+				try {
+					if (fs.existsSync(p)) {
+						solverPath = p;
+						break;
+					}
+				} catch {
+					// ignore
+				}
+			}
 
-		console.log("Solver path:", solverPath);
-		const python = spawn("python3", [solverPath]);
-
-		let stdout = "";
-		let stderr = "";
-
-		python.stdout?.on("data", (data: Buffer) => {
-			stdout += data.toString();
-		});
-
-		python.stderr?.on("data", (data: Buffer) => {
-			stderr += data.toString();
-		});
-
-		python.on("close", (code: number | null) => {
-			if (code !== 0) {
-				console.error("Solver error:", stderr);
+			if (!solverPath) {
+				console.error("Solver not found. Searched:", possiblePaths);
 				resolve({ success: false });
 				return;
 			}
-			try {
-				// Find the last line that's valid JSON (the actual result)
-				const lines = stdout.trim().split("\n");
-				let jsonStr = "";
-				for (let i = lines.length - 1; i >= 0; i--) {
-					const line = lines[i]?.trim();
-					if (line && line.startsWith("{")) {
-						jsonStr = line;
-						break;
-					}
-				}
-				if (!jsonStr) {
-					console.error("❌ No JSON found in output:", stdout.slice(-500));
+
+			console.log("Solver path:", solverPath);
+			const python = spawn("python3", [solverPath]);
+
+			let stdout = "";
+			let stderr = "";
+
+			python.stdout?.on("data", (data: Buffer) => {
+				stdout += data.toString();
+			});
+
+			python.stderr?.on("data", (data: Buffer) => {
+				stderr += data.toString();
+			});
+
+			python.on("close", (code: number | null) => {
+				if (code !== 0) {
+					console.error("Solver error:", stderr);
 					resolve({ success: false });
 					return;
 				}
-				console.log("📥 Got JSON, length:", jsonStr.length);
-				const result = JSON.parse(jsonStr);
-				// Debug first nurse's shifts
-				const firstNurse = Object.keys(result.roster || {})[0];
-				if (firstNurse) {
-					console.log(
-						`🔍 First nurse ${firstNurse} first 5 shifts:`,
-						result.roster[firstNurse].slice(0, 5),
-					);
+				try {
+					// Find the last line that's valid JSON (the actual result)
+					const lines = stdout.trim().split("\n");
+					let jsonStr = "";
+					for (let i = lines.length - 1; i >= 0; i--) {
+						const line = lines[i]?.trim();
+						if (line && line.startsWith("{")) {
+							jsonStr = line;
+							break;
+						}
+					}
+					if (!jsonStr) {
+						console.error("❌ No JSON found in output:", stdout.slice(-500));
+						resolve({ success: false });
+						return;
+					}
+					console.log("📥 Got JSON, length:", jsonStr.length);
+					const result = JSON.parse(jsonStr);
+					// Debug first nurse's shifts
+					const firstNurse = Object.keys(result.roster || {})[0];
+					if (firstNurse) {
+						console.log(
+							`🔍 First nurse ${firstNurse} first 5 shifts:`,
+							result.roster[firstNurse].slice(0, 5),
+						);
+					}
+					resolve(result);
+				} catch (_e) {
+					console.error("Failed to parse solver output:", stdout);
+					resolve({ success: false });
 				}
-				resolve(result);
-			} catch (_e) {
-				console.error("Failed to parse solver output:", stdout);
-				resolve({ success: false });
-			}
-		})();
+			});
 
-		python.stdin?.write(JSON.stringify(payload));
-		python.stdin?.end();
+			python.stdin?.write(JSON.stringify(payload));
+			python.stdin?.end();
+		})();
 	});
 }
