@@ -34,10 +34,11 @@ const nextConfig: NextConfig = {
 	},
 	webpack: (config, { isServer }) => {
 		if (!isServer) {
+			// Mark Node.js modules as not bundled for client-side
 			config.resolve.alias = {
 				...config.resolve.alias,
-				fs: path.resolve(__dirname, "src/shims/fs.js"),
-				path: path.resolve(__dirname, "src/shims/path.js"),
+				fs: false,
+				path: false,
 				child_process: false,
 				net: false,
 				tls: false,
