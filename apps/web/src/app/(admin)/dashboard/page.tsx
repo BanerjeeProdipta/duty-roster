@@ -6,6 +6,8 @@ import { VoiceTrigger } from "@/features/voice-assistant/components/VoiceTrigger
 import { getMonthDateRange, getYearMonthFromSearchParams } from "@/utils";
 import { getAuthedTRPCServer } from "@/utils/trpc-server";
 
+export const runtime = "edge";
+
 const ShiftCounts = lazy(() =>
 	import("@/features/dashboard/components/ShiftCounts").then((mod) => ({
 		default: mod.ShiftCounts,

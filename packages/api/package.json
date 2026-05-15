@@ -1,9 +1,13 @@
 {
 	"name": "@Duty-Roster/api",
 	"type": "module",
+	"sideEffects": false,
 	"exports": {
 		".": {
 			"default": "./src/index.ts"
+		},
+		"./server": {
+			"default": "./src/server.ts"
 		},
 		"./*": {
 			"default": "./src/*.ts"
