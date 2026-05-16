@@ -46,10 +46,6 @@ const nextConfig: NextConfig = {
 				module: false,
 			};
 
-			// Always externalize large WASM-based libraries for Cloudflare Pages
-			// These will be loaded from CDN instead of bundled
-			config.resolve.alias["onnxruntime-web"] = false;
-
 			// Optimize code splitting for edge runtime
 			config.optimization = {
 				...config.optimization,

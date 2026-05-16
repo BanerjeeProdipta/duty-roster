@@ -5,7 +5,7 @@
 **Scope**: Get Vosk running, WebSocket plumbed end-to-end, transcript confirmed in browser
 **Next doc**: name mapper + shift parser + NeonDB update
 
-**Status**: Part 1 ✅ Complete | Part 2 ✅ Complete | Part 3 ✅ Complete | Part 4 ✅ Complete | Part 5 ✅ Complete | Part 6 ✅ Complete | TTS (Piper) ✅ Complete
+**Status**: Part 1 ✅ Complete | Part 2 ✅ Complete | Part 3 ✅ Complete | Part 4 ✅ Complete | Part 5 ✅ Complete | Part 6 ✅ Complete | TTS (Web Speech API) ✅ Complete
 
 ---
 
@@ -27,8 +27,7 @@ duty-roster/
 ├── apps/
 │   ├── web/              ← Next.js (port 3001)
 │   ├── server/           ← Cloudflare Workers + Hono + tRPC + Better Auth (port 3000, unchanged)
-│   ├── voice-server/     ← ✅ IMPLEMENTED — Bun + Hono WebSocket (voice relay, port 3002)
-│   └── tts/              ← ✅ IMPLEMENTED — FastAPI Piper TTS server (port 8001)
+│   └── voice-server/     ← ✅ IMPLEMENTED — Bun + Hono WebSocket (voice relay, port 3002)
 ├── packages/
 │   ├── api/
 │   ├── auth/
@@ -81,202 +80,23 @@ us swap STT backends later without changing frontend code.
 
 ---
 
-## TTS (Text-to-Speech) — Piper Browser WASM ✅ IMPLEMENTED
+## TTS (Text-to-Speech) — Web Speech API ✅ IMPLEMENTED
 
-Text-to-speech via [Piper](https://github.com/rhasspy/piper) running entirely in the browser over WebAssembly, with a server-side fallback and native Web Speech API as the last resort.
+Uses the browser-native [Web Speech API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Speech_API) (`window.speechSynthesis`) for text-to-speech.
 
-### Overview
-
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                     useSpeechSynthesis.ts                            │
-│                                                                     │
-│  speak("hello")                                                     │
-│       │                                                             │
-│       ├──► Browser Piper (WASM) ──── success? ──► play Blob         │
-│       │        │ fail                                               │
-│       │        ▼                                                    │
-│       ├──► Server Piper (Python) ─── success? ──► play AudioBuffer  │
-│       │        │ fail                                               │
-│       │        ▼                                                    │
-│       └──► Web Speech API ────────── always works ──► utterance     │
-└─────────────────────────────────────────────────────────────────────┘
-```
-
-### Architecture Diagram
-
-```mermaid
-flowchart TB
-    subgraph Client["Browser (useSpeechSynthesis.ts)"]
-        Hook["speak(text)"]
-        Branch{"ENABLE_BROWSER_PIPER?"}
-
-        subgraph BrowserPiper["Browser Piper (WASM)"]
-            direction TB
-            Import["Dynamic import\n@mintplex-labs/piper-tts-web"]
-            TtsSession["TtsSession.create()"]
-            Predict["session.predict(text)"]
-
-            subgraph Assets["Asset Sources"]
-                direction LR
-                Voice["Voice .onnx\n(HuggingFace or\n/piper-assets/models/)"]
-                Onnx["ONNX Runtime .wasm\n(Cloudflare CDN or\n/piper-assets/onnx/)"]
-                Phonemize["piper_phonemize .wasm/.data\n(jsDelivr or\n/piper-assets/piper/)"]
-            end
-        end
-
-        subgraph ServerPiper["Server Piper"]
-            Server["fetch(/synthesize?text=...)\n→ Python TTS server :8001"]
-            Decode["decodeAudioData →\nAudioBuffer → play"]
-        end
-
-        subgraph Fallback["Web Speech API"]
-            WSAPI["window.speechSynthesis\n.speak(utterance)"]
-        end
-
-        Audio["playBlob(blob)\n→ new Audio(url)"]
-    end
-
-    Hook --> Branch
-    Branch -->|"true"| Import
-    Import --> TtsSession
-    TtsSession --> Assets
-    TtsSession --> Predict
-    Predict --> Audio
-    Branch -->|"false / fail"| Server
-    Server --> Decode
-    Decode -->|"fail"| WSAPI
-
-    style Branch stroke-dasharray: 5 5
-    style Audio fill:#d4edda
-    style WSAPI fill:#f8d7da
-```
-
-### Core Components
-
-| Component | Role | Source |
-|-----------|------|--------|
-| `@mintplex-labs/piper-tts-web` | JS orchestration — text in, WAV Blob out | npm |
-| `onnxruntime-web` | Neural net inference engine (WASM) | npm |
-| `@diffusionstudio/piper-wasm` | Phonemize library (text → phoneme IDs) | jsDelivr CDN |
-| Voice model `.onnx` | Pre-trained TTS voice (e.g. `en_US-hfc_female-medium`) | HuggingFace |
-
-### Data Flow
+### Architecture
 
 ```
-Text input
-    │
-    ▼
-┌─────────────────────────────────────────────────────┐
-│ Piper TTS Pipeline (@mintplex-labs/piper-tts-web)   │
-│                                                     │
-│  Text ──► piper_phonemize (WASM) ──► phoneme IDs   │
-│              ↑                                      │
-│         piper_phonemize.wasm + .data                │
-│                                                     │
-│  Phoneme IDs ──► onnxruntime-web (WASM) ──► PCM    │
-│                     ↑                               │
-│               *.wasm (ort-wasm-simd, etc.)          │
-│                                                     │
-│  PCM ──► WAV Blob (RIFF header + PCM data)          │
-└─────────────────────────────────────────────────────┘
-                    │
-                    ▼
-          new Audio(blobUrl) → play()
+useSpeechSynthesis.ts
+     │
+     ▼
+window.speechSynthesis.speak(utterance)
+     │
+     ▼
+Browser's built-in TTS engine (varies by OS/browser)
 ```
 
-### Fallback Chain
-
-Defined in `apps/web/src/features/voice-assistant/hooks/useSpeechSynthesis.ts`:
-
-| Priority | Method | Env flag | Latency | Dependency |
-|----------|--------|----------|---------|------------|
-| 1st | Browser Piper (WASM) | `NEXT_PUBLIC_BROWSER_PIPER=true` | ~500-1000ms | WASM-capable browser |
-| 2nd | Server Piper (Python) | `NEXT_PUBLIC_TTS_URL` | ~200-500ms + network | Python TTS server on :8001 |
-| 3rd | Web Speech API | always enabled | instant | Browser native |
-
-### Client Integration (useSpeechSynthesis.ts)
-
-1. **Browser Piper** (primary) — `@mintplex-labs/piper-tts-web` loaded via dynamic import
-   - Singleton `TtsSession` created on first use
-   - `session.predict(text)` returns a WAV `Blob`
-   - Played via `new Audio(URL.createObjectURL(blob))`
-
-2. **Server Piper** (fallback 1) — Python Piper server at `NEXT_PUBLIC_TTS_URL` (default `http://localhost:8001`)
-   - Fetches WAV via `GET /synthesize?text=...`
-   - Decodes with `AudioContext.decodeAudioData()`
-
-3. **Web Speech API** (fallback 2) — `window.speechSynthesis.speak(utterance)`
-
-### Asset Management
-
-#### Self-hosted assets (`PIPER_LOCAL_ASSETS=true`)
-
-```
-public/piper-assets/
-├── models/en/en_US/hfc_female/medium/
-│   ├── en_US-hfc_female-medium.onnx          ← from HuggingFace
-│   └── en_US-hfc_female-medium.onnx.json     ← voice config
-├── onnx/
-│   ├── ort-wasm-simd.wasm                    ← from node_modules/onnxruntime-web
-│   ├── ort-wasm-simd-threaded.wasm
-│   ├── ort-wasm-simd.jsep.mjs
-│   ├── ort-wasm-simd-threaded.jsep.mjs
-│   ├── ort-wasm-simd.asyncify.mjs
-│   └── ort-wasm-simd-threaded.asyncify.mjs
-└── piper/
-    ├── piper_phonemize.data                   ← from jsDelivr CDN
-    ├── piper_phonemize.js
-    └── piper_phonemize.wasm
-```
-
-#### Asset resolution
-
-```mermaid
-flowchart LR
-    subgraph CDN["CDN Mode (default)"]
-        A1["Voice model<br>huggingface.co/..."]
-        A2["ONNX WASM<br>cdnjs.cloudflare.com/..."]
-        A3["Phonemize<br>cdn.jsdelivr.net/..."]
-    end
-
-    subgraph Local["Self-hosted mode<br>PIPER_LOCAL_ASSETS=true"]
-        B1["Voice model<br>/piper-assets/models/..."]
-        B2["ONNX WASM<br>/piper-assets/onnx/..."]
-        B3["Phonemize<br>/piper-assets/piper/..."]
-    end
-
-    A1 & A2 & A3 -->|"download-piper-assets.sh"| B1 & B2 & B3
-    B1 & B2 & B3 -->|"patch-piper-tts-web.mjs postinstall"| C["@mintplex-labs/piper-tts-web<br>URLs rewritten to /piper-assets/"]
-```
-
-#### Scripts
-
-| Script | Purpose |
-|--------|---------|
-| `apps/web/scripts/download-piper-assets.sh` | Downloads all assets (model, ONNX WASM, phonemize WASM) to `public/piper-assets/` |
-| `apps/web/scripts/patch-piper-tts-web.mjs` | Postinstall — rewrites npm package URLs from CDN → local `/piper-assets/` |
-| `apps/web/scripts/patch-next-on-pages-build.mjs` | Aliases `onnxruntime-web` etc. to `false` in Next.js config for Pages build |
-
-### Configuration
-
-#### Environment variables
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `NEXT_PUBLIC_BROWSER_PIPER` | `false` | Enable browser-side Piper WASM TTS |
-| `NEXT_PUBLIC_PIPER_LOCAL_ASSETS` | `false` | Serve assets from `/piper-assets/` instead of CDN |
-| `NEXT_PUBLIC_TTS_URL` | `http://localhost:8001` | Python TTS server URL (fallback) |
-
-#### Next.js bundling
-
-In `next.config.ts`, the three packages are aliased to `false` to prevent Next.js from attempting to bundle them at build time (they are WASM modules loaded dynamically at runtime):
-
-```ts
-config.resolve.alias["onnxruntime-web"] = false;
-config.resolve.alias["@mintplex-labs/piper-tts-web"] = false;
-config.resolve.alias["@diffusionstudio/piper-wasm"] = false;
-```
+No server, no downloads, no WASM — works in every modern browser.
 
 ### Echo Protection
 
@@ -286,8 +106,6 @@ In `VoiceTrigger.tsx`, a `transcriptSkippedWhileSpeakingRef` flag discards:
 - The first transcript after `isSpeakingRef` becomes `false` (residual echo from STT hearing TTS output through speakers)
 
 Plus a 1.5s cooldown after speech ends before processing new transcripts.
-
-### Performance
 
 | Metric | Value |
 |--------|-------|
@@ -601,13 +419,11 @@ manage all services:
   "scripts": {
     "dev": "turbo dev",
     "dev:stt": ".venv/bin/python stt/server.py",
-    "dev:tts": ".venv/bin/python apps/tts/app.py",
     "dev:voice": "turbo -F stt-server dev",
     "dev:web": "turbo -F web dev",
     "dev:server": "turbo -F server dev",
-    "dev:setup:tts": ".venv/bin/pip install -r apps/tts/requirements.txt",
     "dev:setup:stt": ".venv/bin/pip install -r stt/requirements.txt",
-    "dev:all": "trap 'kill 0' EXIT; bun run dev:stt & bun run dev:tts & bun run dev:voice & bun run dev:server & bun run dev:web & wait"
+    "dev:all": "trap 'kill 0' EXIT; bun run dev:stt & bun run dev:voice & bun run dev:server & bun run dev:web & wait"
   }
 }
 ```
@@ -616,14 +432,10 @@ manage all services:
 
 ```bash
 # Install Python dependencies (venv)
-.venv/bin/pip install -r apps/tts/requirements.txt
 .venv/bin/pip install -r stt/requirements.txt
 
 # Download the Vosk ML model (only needed once per clone)
 bash scripts/setup-stt.sh
-
-# Download the Piper TTS voice model (only needed once per clone)
-.venv/bin/python -m piper.download_voices --download-dir apps/tts/voices en_US-hfc_female-medium
 ```
 
 ### Running all services locally
@@ -641,19 +453,15 @@ Option B — Individual terminals:
 bun dev:stt
 # → STT streaming WS ready → ws://localhost:5001
 
-# Terminal 2 — TTS (Python/Piper)
-bun dev:tts
-# → INFO:     Uvicorn running on http://0.0.0.0:8001
-
-# Terminal 3 — Voice relay (Bun/Hono)
+# Terminal 2 — Voice relay (Bun/Hono)
 bun dev:voice
 # → Voice server ready → ws://localhost:3002
 
-# Terminal 4 — Server (Cloudflare Workers / Hono)
+# Terminal 3 — Server (Cloudflare Workers / Hono)
 bun dev:server
 # → Server ready on port 3000
 
-# Terminal 5 — Web (Next.js)
+# Terminal 4 — Web (Next.js)
 bun dev:web
 # → http://localhost:3001
 ```
@@ -666,7 +474,6 @@ bun dev:web
 | Cloudflare Workers (wrangler) | 3000 | Workerd | `bun dev:server` | ✅ Running |
 | Voice server                  | 3002 | Bun     | `bun dev:voice`  | ✅ Running |
 | Vosk STT                      | 5001 | Python  | `bun dev:stt`    | ✅ Running |
-| Piper TTS                     | 8001 | Python  | `bun dev:tts`    | ✅ Running |
 
 ---
 
@@ -770,7 +577,7 @@ All verification steps passed:
 ### Additional Features Implemented
 
 - **Text input fallback** — Type commands instead of speaking
-- **Speech synthesis** — "Hey, how can I help?" greeting via Piper TTS (fallback: Web Speech API)
+- **Speech synthesis** — "Hey, how can I help?" greeting via Web Speech API
 - **Audio visualization** — Real-time frequency bars during recording
 - **Toggle raw transcript** — Show/hide original voice input
 - **Modular architecture** — Separation of concerns with extracted components
@@ -807,7 +614,7 @@ Central hook managing the conversation flow:
 - **Accumulated data**: Stores partial data (nurse, shift, date, englishName) across multiple utterances
 - **Missing field detection**: Identifies which fields (nurse, shift, date) are missing
 - **Confirmation flow**: Asks user to confirm yes/no after parsing a complete command
-- **TTS integration**: Speaks questions and confirmations via Piper TTS with Bengali→English name mapping
+- **TTS integration**: Speaks questions and confirmations via Web Speech API with Bengali→English name mapping
 - **Message management**: Maintains conversation history
 
 Key functions:
@@ -837,9 +644,9 @@ State management hook providing:
 
 ### 6.4 `useSpeechSynthesis.ts` ✅ IMPLEMENTED
 
-TTS hook with Piper engine + Web Speech API fallback:
+TTS hook using Web Speech API:
 
-- `speak(text)` — Speak the given text via Piper TTS (falls back to Web Speech API)
+- `speak(text)` — Speak the given text via `window.speechSynthesis`
 - `isSpeakingRef` — Ref for checking if currently speaking (used to guard echo transcripts)
 - **Echo protection**: 1.5s cooldown after speech ends before processing new transcripts
 - **Silence timeout**: 30s after final result to give user time to respond to assistant

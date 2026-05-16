@@ -30,8 +30,6 @@ const builtins = [
 	"util",
 	"tty",
 	"dns",
-	// Large browser libs that should be externalized for Cloudflare Pages
-	"onnxruntime-web",
 ];
 
 function formatBuiltins() {
