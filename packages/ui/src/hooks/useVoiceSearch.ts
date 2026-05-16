@@ -1,46 +1,8 @@
+"use client";
+
 import { useCallback, useEffect, useRef, useState } from "react";
 
-// Ambient declarations for vendor-prefixed / experimental browser APIs
-declare global {
-	interface Window {
-		webkitAudioContext: typeof AudioContext;
-		SpeechRecognition: typeof SpeechRecognition;
-		webkitSpeechRecognition: typeof SpeechRecognition;
-	}
-
-	interface SpeechRecognition extends EventTarget {
-		continuous: boolean;
-		interimResults: boolean;
-		lang: string;
-		onstart: (() => void) | null;
-		onend: (() => void) | null;
-		onresult: ((event: SpeechRecognitionEvent) => void) | null;
-		onerror: ((event: SpeechRecognitionErrorEvent) => void) | null;
-		start(): void;
-		stop(): void;
-		abort(): void;
-	}
-
-	interface SpeechRecognitionEvent extends Event {
-		readonly resultIndex: number;
-		readonly results: SpeechRecognitionResultList;
-	}
-
-	interface SpeechRecognitionErrorEvent extends Event {
-		readonly error: string;
-		readonly message: string;
-	}
-
-	const SpeechRecognition: {
-		prototype: SpeechRecognition;
-		new (): SpeechRecognition;
-	};
-}
-
-type Language = "en-US" | "bn-BD";
-
 interface UseVoiceSearchOptions {
-	language?: Language;
 	onTranscript?: (transcript: string) => void;
 }
 
@@ -54,7 +16,8 @@ interface UseVoiceSearchReturn {
 const playSound = (type: "start" | "stop") => {
 	if (typeof window === "undefined") return;
 
-	const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+	const AC = window.AudioContext || (window as any).webkitAudioContext;
+	const audioContext = new AC();
 	const oscillator = audioContext.createOscillator();
 	const gainNode = audioContext.createGain();
 
@@ -70,96 +33,84 @@ const playSound = (type: "start" | "stop") => {
 	}
 
 	gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-	gainNode.gain.exponentialRampToValueAtTime(
-		0.01,
-		audioContext.currentTime + 0.15,
-	);
+	gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
 
 	oscillator.start(audioContext.currentTime);
 	oscillator.stop(audioContext.currentTime + 0.15);
 };
 
 export function useVoiceSearch({
-	language = "bn-BD",
 	onTranscript,
 }: UseVoiceSearchOptions = {}): UseVoiceSearchReturn {
 	const [isListening, setIsListening] = useState(false);
-	const [isBrowserSupported, setIsBrowserSupported] = useState(true);
-	const recognitionRef = useRef<SpeechRecognition | null>(null);
+	const [isBrowserSupported, setIsBrowserSupported] = useState(false);
 
-	useEffect(() => {
-		const SpeechRecognition =
-			typeof window !== "undefined" &&
-			(window.SpeechRecognition || window.webkitSpeechRecognition);
-		setIsBrowserSupported(!!SpeechRecognition);
+	const recognitionRef = useRef<any>(null);
+
+	const cleanup = useCallback(() => {
+		if (recognitionRef.current) {
+			recognitionRef.current.abort();
+		}
+		recognitionRef.current = null;
 	}, []);
 
-	const startListening = useCallback(() => {
-		const SpeechRecognition =
-			typeof window !== "undefined" &&
-			(window.SpeechRecognition || window.webkitSpeechRecognition);
+	const stopListening = useCallback(() => {
+		cleanup();
+		setIsListening(false);
+		playSound("stop");
+	}, [cleanup]);
 
-		if (!SpeechRecognition) return;
+	const startListening = useCallback(() => {
+		if (isListening) return;
+
+		const SpeechRecognition =
+			(window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
+		if (!SpeechRecognition) {
+			setIsBrowserSupported(false);
+			return;
+		}
 
 		const recognition = new SpeechRecognition();
-		recognitionRef.current = recognition;
-
-		recognition.continuous = false;
+		recognition.lang = "bn-BD";
+		recognition.continuous = true;
 		recognition.interimResults = true;
-		recognition.lang = language;
 
-		let finalTranscript = "";
-
-		recognition.onstart = () => {
-			setIsListening(true);
-			playSound("start");
-		};
-
-		recognition.onresult = (event: SpeechRecognitionEvent) => {
-			let _interimTranscript = "";
-			finalTranscript = "";
-
+		recognition.onresult = (event: any) => {
 			for (let i = event.resultIndex; i < event.results.length; i++) {
-				const result = event.results[i];
-				if (!result) continue;
-				const transcript = result[0]?.transcript ?? "";
-				if (result.isFinal) {
-					finalTranscript += `${transcript} `;
-				} else {
-					_interimTranscript += transcript;
+				const transcript = event.results[i][0].transcript.trim();
+				if (event.results[i].isFinal) {
+					onTranscript?.(transcript);
 				}
 			}
 		};
 
-		recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-			// "aborted" is expected when manually stopping recognition
-			if (event.error === "aborted") {
-				setIsListening(false);
-				return;
-			}
-			// Use warn instead of error to avoid Next.js error overlay
-			console.warn("Speech Recognition Error:", event.error);
-			setIsListening(false);
-		};
-
 		recognition.onend = () => {
 			setIsListening(false);
-			playSound("stop");
-			if (finalTranscript.trim()) {
-				onTranscript?.(finalTranscript.trim());
-			}
 		};
 
-		recognition.start();
-	}, [language, onTranscript]);
-
-	const stopListening = useCallback(() => {
-		if (recognitionRef.current) {
-			recognitionRef.current.abort();
-			recognitionRef.current = null;
+		recognition.onerror = () => {
 			setIsListening(false);
-			playSound("stop");
-		}
+		};
+
+		recognitionRef.current = recognition;
+		recognition.start();
+		setIsListening(true);
+		playSound("start");
+	}, [isListening, onTranscript]);
+
+	useEffect(() => {
+		const SpeechRecognition =
+			(window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+		setIsBrowserSupported(!!SpeechRecognition);
+	}, []);
+
+	useEffect(() => {
+		return () => {
+			if (recognitionRef.current) {
+				recognitionRef.current.abort();
+			}
+		};
 	}, []);
 
 	return { isListening, isBrowserSupported, startListening, stopListening };

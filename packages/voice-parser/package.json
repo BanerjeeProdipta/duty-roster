@@ -1,0 +1,18 @@
+{
+	"name": "@Duty-Roster/voice-parser",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"exports": {
+		".": {
+			"default": "./src/index.ts"
+		},
+		"./*": {
+			"default": "./src/*.ts"
+		}
+	},
+	"devDependencies": {
+		"@Duty-Roster/config": "workspace:*",
+		"typescript": "^5"
+	}
+}

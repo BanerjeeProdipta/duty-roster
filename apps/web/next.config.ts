@@ -1,7 +1,11 @@
 import { setupDevPlatform } from "@cloudflare/next-on-pages/next-dev";
 import "@Duty-Roster/env/web";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import withBundleAnalyzer from "@next/bundle-analyzer";
 import type { NextConfig } from "next";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 if (process.env.NODE_ENV === "development") {
 	void setupDevPlatform();
@@ -28,6 +32,60 @@ const nextConfig: NextConfig = {
 			transform: "lucide-react/dist/esm/icons/{{member}}",
 		},
 	},
-};
+	webpack: (config, { isServer }) => {
+		if (!isServer) {
+			// Mark Node.js modules as not bundled for client-side
+			config.resolve.alias = {
+				...config.resolve.alias,
+				fs: false,
+				path: false,
+				child_process: false,
+				net: false,
+				tls: false,
+				crypto: false,
+				module: false,
+			};
 
-export default withAnalyzer(nextConfig);
+			// Optimize code splitting for edge runtime
+			config.optimization = {
+				...config.optimization,
+				splitChunks: {
+					chunks: "all",
+					cacheGroups: {
+						// Core UI framework
+						react: {
+							test: /[\\/]node_modules[\\/](react|react-dom)[\\/]/,
+							name: "react",
+							priority: 30,
+							reuseExistingChunk: true,
+						},
+						// UI components
+						ui: {
+							test: /[\\/]node_modules[\\/](@Duty-Roster\/ui|shadcn)[\\/]/,
+							name: "ui",
+							priority: 25,
+							reuseExistingChunk: true,
+						},
+						// Query and form handling
+						query: {
+							test: /[\\/]node_modules[\\/](@tanstack|@trpc)[\\/]/,
+							name: "query",
+							priority: 20,
+							reuseExistingChunk: true,
+						},
+						// Vendor libraries
+						vendor: {
+							test: /[\\/]node_modules[\\/]/,
+							name: "vendor",
+							priority: 10,
+							reuseExistingChunk: true,
+							enforce: true,
+						},
+					},
+				},
+			};
+		}
+
+		return config;
+	},
+};

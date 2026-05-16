@@ -143,7 +143,7 @@ export default function SignInForm({
 					{({ canSubmit, isSubmitting }) => (
 						<Button
 							type="submit"
-							className="w-full"
+							className="mt-8 h-12 w-full bg-accent-primary text-white hover:bg-accent-primary-dark"
 							disabled={!canSubmit || isSubmitting}
 						>
 							{isSubmitting ? "Submitting..." : "Sign In"}

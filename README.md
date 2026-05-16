@@ -1,29 +1,33 @@
-# Duty-Roster
+# Duty Roster
 
-This project was created with [Better-T-Stack](https://github.com/AmanVarshney01/create-better-t-stack), a modern TypeScript stack that combines Next.js, Hono, TRPC, and more.
+A modern duty roster scheduling system for nurses, built with TypeScript, Next.js, Hono, tRPC, and more.
 
 ## Features
 
-- **TypeScript** - For type safety and improved developer experience
-- **Next.js** - Full-stack React framework
-- **React Native** - Build mobile apps using React
-- **Expo** - Tools for React Native development
-- **TailwindCSS** - Utility-first CSS for rapid UI development
-- **Shared UI package** - shadcn/ui primitives live in `packages/ui`
-- **Hono** - Lightweight, performant server framework
-- **tRPC** - End-to-end type-safe APIs
-- **Bun** - Runtime environment
-- **Drizzle** - TypeScript-first ORM
-- **PostgreSQL** - Database engine
-- **Authentication** - Better-Auth
-- **Biome** - Linting and formatting
-- **Husky** - Git hooks for code quality
-- **PWA** - Progressive Web App support
-- **Turborepo** - Optimized monorepo build system
+- **Automated Scheduling**: Constraint programming solver using OR-Tools for optimal nurse shift assignments
+- **Interactive Roster Management**: View and edit monthly schedules with drag-and-drop interface
+- **Admin Dashboard**: Manage users, preferences, and shift allocations
+- **Voice Assistant**: Speech-to-text integration for hands-free roster updates (in development)
+- **Real-time Updates**: Live schedule synchronization across users
+- **Type-Safe APIs**: End-to-end type safety with tRPC
+- **Progressive Web App**: Installable PWA for mobile access
+- **Authentication**: Secure user management with Better-Auth
+- **Database**: PostgreSQL with Drizzle ORM for type-safe queries
+- **Monorepo**: Turborepo for optimized builds and shared packages
+
+## Tech Stack
+
+- **Frontend**: Next.js, React, TailwindCSS, shadcn/ui
+- **Backend**: Hono, tRPC, Cloudflare Workers
+- **Database**: PostgreSQL, Drizzle ORM
+- **Auth**: Better-Auth
+- **Solver**: OR-Tools (Python)
+- **Voice**: Vosk STT, WebSocket streaming
+- **Build**: Turborepo, Bun, Biome
 
 ## Getting Started
 
-First, install the dependencies:
+First, install dependencies:
 
 ```bash
 bun install
@@ -31,101 +35,86 @@ bun install
 
 ## Database Setup
 
-This project uses PostgreSQL with Drizzle ORM.
-
-1. Make sure you have a PostgreSQL database set up.
-2. Update your `apps/server/.env` file with your PostgreSQL connection details.
-
-3. Apply the schema to your database:
+1. Set up a PostgreSQL database
+2. Update `apps/server/.env` with your database connection
+3. Push the schema:
 
 ```bash
 bun run db:push
 ```
 
-Then, run the development server:
+## Development
+
+Run all services:
 
 ```bash
 bun run dev
 ```
 
-Open [http://localhost:3001](http://localhost:3001) in your browser to see the web application.
-Use the Expo Go app to run the mobile application.
-The API is running at [http://localhost:3000](http://localhost:3000).
+This starts:
 
-## UI Customization
+- Next.js web app on http://localhost:3001
+- Hono server on http://localhost:3000
+- Voice server on http://localhost:3002 (when implemented)
+- Vosk STT on ws://localhost:5001 (when implemented)
 
-React web apps in this stack share shadcn/ui primitives through `packages/ui`.
+## Voice Assistant Setup (Optional)
 
-- Change design tokens and global styles in `packages/ui/src/styles/globals.css`
-- Update shared primitives in `packages/ui/src/components/*`
-- Adjust shadcn aliases or style config in `packages/ui/components.json` and `apps/web/components.json`
+For voice features:
 
-### Add more shared components
-
-Run this from the project root to add more primitives to the shared UI package:
+1. Install Python dependencies:
 
 ```bash
-npx shadcn@latest add accordion dialog popover sheet table -c packages/ui
+pip install -r stt/requirements.txt
 ```
 
-Import shared components like this:
+2. Download Vosk model:
 
-```tsx
-import { Button } from '@Duty-Roster/ui/components/button';
+```bash
+bash scripts/setup-stt.sh
 ```
 
-### Add app-specific blocks
+3. Run voice services separately:
 
-If you want to add app-specific blocks instead of shared primitives, run the shadcn CLI from `apps/web`.
-
-## Git Hooks and Formatting
-
-- Initialize hooks: `bun run prepare`
-- Format and lint fix: `bun run check`
+```bash
+bun run dev:stt      # Python STT server
+bun run dev:voice    # Bun voice relay
+```
 
 ## Project Structure
 
 ```
-Duty-Roster/
+duty-roster/
 ├── apps/
-│   ├── web/         # Frontend application (Next.js)
-│   ├── native/      # Mobile application (React Native, Expo)
-│   └── server/      # Backend API (Hono, TRPC)
+│   ├── web/              # Next.js frontend
+│   ├── server/           # Hono + tRPC backend
+│   └── voice-server/     # Voice WebSocket relay
 ├── packages/
-│   ├── ui/          # Shared shadcn/ui components and styles
-│   ├── api/         # API layer / business logic
-│   ├── auth/        # Authentication configuration & logic
-│   └── db/          # Database schema & queries
+│   ├── api/              # tRPC router definitions
+│   ├── auth/             # Authentication config
+│   ├── db/               # Database schema & queries
+│   ├── env/              # Environment validation
+│   ├── ui/               # Shared UI components
+│   └── config/           # Build configuration
+├── stt/                  # Vosk speech-to-text
+├── docs/                 # Documentation
+└── scripts/              # Setup scripts
 ```
 
-## Deployment
+## Development Scripts
 
-### Web App (Cloudflare Pages)
-```bash
-bun run deploy:web
-```
+- `bun run dev` - Start all services
+- `bun run dev:web` - Next.js only
+- `bun run dev:server` - Hono server only
+- `bun run dev:voice` - Voice server only
+- `bun run dev:stt` - STT server only
+- `bun run db:push` - Push database schema
+- `bun run check` - Lint and format
 
-This runs the web app's Cloudflare Pages build in `apps/web`, then deploys the generated `.cloudflare` output.
+## Documentation
 
-### Server (Cloudflare Workers)
-```bash
-bun run deploy:server
-```
+See `docs/` for detailed documentation:
 
-## Available Scripts
-
-- `bun run dev`: Start all applications in development mode
-- `bun run build`: Build all applications
-- `bun run build:cf`: Run Cloudflare builds for packages that define them, including `apps/web` and `apps/server`
-- `bun run deploy:web`: Deploy web app to Cloudflare Pages
-- `bun run deploy:server`: Deploy server to Cloudflare Workers
-- `bun run dev:web`: Start only the web application
-- `bun run dev:server`: Start only the server
-- `bun run check-types`: Check TypeScript types across all apps
-- `bun run dev:native`: Start the React Native/Expo development server
-- `bun run db:push`: Push schema changes to database
-- `bun run db:generate`: Generate database client/types
-- `bun run db:migrate`: Run database migrations
-- `bun run db:studio`: Open database studio UI
-- `bun run check`: Run Biome formatting and linting
-- `cd apps/web && bun run generate-pwa-assets`: Generate PWA assets
+- `BUSINESS_LOGIC.md` - Scheduling constraints and solver
+- `VOICE_ASSISTANT_PRD.md` - Voice features implementation
+- `solver_explanation.md` - Technical solver details CP-SAT

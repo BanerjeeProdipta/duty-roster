@@ -79,11 +79,11 @@ export function SolverWarnings({
 		variant?: "default" | "danger" | "success";
 	}) => (
 		<div
-			className={`rounded-lg px-3 py-2 text-center ${variant === "danger" ? "bg-red-100" : variant === "success" ? "bg-green-100" : "bg-gray-100"}`}
+			className={`rounded-lg px-3 py-2 text-center ${variant === "danger" ? "bg-red-100" : variant === "success" ? "bg-emerald-100" : "bg-gray-100"}`}
 		>
 			<div className="text-gray-500 text-xs">{label}</div>
 			<div
-				className={`font-bold ${variant === "danger" ? "text-red-700" : variant === "success" ? "text-green-700" : "text-gray-700"}`}
+				className={`font-bold ${variant === "danger" ? "text-red-700" : variant === "success" ? "text-emerald-700" : "text-gray-700"}`}
 			>
 				{value}
 			</div>
@@ -94,7 +94,7 @@ export function SolverWarnings({
 		<div className="flex flex-col gap-3">
 			{/* CRITICAL: Infeasible Shifts */}
 			{infeasibleShifts.length > 0 && (
-				<div className="relative overflow-hidden rounded-xl border border-red-200 bg-red-50/80 p-4 shadow-sm">
+				<div className="relative overflow-hidden rounded-xl border border-red-200 bg-red-50/80 p-4">
 					<div className="absolute top-0 bottom-0 left-0 w-1 bg-red-500" />
 					<div className="flex items-start gap-3">
 						<div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-100">
@@ -199,7 +199,7 @@ export function SolverWarnings({
 			{/* WARNING: Capped Preferences */}
 			{/* INFO: Tight Constraints */}
 			{tightShifts.length > 0 && (
-				<div className="relative overflow-hidden rounded-xl border border-orange-200 bg-orange-50/80 p-4 shadow-sm">
+				<div className="relative overflow-hidden rounded-xl border border-orange-200 bg-orange-50/80 p-4">
 					<div className="absolute top-0 bottom-0 left-0 w-1 bg-orange-400" />
 					<div className="flex items-start gap-3">
 						<div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-orange-100">
@@ -242,7 +242,7 @@ export function SolverWarnings({
 			{/* ERROR: Nurse-level issues */}
 			{solverValidation?.nurseOverlimits &&
 				solverValidation.nurseOverlimits.length > 0 && (
-					<div className="relative overflow-hidden rounded-xl border border-red-200 bg-red-50/80 p-4 shadow-sm">
+					<div className="relative overflow-hidden rounded-xl border border-red-200 bg-red-50/80 p-4">
 						<div className="absolute top-0 bottom-0 left-0 w-1 bg-red-500" />
 						<div className="flex items-start gap-3">
 							<div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-100">
@@ -289,7 +289,7 @@ export function SolverWarnings({
 
 			{/* WARNING: Shift deficits */}
 			{shiftDeficits.length > 0 && (
-				<div className="relative overflow-hidden rounded-xl border border-yellow-200 bg-yellow-50/80 p-4 shadow-sm">
+				<div className="relative overflow-hidden rounded-xl border border-yellow-200 bg-yellow-50/80 p-4">
 					<div className="absolute top-0 bottom-0 left-0 w-1 bg-yellow-500" />
 					<div className="flex items-start gap-3">
 						<div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-yellow-100">
@@ -317,7 +317,7 @@ export function SolverWarnings({
 											{required} needed, {Math.max(0, available)} available
 										</span>
 										<span
-											className={`rounded px-1.5 py-0.5 font-bold text-xs ${gap < 0 ? "bg-red-100 text-red-700" : "bg-green-100 text-green-700"}`}
+											className={`rounded px-1.5 py-0.5 font-bold text-xs ${gap < 0 ? "bg-red-100 text-red-700" : "bg-emerald-100 text-emerald-700"}`}
 										>
 											{gap < 0 ? gap : "+" + gap}
 										</span>
@@ -333,17 +333,17 @@ export function SolverWarnings({
 			{!solverValidation?.hasIssues &&
 				infeasibleShifts.length === 0 &&
 				tightShifts.length === 0 && (
-					<div className="relative overflow-hidden rounded-xl border border-green-200 bg-green-50/80 p-4 shadow-sm">
-						<div className="absolute top-0 bottom-0 left-0 w-1 bg-green-500" />
+					<div className="relative overflow-hidden rounded-xl border border-emerald-200 bg-emerald-50/80 p-4">
+						<div className="absolute top-0 bottom-0 left-0 w-1 bg-emerald-500" />
 						<div className="flex items-center gap-3">
-							<div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-green-100">
-								<CheckCircle2 className="h-5 w-5 text-green-600" />
+							<div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-100">
+								<CheckCircle2 className="h-5 w-5 text-emerald-600" />
 							</div>
 							<div>
-								<h4 className="font-bold text-base text-green-800">
+								<h4 className="font-bold text-base text-emerald-800">
 									All Constraints Met
 								</h4>
-								<p className="mt-0.5 text-green-700 text-xs">
+								<p className="mt-0.5 text-emerald-700 text-xs">
 									Schedule generation should succeed with adequate capacity.
 								</p>
 							</div>

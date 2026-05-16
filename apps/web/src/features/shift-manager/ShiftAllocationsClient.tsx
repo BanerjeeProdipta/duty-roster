@@ -174,7 +174,7 @@ export default function ShiftAllocationsClient({
 					className="w-full"
 				/>
 				<div className="flex items-center justify-center gap-4 rounded-lg bg-gray-50 px-4 py-3">
-					<div className="inline-flex items-center gap-1 font-medium text-green-600 text-sm">
+					<div className="inline-flex items-center gap-1 font-medium text-emerald-600 text-sm">
 						<UserCheck className="h-4 w-4" />
 						{shiftCounts.activeCount}
 					</div>

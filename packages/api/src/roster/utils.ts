@@ -1,6 +1,3 @@
-import { spawn } from "node:child_process";
-import { dirname, resolve as pathResolve } from "node:path";
-import { fileURLToPath } from "node:url";
 
 // ───────────── TYPES ─────────────
 
@@ -477,97 +474,103 @@ export async function runSolver(payload: {
 	previous_shifts?: Record<string, string[]>;
 }): Promise<{ success: boolean; roster?: Record<string, string[]> }> {
 	return new Promise((resolve) => {
-		let localDirname = "";
-		try {
-			if (typeof import.meta !== "undefined" && import.meta.url) {
-				localDirname = dirname(fileURLToPath(import.meta.url));
-			}
-		} catch (e) {
-			// Ignore error in environments where fileURLToPath fails
-		}
+		(async () => {
+			const { spawn } = await import("node:child_process");
+			const { dirname, resolve: pathResolve } = await import("node:path");
+			const { fileURLToPath } = await import("node:url");
+			const fs = await import("node:fs");
 
-		const possiblePaths = [
-			pathResolve(process.cwd(), "packages/api/src/roster/solver.py"),
-			pathResolve(process.cwd(), "src/roster/solver.py"),
-		];
-
-		if (localDirname) {
-			possiblePaths.push(pathResolve(localDirname, "solver.py"));
-		}
-
-		let solverPath = "";
-		for (const p of possiblePaths) {
+			let localDirname = "";
 			try {
-				const fs = require("node:fs");
-				if (fs.existsSync(p)) {
-					solverPath = p;
-					break;
+				if (typeof import.meta !== "undefined" && import.meta.url) {
+					localDirname = dirname(fileURLToPath(import.meta.url));
 				}
-			} catch {
-				// ignore
+			} catch (_e) {
+				// Ignore error in environments where fileURLToPath fails
 			}
-		}
 
-		if (!solverPath) {
-			console.error("Solver not found. Searched:", possiblePaths);
-			resolve({ success: false });
-			return;
-		}
+			const possiblePaths = [
+				pathResolve(process.cwd(), "packages/api/src/roster/solver.py"),
+				pathResolve(process.cwd(), "src/roster/solver.py"),
+			];
 
-		console.log("Solver path:", solverPath);
-		const python = spawn("python3", [solverPath]);
+			if (localDirname) {
+				possiblePaths.push(pathResolve(localDirname, "solver.py"));
+			}
 
-		let stdout = "";
-		let stderr = "";
+			let solverPath = "";
+			for (const p of possiblePaths) {
+				try {
+					if (fs.existsSync(p)) {
+						solverPath = p;
+						break;
+					}
+				} catch {
+					// ignore
+				}
+			}
 
-		python.stdout?.on("data", (data: Buffer) => {
-			stdout += data.toString();
-		});
-
-		python.stderr?.on("data", (data: Buffer) => {
-			stderr += data.toString();
-		});
-
-		python.on("close", (code: number | null) => {
-			if (code !== 0) {
-				console.error("Solver error:", stderr);
+			if (!solverPath) {
+				console.error("Solver not found. Searched:", possiblePaths);
 				resolve({ success: false });
 				return;
 			}
-			try {
-				// Find the last line that's valid JSON (the actual result)
-				const lines = stdout.trim().split("\n");
-				let jsonStr = "";
-				for (let i = lines.length - 1; i >= 0; i--) {
-					const line = lines[i]!.trim();
-					if (line.startsWith("{")) {
-						jsonStr = line;
-						break;
-					}
-				}
-				if (!jsonStr) {
-					console.error("❌ No JSON found in output:", stdout.slice(-500));
+
+			console.log("Solver path:", solverPath);
+			const python = spawn("python3", [solverPath]);
+
+			let stdout = "";
+			let stderr = "";
+
+			python.stdout?.on("data", (data: Buffer) => {
+				stdout += data.toString();
+			});
+
+			python.stderr?.on("data", (data: Buffer) => {
+				stderr += data.toString();
+			});
+
+			python.on("close", (code: number | null) => {
+				if (code !== 0) {
+					console.error("Solver error:", stderr);
 					resolve({ success: false });
 					return;
 				}
-				console.log("📥 Got JSON, length:", jsonStr.length);
-				const result = JSON.parse(jsonStr);
-				// Debug first nurse's shifts
-				const firstNurse = Object.keys(result.roster || {})[0];
-				if (firstNurse) {
-					console.log(
-						`🔍 First nurse ${firstNurse} first 5 shifts:`,
-						result.roster[firstNurse].slice(0, 5),
-					);
+				try {
+					// Find the last line that's valid JSON (the actual result)
+					const lines = stdout.trim().split("\n");
+					let jsonStr = "";
+					for (let i = lines.length - 1; i >= 0; i--) {
+						const line = lines[i]?.trim();
+						if (line && line.startsWith("{")) {
+							jsonStr = line;
+							break;
+						}
+					}
+					if (!jsonStr) {
+						console.error("❌ No JSON found in output:", stdout.slice(-500));
+						resolve({ success: false });
+						return;
+					}
+					console.log("📥 Got JSON, length:", jsonStr.length);
+					const result = JSON.parse(jsonStr);
+					// Debug first nurse's shifts
+					const firstNurse = Object.keys(result.roster || {})[0];
+					if (firstNurse) {
+						console.log(
+							`🔍 First nurse ${firstNurse} first 5 shifts:`,
+							result.roster[firstNurse].slice(0, 5),
+						);
+					}
+					resolve(result);
+				} catch (_e) {
+					console.error("Failed to parse solver output:", stdout);
+					resolve({ success: false });
 				}
-				resolve(result);
-			} catch (e) {
-				console.error("Failed to parse solver output:", stdout);
-				resolve({ success: false });
-			}
-		});
+			});
 
-		python.stdin?.write(JSON.stringify(payload));
-		python.stdin?.end();
+			python.stdin?.write(JSON.stringify(payload));
+			python.stdin?.end();
+		})();
 	});
 }

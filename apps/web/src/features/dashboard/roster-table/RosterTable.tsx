@@ -92,7 +92,7 @@ export function RosterTable({
 								{normalizedDates.map((date) => (
 									<th
 										key={date.key}
-										className="sticky top-0 z-[10] bg-[#f2f2f2]"
+										className="sticky top-0 z-[10] bg-muted"
 										style={{
 											width: LAYOUT.cellWidth,
 											height: LAYOUT.headerHeight,

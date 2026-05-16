@@ -16,7 +16,7 @@ function StatDisplay({
 }: StatDisplayProps) {
 	const valueColorClass = {
 		default: "text-gray-800",
-		success: "text-green-700",
+		success: "text-emerald-700",
 		warning: "text-amber-700",
 		error: "text-red-700",
 	}[variant];

@@ -85,15 +85,15 @@ export function FourWaySlider({
 		>
 			{/* Segments */}
 			<div
-				className="absolute h-full bg-[#FDE68A]"
+				className="absolute h-full bg-shift-morning"
 				style={{ left: 0, width: `${pct(A)}%` }}
 			/>
 			<div
-				className="absolute h-full bg-[#BFDBFE]"
+				className="absolute h-full bg-shift-evening"
 				style={{ left: `${pct(A)}%`, width: `${pct(B - A)}%` }}
 			/>
 			<div
-				className="absolute h-full bg-[#C4B5FD]"
+				className="absolute h-full bg-shift-night"
 				style={{ left: `${pct(B)}%`, width: `${pct(C - B)}%` }}
 			/>
 			<div

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Noto_Sans_Bengali, Poppins } from "next/font/google";
+import { Noto_Sans_Bengali, Poppins, Sacramento } from "next/font/google";
 
 import "../index.css";
 import Header from "@/components/navbar/header";
@@ -19,11 +19,22 @@ const notoSansBengali = Noto_Sans_Bengali({
 	weight: ["400", "700"],
 });
 
+const sacramento = Sacramento({
+	variable: "--font-cursive",
+	subsets: ["latin"],
+	weight: "400",
+});
+
 export const metadata: Metadata = {
 	title: "Duty-Roster",
 	description: "Duty-Roster",
 	manifest: "/manifest.webmanifest",
 	icons: [
+		{
+			rel: "icon",
+			type: "image/x-icon",
+			url: "/favicon.ico",
+		},
 		{
 			rel: "icon",
 			type: "image/png",
@@ -62,7 +73,7 @@ export default function RootLayout({
 	return (
 		<html lang="en" suppressHydrationWarning>
 			<body
-				className={`${poppins.variable} ${notoSansBengali.variable} font-sans antialiased`}
+				className={`${poppins.variable} ${notoSansBengali.variable} ${sacramento.variable} font-sans antialiased`}
 			>
 				<Providers>
 					<ServiceWorkerRegistration />

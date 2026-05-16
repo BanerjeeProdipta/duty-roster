@@ -1,9 +1,13 @@
 {
 	"name": "@Duty-Roster/api",
 	"type": "module",
+	"sideEffects": false,
 	"exports": {
 		".": {
 			"default": "./src/index.ts"
+		},
+		"./server": {
+			"default": "./src/server.ts"
 		},
 		"./*": {
 			"default": "./src/*.ts"
@@ -21,8 +25,6 @@
 		"@trpc/tanstack-react-query": "catalog:",
 		"dotenv": "catalog:",
 		"drizzle-orm": "catalog:",
-		"exceljs": "^4.4.0",
-		"xlsx": "^0.18.5",
 		"zod": "catalog:"
 	},
 	"devDependencies": {

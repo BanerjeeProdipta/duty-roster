@@ -4,8 +4,8 @@ if (typeof process === "undefined") {
 }
 
 import "@Duty-Roster/env/server";
-import { appRouter } from "@Duty-Roster/api";
 import { createContext } from "@Duty-Roster/api/context";
+import { appRouter } from "@Duty-Roster/api/server";
 import { createAuth } from "@Duty-Roster/auth";
 import { trpcServer } from "@hono/trpc-server";
 import { Hono } from "hono";

@@ -6,7 +6,7 @@
 		"dev": "next dev --port 3001",
 		"build": "next build",
 		"start": "next start -p 3001",
-		"build:cf": "npm_config_user_agent=npm/10.0.0 npx @cloudflare/next-on-pages -o .cloudflare",
+		"build:cf": "node scripts/patch-next-on-pages-build.mjs && npm_config_user_agent=npm/10.0.0 npx @cloudflare/next-on-pages -o .cloudflare",
 		"deploy": "bunx wrangler pages deploy .cloudflare --project-name=duty-roster"
 	},
 	"dependencies": {
@@ -14,6 +14,7 @@
 		"@Duty-Roster/auth": "workspace:*",
 		"@Duty-Roster/env": "workspace:*",
 		"@Duty-Roster/ui": "workspace:*",
+		"@Duty-Roster/voice-parser": "workspace:*",
 		"@tanstack/react-form": "catalog:",
 		"@tanstack/react-query": "catalog:",
 		"@tanstack/react-virtual": "^3.13.24",
@@ -26,6 +27,7 @@
 		"lucide-react": "catalog:",
 		"next": "^15.1.0",
 		"next-themes": "catalog:",
+		"ogl": "^1.0.11",
 		"react": "^19.0.0",
 		"react-dom": "^19.0.0",
 		"sonner": "catalog:",
@@ -43,6 +45,6 @@
 		"@types/react-dom": "catalog:",
 		"tailwindcss": "^4.1.18",
 		"typescript": "^5",
-		"vercel": "^41.0.0"
+		"vercel": "^47.0.4"
 	}
 }

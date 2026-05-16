@@ -200,7 +200,6 @@ function NurseTableRow({
 										className="flex-1 rounded-md border border-gray-200 px-2 py-1 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
 									/>
 									<VoiceInput
-										language="bn-BD"
 										onTranscript={(transcript) => setEditName(transcript)}
 									/>
 								</div>
@@ -221,7 +220,7 @@ function NurseTableRow({
 				</TableCell>
 				<TableCell>
 					<ShiftInput
-						color="bg-[#FDE68A]"
+						color="bg-shift-morning"
 						value={draft.morning}
 						onChange={(val) => handleFieldChange("morning", val)}
 						max={totalDays}
@@ -229,7 +228,7 @@ function NurseTableRow({
 				</TableCell>
 				<TableCell>
 					<ShiftInput
-						color="bg-[#BFDBFE]"
+						color="bg-shift-evening"
 						value={draft.evening}
 						onChange={(val) => handleFieldChange("evening", val)}
 						max={totalDays}
@@ -237,7 +236,7 @@ function NurseTableRow({
 				</TableCell>
 				<TableCell>
 					<ShiftInput
-						color="bg-[#C4B5FD]"
+						color="bg-shift-night"
 						value={draft.night}
 						onChange={(val) => handleFieldChange("night", val)}
 						max={totalDays}
@@ -247,7 +246,7 @@ function NurseTableRow({
 				<TableCell>
 					<div className="relative flex h-full w-full items-center justify-center gap-2">
 						<ShiftInput
-							color="bg-[#E5E7EB]"
+							color="bg-shift-off"
 							value={draft.off}
 							onChange={(val) => handleFieldChange("off", val)}
 							max={totalDays}
@@ -273,10 +272,12 @@ function NurseTableRow({
 							onToggle={handleToggleActive}
 						/>
 						<Button
-							variant="outline"
+							variant="secondary"
 							size="sm"
 							className={cn(
-								hasChanged && "bg-emerald-100 hover:bg-emerald-200",
+								"text-gray-400 transition-all duration-200",
+								hasChanged &&
+									"bg-emerald-100/40 text-emerald-700 hover:bg-emerald-200",
 							)}
 							onClick={handleSaveAll}
 							disabled={isSavingPending}
@@ -284,9 +285,12 @@ function NurseTableRow({
 							<Check className="h-4 w-4" />
 						</Button>
 						<Button
-							variant="outline"
+							variant="secondary"
 							size="sm"
-							className={cn(hasChanged && "bg-rose-100 hover:bg-rose-200")}
+							className={cn(
+								"text-gray-400 transition-all duration-200",
+								hasChanged && "bg-rose-100/40 text-rose-700 hover:bg-rose-200",
+							)}
 							onClick={handleCancelAll}
 							disabled={isSavingPending}
 						>
