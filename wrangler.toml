@@ -3,6 +3,11 @@ pages_build_output_dir = "apps/web/.cloudflare"
 compatibility_date = "2024-10-22"
 compatibility_flags = ["nodejs_compat"]
 
+# Exclude large WASM/binary files from bundling
+# They should be served as static assets instead
+[build]
+command = "npm run build:cf"
+
 [env.production]
 name = "duty-roster"
 

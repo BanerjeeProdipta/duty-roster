@@ -83,75 +83,233 @@ us swap STT backends later without changing frontend code.
 
 ## TTS (Text-to-Speech) — Piper Browser WASM ✅ IMPLEMENTED
 
-**Overview**: Piper TTS runs entirely in-browser via WebAssembly (WASM)
-using [`@mintplex-labs/piper-tts-web`](https://www.npmjs.com/package/@mintplex-labs/piper-tts-web).
-No server needed — the ONNX model is downloaded from HuggingFace CDN on first use
-and cached in the browser's OPFS (Origin Private File System).
+Text-to-speech via [Piper](https://github.com/rhasspy/piper) running entirely in the browser over WebAssembly, with a server-side fallback and native Web Speech API as the last resort.
 
-### Architecture
+### Overview
 
 ```
-useSpeechSynthesis              @mintplex-labs/piper-tts-web       HuggingFace CDN
-     │                                      │                           │
-speak("hello")                              │                           │
-     │─────────────────────────────────────▶│                           │
-     │                                 TtsSession.predict("hello")     │
-     │                                      │──────────────────────────▶│
-     │                                      │   en_US-hfc_female.onnx  │
-     │                                      │   (downloaded once,      │
-     │                                      │    ~63MB, cached in OPFS)│
-     │                                      │ ◀─────────────────────────│
-     │                                      │                           │
-     │ ◀── WAV Blob ────────────────────────│                           │
-     │                                      │                           │
-  new Audio(URL.createObjectURL(blob))      │                           │
-  audio.play()                              │                           │
-     │                                      │                           │
+┌─────────────────────────────────────────────────────────────────────┐
+│                     useSpeechSynthesis.ts                            │
+│                                                                     │
+│  speak("hello")                                                     │
+│       │                                                             │
+│       ├──► Browser Piper (WASM) ──── success? ──► play Blob         │
+│       │        │ fail                                               │
+│       │        ▼                                                    │
+│       ├──► Server Piper (Python) ─── success? ──► play AudioBuffer  │
+│       │        │ fail                                               │
+│       │        ▼                                                    │
+│       └──► Web Speech API ────────── always works ──► utterance     │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
-### Pipeline
+### Architecture Diagram
+
+```mermaid
+flowchart TB
+    subgraph Client["Browser (useSpeechSynthesis.ts)"]
+        Hook["speak(text)"]
+        Branch{"ENABLE_BROWSER_PIPER?"}
+
+        subgraph BrowserPiper["Browser Piper (WASM)"]
+            direction TB
+            Import["Dynamic import\n@mintplex-labs/piper-tts-web"]
+            TtsSession["TtsSession.create()"]
+            Predict["session.predict(text)"]
+
+            subgraph Assets["Asset Sources"]
+                direction LR
+                Voice["Voice .onnx\n(HuggingFace or\n/piper-assets/models/)"]
+                Onnx["ONNX Runtime .wasm\n(Cloudflare CDN or\n/piper-assets/onnx/)"]
+                Phonemize["piper_phonemize .wasm/.data\n(jsDelivr or\n/piper-assets/piper/)"]
+            end
+        end
+
+        subgraph ServerPiper["Server Piper"]
+            Server["fetch(/synthesize?text=...)\n→ Python TTS server :8001"]
+            Decode["decodeAudioData →\nAudioBuffer → play"]
+        end
+
+        subgraph Fallback["Web Speech API"]
+            WSAPI["window.speechSynthesis\n.speak(utterance)"]
+        end
+
+        Audio["playBlob(blob)\n→ new Audio(url)"]
+    end
+
+    Hook --> Branch
+    Branch -->|"true"| Import
+    Import --> TtsSession
+    TtsSession --> Assets
+    TtsSession --> Predict
+    Predict --> Audio
+    Branch -->|"false / fail"| Server
+    Server --> Decode
+    Decode -->|"fail"| WSAPI
+
+    style Branch stroke-dasharray: 5 5
+    style Audio fill:#d4edda
+    style WSAPI fill:#f8d7da
+```
+
+### Core Components
+
+| Component | Role | Source |
+|-----------|------|--------|
+| `@mintplex-labs/piper-tts-web` | JS orchestration — text in, WAV Blob out | npm |
+| `onnxruntime-web` | Neural net inference engine (WASM) | npm |
+| `@diffusionstudio/piper-wasm` | Phonemize library (text → phoneme IDs) | jsDelivr CDN |
+| Voice model `.onnx` | Pre-trained TTS voice (e.g. `en_US-hfc_female-medium`) | HuggingFace |
+
+### Data Flow
 
 ```
-Browser Piper → fails? → Server Piper (local Python, optional) → fails? → Web Speech API
+Text input
+    │
+    ▼
+┌─────────────────────────────────────────────────────┐
+│ Piper TTS Pipeline (@mintplex-labs/piper-tts-web)   │
+│                                                     │
+│  Text ──► piper_phonemize (WASM) ──► phoneme IDs   │
+│              ↑                                      │
+│         piper_phonemize.wasm + .data                │
+│                                                     │
+│  Phoneme IDs ──► onnxruntime-web (WASM) ──► PCM    │
+│                     ↑                               │
+│               *.wasm (ort-wasm-simd, etc.)          │
+│                                                     │
+│  PCM ──► WAV Blob (RIFF header + PCM data)          │
+└─────────────────────────────────────────────────────┘
+                    │
+                    ▼
+          new Audio(blobUrl) → play()
 ```
 
-### Features
+### Fallback Chain
 
-- **Voice**: en_US-hfc_female-medium (female voice, 63MB model)
-- **Runtime**: ONNX Runtime Web (WASM), loaded once and cached
-- **Caching**: Model files saved to OPFS after first download — subsequent loads are instant
-- **Zero server**: Works on Cloudflare Pages, static hosting, anywhere
-- **Fallback chain**: Browser Piper → Server Piper (local dev) → Web Speech API
+Defined in `apps/web/src/features/voice-assistant/hooks/useSpeechSynthesis.ts`:
+
+| Priority | Method | Env flag | Latency | Dependency |
+|----------|--------|----------|---------|------------|
+| 1st | Browser Piper (WASM) | `NEXT_PUBLIC_BROWSER_PIPER=true` | ~500-1000ms | WASM-capable browser |
+| 2nd | Server Piper (Python) | `NEXT_PUBLIC_TTS_URL` | ~200-500ms + network | Python TTS server on :8001 |
+| 3rd | Web Speech API | always enabled | instant | Browser native |
 
 ### Client Integration (useSpeechSynthesis.ts)
-
-Three-tier fallback in `useSpeechSynthesis.ts`:
 
 1. **Browser Piper** (primary) — `@mintplex-labs/piper-tts-web` loaded via dynamic import
    - Singleton `TtsSession` created on first use
    - `session.predict(text)` returns a WAV `Blob`
    - Played via `new Audio(URL.createObjectURL(blob))`
 
-2. **Server Piper** (fallback 1) — For local dev where the old Python server still exists
-   - Fetches WAV from `NEXT_PUBLIC_TTS_URL` (default `http://localhost:8001`)
+2. **Server Piper** (fallback 1) — Python Piper server at `NEXT_PUBLIC_TTS_URL` (default `http://localhost:8001`)
+   - Fetches WAV via `GET /synthesize?text=...`
    - Decodes with `AudioContext.decodeAudioData()`
 
 3. **Web Speech API** (fallback 2) — `window.speechSynthesis.speak(utterance)`
 
+### Asset Management
+
+#### Self-hosted assets (`PIPER_LOCAL_ASSETS=true`)
+
+```
+public/piper-assets/
+├── models/en/en_US/hfc_female/medium/
+│   ├── en_US-hfc_female-medium.onnx          ← from HuggingFace
+│   └── en_US-hfc_female-medium.onnx.json     ← voice config
+├── onnx/
+│   ├── ort-wasm-simd.wasm                    ← from node_modules/onnxruntime-web
+│   ├── ort-wasm-simd-threaded.wasm
+│   ├── ort-wasm-simd.jsep.mjs
+│   ├── ort-wasm-simd-threaded.jsep.mjs
+│   ├── ort-wasm-simd.asyncify.mjs
+│   └── ort-wasm-simd-threaded.asyncify.mjs
+└── piper/
+    ├── piper_phonemize.data                   ← from jsDelivr CDN
+    ├── piper_phonemize.js
+    └── piper_phonemize.wasm
+```
+
+#### Asset resolution
+
+```mermaid
+flowchart LR
+    subgraph CDN["CDN Mode (default)"]
+        A1["Voice model<br>huggingface.co/..."]
+        A2["ONNX WASM<br>cdnjs.cloudflare.com/..."]
+        A3["Phonemize<br>cdn.jsdelivr.net/..."]
+    end
+
+    subgraph Local["Self-hosted mode<br>PIPER_LOCAL_ASSETS=true"]
+        B1["Voice model<br>/piper-assets/models/..."]
+        B2["ONNX WASM<br>/piper-assets/onnx/..."]
+        B3["Phonemize<br>/piper-assets/piper/..."]
+    end
+
+    A1 & A2 & A3 -->|"download-piper-assets.sh"| B1 & B2 & B3
+    B1 & B2 & B3 -->|"patch-piper-tts-web.mjs postinstall"| C["@mintplex-labs/piper-tts-web<br>URLs rewritten to /piper-assets/"]
+```
+
+#### Scripts
+
+| Script | Purpose |
+|--------|---------|
+| `apps/web/scripts/download-piper-assets.sh` | Downloads all assets (model, ONNX WASM, phonemize WASM) to `public/piper-assets/` |
+| `apps/web/scripts/patch-piper-tts-web.mjs` | Postinstall — rewrites npm package URLs from CDN → local `/piper-assets/` |
+| `apps/web/scripts/patch-next-on-pages-build.mjs` | Aliases `onnxruntime-web` etc. to `false` in Next.js config for Pages build |
+
+### Configuration
+
+#### Environment variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `NEXT_PUBLIC_BROWSER_PIPER` | `false` | Enable browser-side Piper WASM TTS |
+| `NEXT_PUBLIC_PIPER_LOCAL_ASSETS` | `false` | Serve assets from `/piper-assets/` instead of CDN |
+| `NEXT_PUBLIC_TTS_URL` | `http://localhost:8001` | Python TTS server URL (fallback) |
+
+#### Next.js bundling
+
+In `next.config.ts`, the three packages are aliased to `false` to prevent Next.js from attempting to bundle them at build time (they are WASM modules loaded dynamically at runtime):
+
+```ts
+config.resolve.alias["onnxruntime-web"] = false;
+config.resolve.alias["@mintplex-labs/piper-tts-web"] = false;
+config.resolve.alias["@diffusionstudio/piper-wasm"] = false;
+```
+
 ### Echo Protection
 
 In `VoiceTrigger.tsx`, a `transcriptSkippedWhileSpeakingRef` flag discards:
-- Any transcript that arrives while `isSpeakingRef.current` is true
-- The first transcript after `isSpeakingRef` becomes false (residual echo from STT hearing TTS output through speakers)
 
-### Performance Notes
+- Any transcript that arrives while `isSpeakingRef.current` is `true`
+- The first transcript after `isSpeakingRef` becomes `false` (residual echo from STT hearing TTS output through speakers)
 
-- **First load**: ~63MB model download + ~155KB WASM. Takes 5-15s on first visit.
-- **Subsequent loads**: Instant (OPFS cache)
-- **Latency**: ~500-1000ms per inference (CPU-bound WASM)
-- **Model memory**: ~100MB in browser tab
-- **Browser support**: Chrome, Firefox, Safari, Edge (any browser with WASM + OPFS)
-- **Sample rate**: 22050Hz (Piper native), resampled by browser to output device
+Plus a 1.5s cooldown after speech ends before processing new transcripts.
+
+### Performance
+
+| Metric | Value |
+|--------|-------|
+| Model size | ~63 MB (downloaded once, cached in OPFS) |
+| WASM size | ~155 KB total |
+| First-load latency | 5-15 s (download + cache) |
+| Subsequent latency | instant (OPFS cache) |
+| Inference time | ~500-1000 ms per utterance |
+| Model memory | ~100 MB in browser tab |
+| Sample rate | 22050 Hz (Piper native) |
+| Browser support | Chrome, Firefox, Safari, Edge |
+
+### Server Piper (fallback)
+
+The Python TTS server (`apps/tts/`) provides the same voice model via HTTP:
+
+```
+GET /synthesize?text=hello
+→ 200 audio/wav (PCM 22050Hz mono)
+```
+
+Used when browser WASM is unavailable or fails.
 
 ---
 

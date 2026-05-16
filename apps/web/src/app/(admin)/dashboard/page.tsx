@@ -1,8 +1,8 @@
 import { lazy, Suspense } from "react";
 import { ShiftCountsSkeleton } from "@/features/dashboard/components/ShiftCountsSkeleton";
+import { VoiceAssistantWrapper } from "@/features/dashboard/components/VoiceAssistantWrapper";
 import { RosterHeader } from "@/features/dashboard/roster-table/RosterHeader";
 import { RosterTableSkeleton } from "@/features/dashboard/roster-table/RosterTableSkeleton";
-import { VoiceTrigger } from "@/features/voice-assistant/components/VoiceTrigger";
 import { getMonthDateRange, getYearMonthFromSearchParams } from "@/utils";
 import { getAuthedTRPCServer } from "@/utils/trpc-server";
 
@@ -67,7 +67,7 @@ export default function DashboardPage(props: {
 	return (
 		<Suspense fallback={<DashboardLoading />}>
 			<DashboardContent searchParams={props.searchParams} />
-			<VoiceTrigger />
+			<VoiceAssistantWrapper />
 		</Suspense>
 	);
 }
