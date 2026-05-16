@@ -9,5 +9,4 @@ export const QUERY_KEYS = {
 	shiftRequirements: (year: number, month: number) =>
 		["shiftRequirements", year, month] as const,
 	preferences: ["preferences"] as const,
-	prefillFairPreferences: ["prefillFairPreferences"] as const,
 } as const;

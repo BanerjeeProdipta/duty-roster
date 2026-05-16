@@ -5,13 +5,13 @@ import { AlertCircle, AlertTriangle } from "lucide-react";
 import { useState } from "react";
 import { usePrefillRoster } from "@/hooks/usePrefillRoster";
 
-interface PrefillAlertsProps {
+function PrefillAlerts({
+	onConfirm,
+	onCancel,
+}: {
 	onConfirm: () => void;
 	onCancel: () => void;
-	mode: "fairly" | "minimize" | "maximize" | "default";
-}
-
-function PrefillAlerts({ onConfirm, onCancel, mode }: PrefillAlertsProps) {
+}) {
 	return (
 		<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
 			<div className="w-full max-w-md rounded-xl border border-gray-200 bg-white p-6 shadow-lg">
@@ -24,15 +24,8 @@ function PrefillAlerts({ onConfirm, onCancel, mode }: PrefillAlertsProps) {
 							Prefill Schedule?
 						</h3>
 						<p className="mt-2 text-gray-600 text-sm">
-							This will{" "}
-							{mode === "fairly"
-								? "distribute shifts fairly"
-								: mode === "minimize"
-									? "minimize shift assignments"
-									: mode === "maximize"
-										? "maximize shift assignments"
-										: "set default shift preferences"}
-							based on nurse preferences.
+							This will set default shift preferences based on nurse
+							preferences.
 						</p>
 					</div>
 				</div>
@@ -51,12 +44,7 @@ function PrefillAlerts({ onConfirm, onCancel, mode }: PrefillAlertsProps) {
 					<Button variant="outline" onClick={onCancel}>
 						Cancel
 					</Button>
-					<Button onClick={onConfirm}>
-						{mode === "fairly" && "Prefill Fairly"}
-						{mode === "minimize" && "Minimize Shifts"}
-						{mode === "maximize" && "Maximize Shifts"}
-						{mode === "default" && "Set Default"}
-					</Button>
+					<Button onClick={onConfirm}>Set Default</Button>
 				</div>
 			</div>
 		</div>
@@ -66,14 +54,12 @@ function PrefillAlerts({ onConfirm, onCancel, mode }: PrefillAlertsProps) {
 export function PrefillButton({
 	year,
 	month,
-	mode,
 }: {
 	year: number;
 	month: number;
-	mode: "fairly" | "minimize" | "maximize" | "default";
 }) {
 	const [showDialog, setShowDialog] = useState(false);
-	const { mutate } = usePrefillRoster(mode);
+	const { mutate } = usePrefillRoster();
 
 	const handlePrefill = () => {
 		mutate({ year, month });
@@ -83,16 +69,12 @@ export function PrefillButton({
 	return (
 		<>
 			<Button variant="outline" size="sm" onClick={() => setShowDialog(true)}>
-				{mode === "fairly" && "Prefill Fairly"}
-				{mode === "minimize" && "Minimize Shifts"}
-				{mode === "maximize" && "Maximize Shifts"}
-				{mode === "default" && "Default"}
+				Prefill Default
 			</Button>
 			{showDialog && (
 				<PrefillAlerts
 					onConfirm={handlePrefill}
 					onCancel={() => setShowDialog(false)}
-					mode={mode}
 				/>
 			)}
 		</>

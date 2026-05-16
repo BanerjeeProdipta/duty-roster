@@ -64,10 +64,7 @@ export default async function ShiftAllocationsPage(props: {
 							<WeekDayCounts month={month} year={year} />
 						</Suspense>
 						<div className="flex items-center gap-2">
-							<PrefillButton year={year} month={month} mode="default" />
-							<PrefillButton year={year} month={month} mode="fairly" />
-							<PrefillButton year={year} month={month} mode="minimize" />
-							<PrefillButton year={year} month={month} mode="maximize" />
+							<PrefillButton year={year} month={month} />
 						</div>
 					</div>
 					<Suspense fallback={<ShiftCountsSkeleton />}>
