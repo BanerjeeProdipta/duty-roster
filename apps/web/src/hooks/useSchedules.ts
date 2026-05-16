@@ -6,7 +6,7 @@ import { QUERY_KEYS } from "@/utils/query-keys";
 import { trpcClient } from "@/utils/trpc";
 import { useYearMonth } from "./useYearMonth";
 
-export function useSchedules(initialData?: SchedulesResponse) {
+export function useSchedules(initialData?: SchedulesResponse | null) {
 	const { year, month } = useYearMonth();
 
 	const query = useQuery({

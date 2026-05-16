@@ -5,7 +5,7 @@ import { getDaysInMonth } from "@/utils";
 import type { NurseState } from "../types";
 
 export function useShiftAllocations(
-	schedules?: SchedulesResponse,
+	schedules?: SchedulesResponse | null,
 	externalTotalDays?: number,
 ) {
 	const nurseRows = schedules?.nurseRows ?? [];
