@@ -51,12 +51,12 @@
 		"deploy:server": "cd apps/server && bun run build:cf && bun run deploy",
 		"deploy:web": "cd apps/web && bun run build:cf && bun run deploy",
 		"deploy": "bun install && bun run deploy:server && bun run deploy:web",
-
 		"check": "biome check --write .",
 		"prepare": "husky"
 	},
 	"dependencies": {
 		"@Duty-Roster/env": "workspace:*",
+		"@mintplex-labs/piper-tts-web": "^1.0.4",
 		"@playwright/test": "^1.59.1",
 		"@trpc/tanstack-react-query": "^11.16.0",
 		"dotenv": "catalog:",

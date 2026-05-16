@@ -19,19 +19,52 @@ let speakBrowserPiper: (
 	isSpeakingRef: React.MutableRefObject<boolean>,
 ) => Promise<void>;
 
+async function confirmCellularDownload(): Promise<boolean> {
+	try {
+		const conn = (navigator as any).connection;
+		if (!conn?.effectiveType) return true;
+		const isCellular = ["slow-2g", "2g", "3g", "4g"].includes(
+			conn.effectiveType,
+		);
+		if (!isCellular) return true;
+
+		const { toast } = await import("sonner");
+		return new Promise((resolve) => {
+			toast("Download 63MB voice model?", {
+				description:
+					"You're on a cellular connection. The model is cached after download — one-time only.",
+				duration: 30000,
+				action: {
+					label: "Download",
+					onClick: () => resolve(true),
+				},
+				cancel: {
+					label: "Skip",
+					onClick: () => resolve(false),
+				},
+			});
+		});
+	} catch {
+		return true;
+	}
+}
+
 if (ENABLE_BROWSER_PIPER) {
 	initBrowserPiper = async () => {
 		if (piperModule) return;
 		if (!piperInit) {
 			piperInit = (async () => {
 				piperModule = await import("@mintplex-labs/piper-tts-web");
-				piperModule
-					.download("en_US-hfc_female-medium", (progress) => {
+				const cached = await piperModule.stored().catch(() => [] as string[]);
+				if (!cached.includes("en_US-hfc_female-medium")) {
+					const ok = await confirmCellularDownload();
+					if (!ok) throw new Error("User declined cellular download");
+					await piperModule.download("en_US-hfc_female-medium", (progress) => {
 						console.log(
 							`[Piper] Downloading model: ${Math.round((progress.loaded * 100) / progress.total)}%`,
 						);
-					})
-					.catch(() => {});
+					});
+				}
 			})().catch((e) => {
 				console.error("[Piper] init failed, will retry next time:", e);
 				piperInit = null;
