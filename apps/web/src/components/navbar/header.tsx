@@ -1,37 +1,33 @@
 "use client";
 
+import { Button } from "@Duty-Roster/ui/components/button";
 import { cn } from "@Duty-Roster/ui/lib/utils";
-import { LayoutDashboard, Menu, X } from "lucide-react";
-import dynamic from "next/dynamic";
+import { LayoutDashboard, LogOut, Menu, X } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useLayoutEffect, useRef, useState } from "react";
-import { PUBLIC_NAV_ITEMS } from "@/lib/paths";
+import { usePathname, useRouter } from "next/navigation";
+import { useState } from "react";
+import { toast } from "sonner";
+import { authClient } from "@/lib/auth-client";
+import { ADMIN_NAV_ITEMS, PUBLIC_NAV_ITEMS, ROUTES } from "@/lib/paths";
 
-const UserMenu = dynamic(
-	() => import("./UserMenu").then((m) => ({ default: m.UserMenu })),
-	{ ssr: false },
-);
+const linkBase =
+	"flex items-center gap-1.5 px-3 py-1.5 font-medium text-sm rounded-full transition-all duration-300 ease-out";
 
 export default function Header() {
 	const pathname = usePathname();
+	const router = useRouter();
 	const [isMenuOpen, setIsMenuOpen] = useState(false);
-	const navRef = useRef<HTMLDivElement>(null);
-	const [pillStyle, setPillStyle] = useState({ left: 0, width: 0 });
+	const { data: session, isPending } = authClient.useSession();
 
-	useLayoutEffect(() => {
-		if (!navRef.current) return;
-		const activeItem =
-			navRef.current.querySelector<HTMLElement>("[data-active=true]");
-		if (activeItem) {
-			const navRect = navRef.current.getBoundingClientRect();
-			const itemRect = activeItem.getBoundingClientRect();
-			setPillStyle({
-				left: itemRect.left - navRect.left,
-				width: itemRect.width,
-			});
-		}
-	}, [pathname]);
+	const isAdmin = (session?.user as { role?: string })?.role === "admin";
+	const userName = (session?.user as { name?: string })?.name;
+
+	const handleSignOut = async () => {
+		await authClient.signOut();
+		router.push(ROUTES.home);
+		router.refresh();
+		toast.success("Signed out successfully");
+	};
 
 	return (
 		<header className="sticky top-0 z-[100] w-full border-border/50 border-b bg-white dark:bg-gray-950">
@@ -44,37 +40,65 @@ export default function Header() {
 					</p>
 				</Link>
 
-				<nav
-					ref={navRef}
-					className="absolute left-1/2 my-2 hidden -translate-x-1/2 items-center gap-1 rounded-full bg-gray-50 px-4 py-2 md:flex"
-				>
-					<div
-						className="absolute inset-y-1 rounded-full bg-white shadow-sm transition-all duration-300 ease-out"
-						style={{ left: pillStyle.left, width: pillStyle.width }}
-					/>
+				<nav className="absolute left-1/2 my-2 hidden -translate-x-1/2 items-center gap-1 rounded-full bg-gray-50 px-3 py-2 md:flex">
 					{PUBLIC_NAV_ITEMS.map(({ to, label, icon: Icon }) => (
 						<Link
 							key={to}
 							href={to}
-							data-active={pathname === to}
 							className={cn(
-								"relative z-10 flex items-center gap-1.5 rounded-full px-3 py-1.5 font-medium text-sm transition-all duration-200",
+								linkBase,
 								pathname === to
-									? "text-foreground"
-									: "text-muted-foreground hover:text-foreground",
+									? "bg-white text-foreground shadow-sm"
+									: "text-muted-foreground hover:bg-white/50 hover:text-foreground",
 							)}
 						>
 							<Icon className="h-4 w-4" />
 							<span>{label}</span>
 						</Link>
 					))}
-					<UserMenu pathname={pathname} mode="links" />
+					{!isPending &&
+						isAdmin &&
+						ADMIN_NAV_ITEMS.map(({ to, label, icon: Icon }) => (
+							<Link
+								key={to}
+								href={to}
+								className={cn(
+									linkBase,
+									pathname === to
+										? "bg-white text-foreground shadow-sm"
+										: "text-muted-foreground hover:bg-white/50 hover:text-foreground",
+								)}
+							>
+								<Icon className="h-4 w-4" />
+								<span>{label}</span>
+							</Link>
+						))}
 				</nav>
-				{/* Sign in / Sign out — at the end */}
-				<UserMenu pathname={pathname} mode="auth" />
+
+				{isPending ? (
+					<div className="ml-1 hidden h-8 w-20 animate-pulse rounded-md bg-gray-100 md:block dark:bg-gray-800" />
+				) : session?.user ? (
+					<Button
+						variant="secondary"
+						className="ml-1 hidden rounded-full text-foreground text-sm md:inline-flex"
+						onClick={handleSignOut}
+					>
+						<LogOut className="h-4 w-4" />
+						<span>{userName}</span>
+					</Button>
+				) : (
+					<Button
+						variant="secondary"
+						className="ml-1 hidden rounded-full md:inline-flex"
+						onClick={() => router.push(ROUTES.auth)}
+					>
+						Sign In
+					</Button>
+				)}
+
 				<button
 					type="button"
-					className="flex h-8 w-8 items-center justify-center text-foreground md:hidden"
+					className="flex h-8 w-8 items-center justify-center rounded-full text-foreground md:hidden"
 					onClick={() => setIsMenuOpen((v) => !v)}
 					aria-label="Toggle menu"
 				>
@@ -103,11 +127,46 @@ export default function Header() {
 								{label}
 							</Link>
 						))}
-						<UserMenu
-							pathname={pathname}
-							mobile
-							onNavigate={() => setIsMenuOpen(false)}
-						/>
+						{!isPending &&
+							isAdmin &&
+							ADMIN_NAV_ITEMS.map(({ to, label, icon: Icon }) => (
+								<Link
+									key={to}
+									href={to}
+									onClick={() => setIsMenuOpen(false)}
+									className={cn(
+										"flex w-full items-center gap-2 px-3 py-2 font-medium text-sm transition-colors",
+										pathname === to
+											? "text-foreground"
+											: "text-muted-foreground",
+									)}
+								>
+									<Icon className="h-4 w-4" />
+									{label}
+								</Link>
+							))}
+						{isPending ? (
+							<div className="h-8 w-full animate-pulse rounded-md bg-gray-100 dark:bg-gray-800" />
+						) : session?.user ? (
+							<Button
+								variant="ghost"
+								className="mt-2 w-full justify-start"
+								onClick={handleSignOut}
+							>
+								<LogOut className="h-4 w-4" />
+								<span>{userName}</span>
+							</Button>
+						) : (
+							<Button
+								variant="ghost"
+								className="mt-2 w-full justify-start"
+								onClick={() => {
+									router.push(ROUTES.auth);
+								}}
+							>
+								Sign In
+							</Button>
+						)}
 					</div>
 				</div>
 			)}
