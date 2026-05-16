@@ -45,9 +45,14 @@ const nextConfig: NextConfig = {
 				crypto: false,
 				module: false,
 			};
+
+			if (process.env.NEXT_PUBLIC_BROWSER_PIPER !== "true") {
+				config.resolve.alias["@mintplex-labs/piper-tts-web"] = false;
+				config.resolve.alias["onnxruntime-web"] = false;
+				config.resolve.alias["@diffusionstudio/piper-wasm"] = false;
+			}
 		}
+
 		return config;
 	},
 };
-
-export default withAnalyzer(nextConfig);
