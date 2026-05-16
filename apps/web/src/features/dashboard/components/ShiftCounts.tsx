@@ -7,7 +7,7 @@ import { ShiftCountCard } from "./ShiftCountCard";
 import { ShiftCountsSkeleton } from "./ShiftCountsSkeleton";
 
 type ShiftCountsProps = {
-	initialSchedules?: SchedulesResponse;
+	initialSchedules?: SchedulesResponse | null;
 };
 
 export function ShiftCounts({ initialSchedules }: ShiftCountsProps) {

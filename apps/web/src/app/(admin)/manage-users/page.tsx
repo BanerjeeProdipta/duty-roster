@@ -46,32 +46,38 @@ export default async function ShiftAllocationsPage(props: {
 	const { year, month } = await getYearMonthFromSearchParams(
 		props.searchParams,
 	);
-	const trpcServer = await getAuthedTRPCServer();
-	const { startDate, endDate } = getMonthDateRange(year, month);
-	const initialSchedules = await trpcServer.roster.getSchedules.query({
-		startDate,
-		endDate,
-	});
 
-	return (
-		<Suspense fallback={<ShiftAllocationsLoading />}>
-			<div className="flex flex-col gap-6">
-				<MonthNavigator />
-				<div className="flex flex-wrap items-center justify-between">
-					<Suspense fallback={<Skeleton className="h-10 w-32" />}>
-						<WeekDayCounts month={month} year={year} />
-					</Suspense>
-					<div className="flex items-center gap-2">
-						<PrefillButton year={year} month={month} mode="default" />
-						<PrefillButton year={year} month={month} mode="fairly" />
-						<PrefillButton year={year} month={month} mode="minimize" />
-						<PrefillButton year={year} month={month} mode="maximize" />
+	try {
+		const trpcServer = await getAuthedTRPCServer();
+		const { startDate, endDate } = getMonthDateRange(year, month);
+		const initialSchedules = await trpcServer.roster.getSchedules.query({
+			startDate,
+			endDate,
+		});
+
+		return (
+			<Suspense fallback={<ShiftAllocationsLoading />}>
+				<div className="flex flex-col gap-6">
+					<MonthNavigator />
+					<div className="flex flex-wrap items-center justify-between">
+						<Suspense fallback={<Skeleton className="h-10 w-32" />}>
+							<WeekDayCounts month={month} year={year} />
+						</Suspense>
+						<div className="flex items-center gap-2">
+							<PrefillButton year={year} month={month} mode="default" />
+							<PrefillButton year={year} month={month} mode="fairly" />
+							<PrefillButton year={year} month={month} mode="minimize" />
+							<PrefillButton year={year} month={month} mode="maximize" />
+						</div>
 					</div>
+					<Suspense fallback={<ShiftCountsSkeleton />}>
+						<ShiftAllocationsClient initialSchedules={initialSchedules} />
+					</Suspense>
 				</div>
-				<Suspense fallback={<ShiftCountsSkeleton />}>
-					<ShiftAllocationsClient initialSchedules={initialSchedules} />
-				</Suspense>
-			</div>
-		</Suspense>
-	);
+			</Suspense>
+		);
+	} catch (e) {
+		console.error("Failed to load roster on manage-users:", e);
+		return <ShiftAllocationsLoading />;
+	}
 }

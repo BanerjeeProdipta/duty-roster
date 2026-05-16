@@ -20,20 +20,32 @@ async function RosterContent(props: {
 		props.searchParams,
 	);
 
-	const trpcServer = await getAuthedTRPCServer();
-	const { startDate, endDate } = getMonthDateRange(year, month);
-	const initialSchedules = await trpcServer.roster.getSchedules.query({
-		startDate,
-		endDate,
-	});
+	try {
+		const trpcServer = await getAuthedTRPCServer();
+		const { startDate, endDate } = getMonthDateRange(year, month);
+		const initialSchedules = await trpcServer.roster.getSchedules.query({
+			startDate,
+			endDate,
+		});
 
-	return (
-		<div className="flex flex-col gap-6">
-			<Suspense fallback={<RosterPrintSkeleton />}>
-				<RosterPDFViewer initialSchedules={initialSchedules} />
-			</Suspense>
-		</div>
-	);
+		return (
+			<div className="flex flex-col gap-6">
+				<Suspense fallback={<RosterPrintSkeleton />}>
+					<RosterPDFViewer initialSchedules={initialSchedules} />
+				</Suspense>
+			</div>
+		);
+	} catch (e) {
+		console.error("Failed to load roster print preview:", e);
+		return (
+			<div className="flex flex-col items-center justify-center gap-4 py-20">
+				<p className="font-medium text-gray-800 text-lg">
+					Unable to load the roster preview.
+				</p>
+				<p className="text-gray-600 text-sm">Please try again later.</p>
+			</div>
+		);
+	}
 }
 
 export default function RosterPage(props: {

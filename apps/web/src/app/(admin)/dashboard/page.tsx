@@ -29,20 +29,38 @@ async function DashboardContent(props: {
 		props.searchParams,
 	);
 
-	const trpcServer = await getAuthedTRPCServer();
 	const { startDate, endDate } = getMonthDateRange(year, month);
-	const initialSchedules = await trpcServer.roster.getSchedules.query({
-		startDate,
-		endDate,
-	});
+	try {
+		const trpcServer = await getAuthedTRPCServer();
+		const initialSchedules = await trpcServer.roster.getSchedules.query({
+			startDate,
+			endDate,
+		});
 
-	return (
-		<div className="flex flex-col gap-6">
-			<RosterHeader editable initialSchedules={initialSchedules} />
-			<ShiftCounts initialSchedules={initialSchedules} />
-			<RosterTable editable initialSchedules={initialSchedules} />
-		</div>
-	);
+		return (
+			<div className="flex flex-col gap-6">
+				<RosterHeader editable initialSchedules={initialSchedules} />
+				<ShiftCounts initialSchedules={initialSchedules} />
+				<RosterTable editable initialSchedules={initialSchedules} />
+			</div>
+		);
+	} catch (e) {
+		console.error("Failed to load roster on dashboard:", e);
+		return (
+			<div className="flex flex-col gap-6">
+				<RosterHeader editable />
+				<div className="rounded-2xl border border-red-200 bg-red-50 p-8 text-center">
+					<p className="font-medium text-lg text-red-800">
+						Unable to load the roster at this time.
+					</p>
+					<p className="mt-2 text-red-600 text-sm">
+						Please try refreshing the page. If the problem persists, the server
+						may be temporarily unavailable.
+					</p>
+				</div>
+			</div>
+		);
+	}
 }
 
 function DashboardLoading() {

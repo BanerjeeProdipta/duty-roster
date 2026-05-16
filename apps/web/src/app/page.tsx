@@ -22,20 +22,38 @@ async function HomeContent(props: {
 	);
 
 	const { startDate, endDate } = getMonthDateRange(year, month);
-	const trpcServer = await getTRPCServer();
-	const initialSchedules = await trpcServer.roster.getSchedules.query({
-		startDate,
-		endDate,
-	});
+	try {
+		const trpcServer = await getTRPCServer();
+		const initialSchedules = await trpcServer.roster.getSchedules.query({
+			startDate,
+			endDate,
+		});
 
-	return (
-		<div className="flex flex-col gap-6">
-			<RosterHeader initialSchedules={initialSchedules} />
-			<Suspense fallback={<RosterTableSkeleton />}>
-				<RosterTable initialSchedules={initialSchedules} />
-			</Suspense>
-		</div>
-	);
+		return (
+			<div className="flex flex-col gap-6">
+				<RosterHeader initialSchedules={initialSchedules} />
+				<Suspense fallback={<RosterTableSkeleton />}>
+					<RosterTable initialSchedules={initialSchedules} />
+				</Suspense>
+			</div>
+		);
+	} catch (e) {
+		console.error("Failed to load roster:", e);
+		return (
+			<div className="flex flex-col gap-6">
+				<RosterHeader initialSchedules={null} />
+				<div className="rounded-2xl border border-red-200 bg-red-50 p-8 text-center">
+					<p className="font-medium text-lg text-red-800">
+						Unable to load the roster at this time.
+					</p>
+					<p className="mt-2 text-red-600 text-sm">
+						Please try refreshing the page. If the problem persists, the server
+						may be temporarily unavailable.
+					</p>
+				</div>
+			</div>
+		);
+	}
 }
 
 export default function Home(props: {

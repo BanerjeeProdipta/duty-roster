@@ -21,20 +21,33 @@ const getBaseUrl = () => {
 
 	if (process.env.NEXT_PUBLIC_SERVER_URL)
 		return process.env.NEXT_PUBLIC_SERVER_URL;
-	if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
-	return `http://localhost:${process.env.PORT ?? 3001}`;
+
+	// Hard-coded production fallback
+	return "https://duty-roster-server.duty-roster.workers.dev";
+};
+
+const getBaseUrlWithFallback = () => {
+	try {
+		return getBaseUrl();
+	} catch {
+		return "https://duty-roster-server.duty-roster.workers.dev";
+	}
 };
 
 const getClient = cache(() => {
-	const url = getBaseUrl();
+	const url = getBaseUrlWithFallback();
 	return createTRPCClient<AppRouter>({
 		links: [
 			httpBatchLink({
 				url: `${url}/trpc`,
 				headers: async () => {
-					const heads = new Map(await headers());
-					heads.set("x-trpc-source", "server");
-					return Object.fromEntries(heads);
+					try {
+						const heads = new Map(await headers());
+						heads.set("x-trpc-source", "server");
+						return Object.fromEntries(heads);
+					} catch {
+						return { "x-trpc-source": "server" };
+					}
 				},
 			}),
 		],
