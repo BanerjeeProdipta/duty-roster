@@ -3,63 +3,26 @@ import { toast } from "sonner";
 import { QUERY_KEYS } from "@/utils/query-keys";
 import { trpcClient } from "@/utils/trpc";
 
-type PrefillMode = "fairly" | "minimize" | "maximize" | "default";
-
-const labelMap: Record<PrefillMode, string> = {
-	fairly: "Prefill Fairly",
-	minimize: "Minimize Shifts",
-	maximize: "Maximize Shifts",
-	default: "Default",
-};
-
-export const usePrefillRoster = (mode: PrefillMode) => {
+export const usePrefillRoster = () => {
 	const queryClient = useQueryClient();
-	const mutationKey = [`prefill-${mode}`];
-
-	const mutationFn = async ({
-		year,
-		month,
-	}: {
-		year: number;
-		month: number;
-	}) => {
-		if (mode === "fairly") {
-			return await trpcClient.roster.prefillFairPreferences.mutate({
-				year,
-				month,
-			});
-		}
-		if (mode === "minimize") {
-			return await trpcClient.roster.prefillMinimizeShifts.mutate({
-				year,
-				month,
-			});
-		}
-		if (mode === "maximize") {
-			return await trpcClient.roster.prefillMaximizeShifts.mutate({
-				year,
-				month,
-			});
-		}
-		return await trpcClient.roster.prefillDefault.mutate({
-			year,
-			month,
-		});
-	};
 
 	return useMutation({
-		mutationKey,
-		mutationFn,
+		mutationKey: ["prefill-default"],
+		mutationFn: async ({ year, month }: { year: number; month: number }) => {
+			return await trpcClient.roster.prefillDefault.mutate({
+				year,
+				month,
+			});
+		},
 		onSuccess: async (result, { year, month }) => {
 			const response = result as { success: boolean; error?: string };
-			const label = labelMap[mode];
 			if (!response.success) {
-				toast.error(`Failed to ${label.toLowerCase()}`, {
+				toast.error("Failed to prefill default", {
 					description: response.error,
 				});
 				return;
 			}
-			toast.success(`${label} completed`, {
+			toast.success("Default prefill completed", {
 				description: `Schedule for ${month}/${year} has been updated.`,
 			});
 			await queryClient.invalidateQueries({
@@ -67,7 +30,7 @@ export const usePrefillRoster = (mode: PrefillMode) => {
 			});
 		},
 		onError: (error) => {
-			toast.error(`Failed to ${labelMap[mode].toLowerCase()}`, {
+			toast.error("Failed to prefill default", {
 				description: error instanceof Error ? error.message : "Unknown error",
 			});
 		},

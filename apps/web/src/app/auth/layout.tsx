@@ -19,16 +19,16 @@ export default function AuthLayout({
 				<div className="relative hidden h-[600px] w-1/2 overflow-hidden lg:block">
 					<Grainient
 						className="absolute inset-0"
-						color1="var(--color-gradient-start)"
-						color2="var(--color-gradient-middle)"
-						color3="var(--color-gradient-end)"
+						color1="#93c5fd"
+						color2="#fdba74"
+						color3="#818cf8"
 						grainAnimated={false}
 					/>
-					<div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 text-center">
-						<p className="font-cursive font-medium text-4xl text-white/90 leading-snug lg:text-5xl">
+					<div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 text-center text-gray-900">
+						<p className="font-cursive font-medium text-4xl italic leading-snug lg:text-5xl">
 							Scheduling
 						</p>
-						<p className="font-cursive font-medium text-4xl text-white/90 leading-snug lg:text-5xl">
+						<p className="font-cursive font-medium text-4xl italic leading-snug lg:text-5xl">
 							made simple!
 						</p>
 					</div>
