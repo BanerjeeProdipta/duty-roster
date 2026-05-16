@@ -8,20 +8,10 @@ interface UseSpeechSynthesisReturn {
 }
 
 const TTS_URL = process.env.NEXT_PUBLIC_TTS_URL || "http://localhost:8001";
-
 const ENABLE_BROWSER_PIPER = process.env.NEXT_PUBLIC_BROWSER_PIPER === "true";
-const USE_LOCAL_PIPER_ASSETS =
-	process.env.NEXT_PUBLIC_PIPER_LOCAL_ASSETS === "true";
 
-let browserPiperSession: any = null;
-let browserPiperInit: Promise<void> | null = null;
-
-const PIPER_WASM_PATH = USE_LOCAL_PIPER_ASSETS
-	? "/piper-assets/piper/piper_phonemize"
-	: "https://cdn.jsdelivr.net/npm/@diffusionstudio/piper-wasm@1.0.0/build/piper_phonemize";
-const ONNX_WASM_PATH = USE_LOCAL_PIPER_ASSETS
-	? "/piper-assets/onnx/"
-	: "https://cdnjs.cloudflare.com/ajax/libs/onnxruntime-web/1.26.0/";
+let piperModule: typeof import("@mintplex-labs/piper-tts-web") | null = null;
+let piperInit: Promise<void> | null = null;
 
 let initBrowserPiper: () => Promise<void>;
 let speakBrowserPiper: (
@@ -31,25 +21,23 @@ let speakBrowserPiper: (
 
 if (ENABLE_BROWSER_PIPER) {
 	initBrowserPiper = async () => {
-		if (browserPiperSession) return;
-		if (!browserPiperInit) {
-			browserPiperInit = (async () => {
-				const { TtsSession } = await import("@mintplex-labs/piper-tts-web");
-				browserPiperSession = await TtsSession.create({
-					voiceId: "en_US-hfc_female-medium",
-					logger: (msg: string) => console.log("[Piper]", msg),
-					wasmPaths: {
-						onnxWasm: ONNX_WASM_PATH,
-						piperData: `${PIPER_WASM_PATH}.data`,
-						piperWasm: `${PIPER_WASM_PATH}.wasm`,
-					},
-				});
+		if (piperModule) return;
+		if (!piperInit) {
+			piperInit = (async () => {
+				piperModule = await import("@mintplex-labs/piper-tts-web");
+				piperModule
+					.download("en_US-hfc_female-medium", (progress) => {
+						console.log(
+							`[Piper] Downloading model: ${Math.round((progress.loaded * 100) / progress.total)}%`,
+						);
+					})
+					.catch(() => {});
 			})().catch((e) => {
 				console.error("[Piper] init failed, will retry next time:", e);
-				browserPiperInit = null;
+				piperInit = null;
 			});
 		}
-		await browserPiperInit;
+		await piperInit;
 	};
 
 	speakBrowserPiper = async (
@@ -58,7 +46,10 @@ if (ENABLE_BROWSER_PIPER) {
 	): Promise<void> => {
 		await initBrowserPiper();
 		isSpeakingRef.current = true;
-		const blob = await browserPiperSession.predict(text);
+		const blob = await piperModule!.predict({
+			text,
+			voiceId: "en_US-hfc_female-medium",
+		});
 		await playBlob(blob);
 		isSpeakingRef.current = false;
 	};
@@ -122,14 +113,17 @@ async function speakServerPiper(
 						source.start(0);
 					},
 					(error) => {
-						console.error("Audio decode error:", error);
+						console.warn("[TTS] Audio decode failed:", error);
 						isSpeakingRef.current = false;
 						reject(error);
 					},
 				);
 			})
 			.catch((error) => {
-				console.error("TTS server error:", error);
+				console.warn(
+					"[TTS] Server Piper not available, falling back to Web Speech API:",
+					(error as Error)?.message,
+				);
 				isSpeakingRef.current = false;
 				reject(error);
 			});

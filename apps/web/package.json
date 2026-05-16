@@ -3,13 +3,11 @@
 	"version": "0.1.0",
 	"private": true,
 	"scripts": {
-		"dev": "PIPER_LOCAL_ASSETS=true NEXT_PUBLIC_BROWSER_PIPER=true bash scripts/download-piper-assets.sh && node scripts/patch-piper-tts-web.mjs && next dev --port 3001",
+		"dev": "NEXT_PUBLIC_BROWSER_PIPER=true next dev --port 3001",
 		"build": "next build",
 		"start": "next start -p 3001",
 		"build:cf": "node scripts/patch-next-on-pages-build.mjs && npm_config_user_agent=npm/10.0.0 npx @cloudflare/next-on-pages -o .cloudflare",
-		"deploy": "bunx wrangler pages deploy .cloudflare --project-name=duty-roster",
-		"postinstall": "node scripts/patch-piper-tts-web.mjs",
-		"download:piper": "bash scripts/download-piper-assets.sh"
+		"deploy": "bunx wrangler pages deploy .cloudflare --project-name=duty-roster"
 	},
 	"dependencies": {
 		"@Duty-Roster/api": "workspace:*",

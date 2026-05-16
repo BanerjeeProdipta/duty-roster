@@ -50,7 +50,6 @@ const nextConfig: NextConfig = {
 			// These will be loaded from CDN instead of bundled
 			config.resolve.alias["onnxruntime-web"] = false;
 			config.resolve.alias["@mintplex-labs/piper-tts-web"] = false;
-			config.resolve.alias["@diffusionstudio/piper-wasm"] = false;
 
 			// Optimize code splitting for edge runtime
 			config.optimization = {

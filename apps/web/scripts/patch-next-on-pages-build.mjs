@@ -33,7 +33,6 @@ const builtins = [
 	// Large browser libs that should be externalized for Cloudflare Pages
 	"onnxruntime-web",
 	"@mintplex-labs/piper-tts-web",
-	"@diffusionstudio/piper-wasm",
 ];
 
 function formatBuiltins() {
