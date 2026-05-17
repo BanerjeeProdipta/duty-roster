@@ -13,6 +13,7 @@ interface UseVoiceReturn {
   ready: boolean;
   confidence: number;
   levels: number[];
+  error: string;
   start: () => void;
   stop: () => void;
 }
@@ -48,13 +49,14 @@ function cleanupResources(
   }
 }
 
-export function useVoice(): UseVoiceReturn {
+export function useVoice(): UseVoiceReturn & { error: string } {
   const [transcript, setTranscript] = useState("");
   const [partial, setPartial] = useState("");
   const [isListening, setIsListening] = useState(false);
   const [ready, setReady] = useState(false);
   const [confidence, setConfidence] = useState(0);
   const [levels, setLevels] = useState<number[]>(() => Array(25).fill(0));
+  const [error, setError] = useState("");
 
   const { speak } = useSpeechSynthesis();
 
@@ -93,6 +95,7 @@ export function useVoice(): UseVoiceReturn {
     setReady(false);
     setLevels(Array(25).fill(0));
     greetedRef.current = false;
+    setError("");
     if (typeof window !== "undefined" && window.speechSynthesis) {
       window.speechSynthesis.cancel();
     }
@@ -176,7 +179,7 @@ export function useVoice(): UseVoiceReturn {
         silenceRef.current = setTimeout(() => {
           log("silence timeout — auto-stopping");
           stopRef.current();
-        }, 6000);
+        }, 15000);
       } catch (err) {
         log("mic/audio setup failed", err);
         startingRef.current = false;
@@ -201,16 +204,21 @@ export function useVoice(): UseVoiceReturn {
 
     ws.onmessage = (event) => {
       try {
-        const data = JSON.parse(event.data as string);
+        const raw = event.data as string;
+        const data = JSON.parse(raw);
+        log("ws message type=", data.type, data.text ? `text="${data.text}"` : "", data.confidence ? `conf=${data.confidence}` : "");
         switch (data.type) {
+          case "connected": {
+            log("voice server connected");
+            break;
+          }
           case "partial": {
-            log("partial", data.text);
             setPartial(data.text);
             resetSilenceTimer(3000);
             break;
           }
           case "result": {
-            log("result", data.text, data.confidence);
+            log("*** FINAL RESULT ***", data.text, data.confidence);
             setTranscript(data.text);
             setConfidence(data.confidence ?? 0);
             setPartial("");
@@ -218,15 +226,23 @@ export function useVoice(): UseVoiceReturn {
             break;
           }
           case "stt_ready": {
+            log("*** STT READY ***");
             setReady(true);
+            resetSilenceTimer(15000);
             break;
           }
           case "stt_disconnected": {
-            log("stt disconnected — sending restart");
-            if (ws.readyState === WebSocket.OPEN) {
-              ws.send(JSON.stringify({ type: "restart" }));
-            }
+            log("stt disconnected — server will auto-retry");
+            setReady(false);
             break;
+          }
+          case "error": {
+            log("*** VOICE SERVER ERROR ***", data.message);
+            setError(data.message);
+            break;
+          }
+          default: {
+            log("unhandled message type", data.type, raw);
           }
         }
       } catch {
@@ -259,6 +275,7 @@ export function useVoice(): UseVoiceReturn {
     setPartial("");
     setConfidence(0);
     setReady(false);
+    setError("");
 
     const afterGreeting = () => {
       setReady(true);
@@ -293,6 +310,7 @@ export function useVoice(): UseVoiceReturn {
     ready,
     confidence,
     levels,
+    error,
     start,
     stop,
   };

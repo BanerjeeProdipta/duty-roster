@@ -23,45 +23,19 @@ app.get(
 	"/voice/stream",
 	upgradeWebSocket(() => {
 		let sttSocket: WebSocket | null = null;
+		let retryTimeout: ReturnType<typeof setTimeout> | null = null;
+		let retryCount = 0;
+		let everConnected = false;
+		let closed = false;
+		let audioBuffer: ArrayBuffer[] = [];
 
-		const connectSTT = () => {
-			if (sttSocket) {
-				sttSocket.close();
-				sttSocket = null;
-			}
-
-			try {
-				sttSocket = new WebSocket(STT_WS_URL);
-				// @ts-expect-error Bun WebSocket accepts "buffer" binaryType
-				sttSocket.binaryType = "buffer";
-			} catch {
-				// will be handled by connectSTT callers
-			}
-		};
+		const MAX_RETRY_DELAY = 30000;
 
 		return {
 			onOpen: (_e, ws) => {
 				ws.send(JSON.stringify({ type: "connected" }));
-				connectSTT();
-
-				sttSocket!.onopen = () => {
-					ws.send(JSON.stringify({ type: "stt_ready" }));
-				};
-
-				sttSocket!.onmessage = (event) => {
-					ws.send(event.data as string);
-				};
-
-				sttSocket!.onclose = () => {
-					ws.send(JSON.stringify({ type: "stt_disconnected" }));
-					sttSocket = null;
-				};
-
-				sttSocket!.onerror = () => {
-					ws.send(
-						JSON.stringify({ type: "error", message: "STT connection failed" }),
-					);
-				};
+				retryCount = 0;
+				connectSTT(ws);
 			},
 
 			onMessage: (evt, ws) => {
@@ -71,7 +45,10 @@ app.get(
 					try {
 						const cmd = JSON.parse(data);
 						if (cmd.type === "restart") {
-							connectSTT();
+							retryCount = 0;
+							everConnected = false;
+							audioBuffer = [];
+							connectSTT(ws);
 						}
 					} catch {
 						ws.send(
@@ -84,19 +61,81 @@ app.get(
 					return;
 				}
 
-				// Binary audio chunk — forward to STT
+				const chunk = data as ArrayBuffer;
 				if (sttSocket && sttSocket.readyState === WebSocket.OPEN) {
-					sttSocket.send(data as ArrayBuffer);
+					sttSocket.send(chunk);
+				} else if (audioBuffer.length < 200) {
+					audioBuffer.push(chunk);
 				}
 			},
 
 			onClose: () => {
+				closed = true;
+				if (retryTimeout) clearTimeout(retryTimeout);
 				if (sttSocket) {
 					sttSocket.close();
 					sttSocket = null;
 				}
+				audioBuffer = [];
 			},
 		};
+
+		function connectSTT(ws: WebSocket) {
+			console.log(`[voice-server] connectSTT: connecting to ${STT_WS_URL} (attempt ${retryCount + 1})`);
+			if (sttSocket) {
+				sttSocket.close();
+				sttSocket = null;
+			}
+
+			try {
+				sttSocket = new WebSocket(STT_WS_URL);
+			} catch (e) {
+				console.log(`[voice-server] connectSTT: new WebSocket threw:`, e);
+				scheduleRetry(ws);
+				return;
+			}
+
+			sttSocket.onopen = () => {
+				console.log(`[voice-server] connectSTT: STT socket OPEN`);
+				retryCount = 0;
+				everConnected = true;
+				ws.send(JSON.stringify({ type: "stt_ready" }));
+				console.log(`[voice-server] sent stt_ready to browser, flushing ${audioBuffer.length} buffered chunks`);
+				for (const chunk of audioBuffer) {
+					sttSocket!.send(chunk);
+				}
+				audioBuffer = [];
+			};
+
+			sttSocket.onmessage = (event) => {
+				console.log(`[voice-server] STT message:`, typeof event.data === 'string' ? event.data.slice(0, 80) : 'binary');
+				ws.send(event.data as string);
+			};
+
+			sttSocket.onclose = (e) => {
+				console.log(`[voice-server] STT socket CLOSED code=${e.code} reason=${e.reason}`);
+				sttSocket = null;
+				if (everConnected) {
+					ws.send(JSON.stringify({ type: "stt_disconnected" }));
+				}
+				scheduleRetry(ws);
+			};
+
+			sttSocket.onerror = (e) => {
+				console.log(`[voice-server] STT socket ERROR:`, e instanceof Error ? e.message : e);
+			};
+		}
+
+		function scheduleRetry(ws: WebSocket) {
+			if (closed) return;
+			const delay = Math.min(1000 * 2 ** retryCount, MAX_RETRY_DELAY);
+			console.log(`[voice-server] scheduleRetry: retry ${retryCount + 1} in ${delay}ms`);
+			retryCount++;
+			retryTimeout = setTimeout(() => {
+				if (closed) return;
+				connectSTT(ws);
+			}, delay);
+		}
 	}),
 );
 

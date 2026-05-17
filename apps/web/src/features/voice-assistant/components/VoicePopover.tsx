@@ -13,12 +13,14 @@ interface VoicePopoverProps {
   ready: boolean;
   levels: number[];
   messages: ParsedMessage[];
+  partial?: string;
+  error?: string;
   inputValue: string;
   onInputChange: (value: string) => void;
   onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
   onSend: () => void;
   onToggleMic: () => void;
-  onToggleRaw: (index: number) => void;
+  onToggleRaw?: (index: number) => void;
   onClose: () => void;
 }
 
@@ -27,6 +29,8 @@ export function VoicePopover({
   ready,
   levels,
   messages,
+  partial,
+  error,
   inputValue,
   onInputChange,
   onKeyDown,
@@ -45,6 +49,9 @@ export function VoicePopover({
         messages={messages}
         isListening={isListening}
         levels={levels}
+        partial={partial}
+        error={error}
+        ready={ready}
         onToggleRaw={onToggleRaw}
       />
 

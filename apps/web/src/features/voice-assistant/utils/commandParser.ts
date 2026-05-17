@@ -59,6 +59,8 @@ export function parseCommand(text: string): ParsedCommand {
   const nurseName = bestNameMatch(nameWords);
   const englishName = nurseName ? bengaliToEnglish(nurseName) : null;
 
+  console.log("[commandParser] input:", text, "| shift:", shift, "| date:", date, "| nameWords:", nameWords, "| nurseName:", nurseName);
+
   const missingFields: string[] = [];
   if (!nurseName) missingFields.push("nurse");
   if (!shift) missingFields.push("shift");
