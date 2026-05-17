@@ -1,54 +1,65 @@
-# Duty Roster - Business Logic
+# Duty Roster Business Logic
 
 ## Purpose
 
-Automated nurse duty roster scheduling system that generates optimal monthly schedules using constraint programming (OR-Tools).
+Generate monthly nurse shift rosters that satisfy coverage requirements, workload balance, and rest/safety constraints while honoring nurse shift preferences.
 
-## Domain Entities
+## Core entities
 
-- **Nurse**: Staff member (active flag controls scheduling)
-- **Shift**: morning/evening/night with timing info
-- **NurseSchedule**: Assignment record (nurse + date + shift, null shift = day off)
-- **NurseShiftPreference**: Weight (0-100) per nurse per shift type
+- **Nurse**: A staff member who may be active or inactive for scheduling.
+- **Shift**: One of `morning`, `evening`, `night`, or `off`.
+- **NurseSchedule**: A daily assignment record mapping a nurse to a date and shift.
+- **NurseShiftPreference**: A weight for each shift type that guides the solver.
 
-## Coverage Requirements
+## Coverage rules
 
-| Day Type | Morning | Evening | Night |
-| -------- | ------- | ------- | ----- |
-| Weekday  | 20      | 3       | 2     |
-| Friday   | 3       | 3       | 2     |
+The roster uses the following daily staffing targets:
 
-## Hard Constraints (Must Satisfy)
+- Weekday: `morning = 20`, `evening = 3`, `night = 2`
+- Friday: `morning = 3`, `evening = 3`, `night = 2`
 
-1. One shift per nurse per day (or off)
-2. Exact daily coverage per shift must be met
-3. Max 2 consecutive night shifts
-4. Mandatory rest after 2 nights (Night-Night-Off pattern)
-5. Certain nurses unavailable on Fridays
-6. Max shifts per type cannot exceed preferred maximum
-7. Encourage Night-Night-Off pattern for 2-night nurses
+Coverage is built per day in `packages/api/src/roster/utils.ts` using `buildCoverageForMonth()`.
 
-## Soft Constraints (Optimization Goals)
+## Hard constraints
 
-1. Maximize preference satisfaction (weight × assignment)
-2. Workload balancing (penalize deviation from average)
+1. Each nurse can work at most one shift per day.
+2. Exact daily coverage must be met for every shift type.
+3. No nurse may work more than 2 consecutive night shifts.
+4. After 2 nights, the next day must be off (Night-Night-Off behavior).
+5. Specific nurses may be blocked from working on Fridays.
+6. Each nurse is limited to a maximum count of each shift type based on preference weights.
+7. Night assignments are constrained by previous-month history for continuity.
 
-## Solver Algorithm (OR-Tools CP-SAT)
+## Soft optimization goals
 
-- **Variables**: Boolean X[nurse, day, shift]
-- **Objective**: Maximize Σ(preference_weight × X) - 200 × |workload - avg|
-- **Timeout**: 15-30 seconds
-- **Preference normalization**: weights ≤ 100%, day counts = round((weight/100) × daysInMonth)
+1. Maximize satisfaction of nurse shift preferences.
+2. Balance workload across available nurses.
+3. Reward consecutive night pairs when they preserve the required rest pattern.
 
-## Fair Share Algorithm
+## Preference handling
 
-Calculates minimum percentage weights to meet coverage:
-`weight = ceil((ceil(requirement/nurses) / totalDays) × 100)`
-Ensures total weights ≤ 99% to preserve off days.
+- Preferences are stored as weights in the database and loaded in `packages/api/src/roster/service.ts`.
+- Shift weights are expressed as percentages and converted into hard caps for the month.
+- A nurse with `shift_off` weight is effectively treated as preferring days off when all other shift weights are lower.
 
-## Data Flow
+## Solver flow
 
-1. Admin clicks Generate → Build solver payload (nurses, coverage, preferences, constraints)
-2. Python solver finds optimal assignment → Returns roster matrix
-3. Delete existing month schedules → Bulk insert new assignments
-4. UI refreshes with updated roster and metrics
+1. `packages/api/src/roster/service.ts` builds a solver payload from current preferences, coverage, constraints, and prior-month night history.
+2. `packages/api/src/roster/utils.ts` calls `runSolver()`, which spawns the Python solver at `packages/api/src/roster/solver.py`.
+3. The Python solver constructs a CP-SAT model, solves for the best assignment, and returns a roster matrix.
+4. The backend deletes any existing month schedules and bulk inserts the new roster.
+5. The UI refreshes from the database and shows generated assignments.
+
+## Where implementation lives
+
+- Solver payload builder: `packages/api/src/roster/service.ts`
+- Coverage and preference helpers: `packages/api/src/roster/utils.ts`
+- Python solver: `packages/api/src/roster/solver.py`
+- Solver runner: `packages/api/src/roster/utils.ts` (`runSolver()`)
+- Shift update mutation: `packages/api/src/roster/router.ts`
+
+## Notes
+
+- The system currently relies on a separate Python process for OR-Tools.
+- The solver uses exact coverage constraints rather than soft coverage, so the input must be feasible.
+- Friday coverage and nurse restrictions are handled explicitly through `FRIDAY_OFF_NURSES` and `getFridayIndicesForMonth()`.
