@@ -5,15 +5,29 @@ import { Pool } from "pg";
 import { getDbEnv } from "./env";
 import * as schema from "./schema";
 
-const isProduction = process.env.NODE_ENV === "production";
-
 export function createDb() {
 	const env = getDbEnv();
-	const url = process.env.DATABASE_URL_DIRECT || env.DATABASE_URL;
+	const runtimeEnv = {
+		...(typeof process !== "undefined" ? process.env : {}),
+		...(typeof globalThis !== "undefined" && (globalThis as any)._CF_ENV
+			? (globalThis as any)._CF_ENV
+			: {}),
+	};
+	const isProduction = runtimeEnv.NODE_ENV === "production";
+	const url =
+		runtimeEnv.DATABASE_URL_DIRECT ||
+		runtimeEnv.DATABASE_URL ||
+		env.DATABASE_URL;
 	if (!url) throw new Error("DATABASE_URL or DATABASE_URL_DIRECT must be set");
 
-	if (isProduction) {
-		const sql = neon(url);
+	if (
+		isProduction ||
+		(typeof process !== "undefined" &&
+			(process as any).release?.name !== "node")
+	) {
+		// Neon HTTP driver requires the direct connection URL, not the pooled one.
+		const directUrl = url.replace("-pooler", "");
+		const sql = neon(directUrl);
 		return drizzleNeon(sql, { schema });
 	}
 
