@@ -24,7 +24,7 @@ export default function AuthLayout({
 						color3="#818cf8"
 						grainAnimated={false}
 					/>
-					<div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 text-center text-gray-900">
+					<div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 text-center">
 						<p className="font-cursive font-medium text-4xl italic leading-snug lg:text-5xl">
 							Scheduling
 						</p>

@@ -33,8 +33,21 @@ jobs:
       - name: Install dependencies
         run: bun install
 
-      - name: Deploy Backend
-        run: bun run deploy:server
+      - name: Build server
+        run: cd apps/server && bun run build:cf
+
+      - name: Set worker secrets
+        working-directory: apps/server
+        run: |
+          jq -n \
+            --arg database_url "$DATABASE_URL" \
+            --arg better_auth_secret "$BETTER_AUTH_SECRET" \
+            '{DATABASE_URL: $database_url, BETTER_AUTH_SECRET: $better_auth_secret}' \
+            | npx wrangler secret bulk
+
+      - name: Deploy server
+        working-directory: apps/server
+        run: npx wrangler deploy
 
       - name: Deploy Frontend
         run: bun run deploy:web
