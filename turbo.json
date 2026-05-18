@@ -51,6 +51,15 @@
 		"db:seed": {
 			"cache": false
 		},
+		"db:seed:local": {
+			"cache": false
+		},
+		"db:seed:prods": {
+			"cache": false
+		},
+		"db:setup-local": {
+			"cache": false
+		},
 		"deploy": {
 			"dependsOn": ["build"]
 		}

@@ -14,17 +14,22 @@
 		"db:generate": "drizzle-kit generate",
 		"db:studio": "drizzle-kit studio",
 		"db:migrate": "drizzle-kit migrate",
-		"db:seed": "bun run src/seed.ts"
+		"db:seed": "bun run src/seed.ts",
+		"db:seed:local": "NODE_ENV=development bun run src/seed.ts",
+		"db:seed:prods": "NODE_ENV=development bun run src/seed.ts --prods",
+		"db:setup-local": "NODE_ENV=development bun run db:push -- --force && bun run db:seed:local"
 	},
 	"dependencies": {
 		"@Duty-Roster/env": "workspace:*",
 		"@neondatabase/serverless": "^1.0.2",
 		"dotenv": "catalog:",
 		"drizzle-orm": "catalog:",
+		"pg": "^8.13.0",
 		"zod": "catalog:"
 	},
 	"devDependencies": {
 		"@Duty-Roster/config": "workspace:*",
+		"@types/pg": "^8.11.10",
 		"drizzle-kit": "^0.31.8",
 		"typescript": "^5"
 	}

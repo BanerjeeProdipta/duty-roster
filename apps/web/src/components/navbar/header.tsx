@@ -2,7 +2,7 @@
 
 import { Button } from "@Duty-Roster/ui/components/button";
 import { cn } from "@Duty-Roster/ui/lib/utils";
-import { LayoutDashboard, LogOut, Menu, X } from "lucide-react";
+import { LayoutDashboard, LogIn, LogOut, Menu, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
@@ -33,7 +33,7 @@ export default function Header() {
 		<header className="sticky top-0 z-[100] w-full border-border/50 border-b bg-white dark:bg-gray-950">
 			<div className="relative mx-auto flex h-18 items-center justify-between px-4 sm:px-12 lg:px-20">
 				<Link href="/" className="flex h-10 items-center gap-1">
-					<LayoutDashboard className="h-6 w-6" />
+					<LayoutDashboard className="h-8 w-8 rounded bg-accent-primary p-1 text-white" />
 					<p className="font-semibold text-xl tracking-tight">
 						<span className="text-gray-900 dark:text-gray-100">simple</span>
 						<span className="text-gray-500 dark:text-gray-400">roster</span>
@@ -164,6 +164,7 @@ export default function Header() {
 									router.push(ROUTES.auth);
 								}}
 							>
+								<LogIn className="h-4 w-4" />
 								Sign In
 							</Button>
 						)}

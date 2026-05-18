@@ -1,4 +1,3 @@
-
 interface LoadEnvOptions {
 	/** Base directory to search for .env files */
 	baseDir?: string;
@@ -41,7 +40,13 @@ export async function loadEnv(options: LoadEnvOptions = {}) {
 		mode ? resolvePath(baseDir, `.env.${mode}.local`) : null,
 	]);
 
-	const envFiles = [env, envLocal, envMode, envModeLocal, ...customPaths].filter(Boolean) as string[];
+	const envFiles = [
+		env,
+		envLocal,
+		envMode,
+		envModeLocal,
+		...customPaths,
+	].filter(Boolean) as string[];
 
 	const dotenv = await import("dotenv");
 	for (const envFile of envFiles) {
@@ -102,10 +107,10 @@ export async function initWebEnv() {
 
 	const path = await import("node:path");
 	const webDir = path.resolve(rootDir, "apps/web");
-	const mode = (process.env.NODE_ENV as any) ?? "production";
+	const mode = (process.env.NODE_ENV as any) ?? "development";
 
-	loadEnv({ baseDir: rootDir, mode });
-	loadEnv({ baseDir: webDir, mode });
+	await loadEnv({ baseDir: rootDir, mode });
+	await loadEnv({ baseDir: webDir, mode });
 }
 
 /**
@@ -117,10 +122,10 @@ export async function initServerEnv() {
 
 	const path = await import("node:path");
 	const serverDir = path.resolve(rootDir, "apps/server");
-	const mode = (process.env.NODE_ENV as any) ?? "production";
+	const mode = (process.env.NODE_ENV as any) ?? "development";
 
-	loadEnv({ baseDir: rootDir, mode });
-	loadEnv({ baseDir: serverDir, mode });
+	await loadEnv({ baseDir: rootDir, mode });
+	await loadEnv({ baseDir: serverDir, mode });
 }
 
 /**
@@ -129,7 +134,7 @@ export async function initServerEnv() {
 export async function initDbEnv() {
 	const rootDir = await getWorkspaceRoot();
 	if (!rootDir) return;
-	loadEnv({ baseDir: rootDir, mode: process.env.NODE_ENV as any });
+	await loadEnv({ baseDir: rootDir, mode: process.env.NODE_ENV as any });
 }
 
 /**
@@ -138,5 +143,5 @@ export async function initDbEnv() {
 export async function initAuthEnv() {
 	const rootDir = await getWorkspaceRoot();
 	if (!rootDir) return;
-	loadEnv({ baseDir: rootDir, mode: process.env.NODE_ENV as any });
+	await loadEnv({ baseDir: rootDir, mode: process.env.NODE_ENV as any });
 }
