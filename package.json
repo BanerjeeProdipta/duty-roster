@@ -48,6 +48,8 @@
 		"db:generate": "turbo -F @Duty-Roster/db db:generate",
 		"db:migrate": "turbo -F @Duty-Roster/db db:migrate",
 		"db:seed": "turbo -F @Duty-Roster/db db:seed",
+		"db:seed:prods": "cd packages/db && NODE_ENV=development bun run db:seed:prods",
+		"db:setup-local": "cd packages/db && NODE_ENV=development bun run db:setup-local",
 		"deploy:server": "cd apps/server && bun run build:cf && bun run deploy",
 		"deploy:web": "cd apps/web && bun run build:cf && bun run deploy",
 		"deploy": "bun install && bun run deploy:server && bun run deploy:web",

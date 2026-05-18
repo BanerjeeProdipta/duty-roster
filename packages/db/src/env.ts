@@ -2,10 +2,11 @@
 import { initDbEnv } from "@Duty-Roster/env/loader";
 import { z } from "zod";
 
-initDbEnv();
+await initDbEnv();
 
 const dbEnvSchema = z.object({
 	DATABASE_URL: z.string().min(1),
+	PRODS_SEED_PATH: z.string().optional(),
 });
 
 export function getDbEnv() {
