@@ -26,7 +26,9 @@ export function createDb() {
 			(process as any).release?.name !== "node")
 	) {
 		// Neon HTTP driver requires the direct connection URL, not the pooled one.
-		const directUrl = url.replace("-pooler", "");
+		const directUrl = url.includes("-pooler")
+			? url.replace(/-pooler(-[\w]+)?\./, ".")
+			: url;
 		const sql = neon(directUrl);
 		return drizzleNeon(sql, { schema });
 	}
