@@ -6,10 +6,9 @@ import { useVoice } from "@/features/voice-assistant/hooks/useVoice";
 import { useVoiceAssistantState } from "@/features/voice-assistant/hooks/useVoiceAssistantState";
 import { useVoiceAssistantLogic } from "@/features/voice-assistant/hooks/useVoiceAssistantLogic";
 import { VoicePopover } from "./VoicePopover";
-import type { ParsedMessage } from "./MessageItem";
 
 export function VoiceTrigger() {
-  const { transcript, isListening, levels, start, stop, ready } = useVoice();
+  const { transcript, partial, isListening, levels, start, stop, ready, error } = useVoice();
 
   const {
     open,
@@ -37,6 +36,15 @@ export function VoiceTrigger() {
 
   const lastProcessedTranscriptRef = useRef("");
   const transcriptSkippedWhileSpeakingRef = useRef(false);
+
+  // Debug: log transcript/partial changes
+  useEffect(() => {
+    if (partial) console.log("[VoiceTrigger] partial transcript:", partial);
+  }, [partial]);
+
+  useEffect(() => {
+    if (transcript) console.log("[VoiceTrigger] final transcript:", transcript);
+  }, [transcript]);
 
   const toggleMic = useCallback(() => {
     isListening ? stop() : start();
@@ -73,22 +81,26 @@ export function VoiceTrigger() {
       return;
 
     if (isSpeakingRef.current) {
+      console.log("[VoiceTrigger] skipped while speaking:", transcript);
       transcriptSkippedWhileSpeakingRef.current = true;
       lastProcessedTranscriptRef.current = transcript;
       return;
     }
 
     if (transcriptSkippedWhileSpeakingRef.current) {
+      console.log("[VoiceTrigger] skipping echoed transcript:", transcript);
       transcriptSkippedWhileSpeakingRef.current = false;
       lastProcessedTranscriptRef.current = transcript;
       return;
     }
 
+    console.log("[VoiceTrigger] processing transcript:", transcript);
     lastProcessedTranscriptRef.current = transcript;
     processMessage(transcript);
   }, [transcript, lastAction, processMessage, isSpeakingRef]);
 
   const confirmedRef = useRef(false);
+  const cancelledRef = useRef(false);
   useEffect(() => {
     if (lastAction === "confirmed" && !confirmedRef.current) {
       confirmedRef.current = true;
@@ -102,9 +114,23 @@ export function VoiceTrigger() {
         setLastAction(null);
         confirmedRef.current = false;
       });
-    }
-    if (lastAction !== "confirmed") {
+    } else if (lastAction === "cancelled" && !cancelledRef.current) {
+      cancelledRef.current = true;
+      stop();
+      speak("Cancelled").then(() => {
+        setOpen(false);
+        setMessages([]);
+        setInputValue("");
+        setPendingConfirmation(null);
+        setAwaitingResponse(false);
+        setLastAction(null);
+        cancelledRef.current = false;
+      });
+    } else if (lastAction !== "confirmed") {
       confirmedRef.current = false;
+    }
+    if (lastAction !== "cancelled") {
+      cancelledRef.current = false;
     }
   }, [lastAction, stop, speak, setOpen, setMessages, setInputValue, setPendingConfirmation, setAwaitingResponse, setLastAction]);
 
@@ -144,6 +170,8 @@ export function VoiceTrigger() {
           ready={ready}
           levels={levels}
           messages={messages}
+          partial={partial}
+          error={error}
           inputValue={inputValue}
           onInputChange={setInputValue}
           onKeyDown={handleKeyDown}

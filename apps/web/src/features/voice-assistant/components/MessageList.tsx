@@ -9,13 +9,18 @@ interface MessageListProps {
   messages: ParsedMessage[];
   isListening: boolean;
   levels: number[];
-  onToggleRaw: (index: number) => void;
+  partial?: string;
+  error?: string;
+  ready: boolean;
+  onToggleRaw?: (index: number) => void;
 }
 
 export function MessageList({
   messages,
   isListening,
   levels,
+  error,
+  ready,
   onToggleRaw,
 }: MessageListProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -46,13 +51,26 @@ export function MessageList({
         <MessageItem
           key={`msg-${i}`}
           message={msg}
-          onToggleRaw={() => onToggleRaw(i)}
+          onToggleRaw={onToggleRaw ? () => onToggleRaw(i) : undefined}
         />
       ))}
+
+      {error && !isListening && (
+        <div className="px-3 py-2">
+          <p className="rounded-lg bg-red-50 px-3 py-2 text-center text-red-600 text-xs">
+            {error}
+          </p>
+        </div>
+      )}
 
       {isListening && (
         <div className="flex flex-col items-center gap-3 py-4">
           <WaveAnimation levels={levels} />
+          {!ready && (
+            <p className="text-amber-500 text-xs">
+              Connecting to speech engine...
+            </p>
+          )}
           <p className="text-gray-400 text-xs">Listening...</p>
         </div>
       )}

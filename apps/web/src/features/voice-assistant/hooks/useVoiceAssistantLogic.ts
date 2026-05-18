@@ -35,12 +35,21 @@ export function useVoiceAssistantLogic({
   const { confirmShiftUpdate } = useConfirmShiftUpdate();
   const { speak, isSpeakingRef } = useSpeechSynthesis();
   const lastActionRef = useRef<"confirmed" | "cancelled" | null>(null);
+  const ignoreNextTranscriptRef = useRef(false);
   const accumulatedDataRef = useRef<{
     shift: string | null;
     date: string | null;
     nurseName: string | null;
     englishName: string | null;
   }>({ shift: null, date: null, nurseName: null, englishName: null });
+
+  const speakSafely = useCallback(
+    (text: string) => {
+      ignoreNextTranscriptRef.current = true;
+      speak(text);
+    },
+    [speak],
+  );
 
   const askForMissingFields = useCallback(
     (missingFields: string[]) => {
@@ -55,13 +64,18 @@ export function useVoiceAssistantLogic({
         { raw: questions, isSystem: true } as ParsedMessage,
       ]);
       setAwaitingResponse(true);
-      speak(questions);
+      speakSafely(questions);
     },
-    [setMessages, setAwaitingResponse, speak],
+    [setMessages, setAwaitingResponse, speakSafely],
   );
 
   const askForConfirmation = useCallback(
-    (nurseName: string, englishName: string | null, shift: string, date: string) => {
+    (
+      nurseName: string,
+      englishName: string | null,
+      shift: string,
+      date: string,
+    ) => {
       const displayName = englishName ?? nurseName;
       const msg = `Do you want to update ${displayName}'s shift to ${shift} on ${date}? To confirm say yes, to cancel say no.`;
       setPendingConfirmation({ nurseName, englishName, shift, date });
@@ -73,14 +87,21 @@ export function useVoiceAssistantLogic({
         } as ParsedMessage,
       ]);
       setAwaitingResponse(true);
-      speak(msg);
+      speakSafely(msg);
     },
-    [setPendingConfirmation, setMessages, setAwaitingResponse, speak],
+    [setPendingConfirmation, setMessages, setAwaitingResponse, speakSafely],
   );
 
   const processMessage = useCallback(
     (text: string) => {
+      console.log("[VoiceLogic] processMessage:", text);
       const lowerText = text.toLowerCase();
+
+      if (ignoreNextTranscriptRef.current) {
+        console.log("[VoiceLogic] skipping echo of own speech");
+        ignoreNextTranscriptRef.current = false;
+        return;
+      }
 
       if (pendingConfirmation) {
         if (
@@ -106,7 +127,7 @@ export function useVoiceAssistantLogic({
           setMessages((prev) => [
             ...prev,
             {
-              raw: "Cancelled. How else can I help?",
+              raw: "Cancelled.",
               isSystem: true,
             } as ParsedMessage,
           ]);
@@ -123,22 +144,19 @@ export function useVoiceAssistantLogic({
             isSystem: true,
           } as ParsedMessage,
         ]);
-        speak("Please say yes or no to confirm");
+        speakSafely("Please say yes or no to confirm");
         return;
       }
 
       const parsed = parseCommand(text);
+      console.log("[VoiceLogic] parsed command:", JSON.stringify(parsed));
 
-      if (parsed.shift || parsed.date || parsed.nurseName) {
-        setMessages((prev) => [
-          ...prev,
-          {
-            raw: text,
-            showRaw: false,
-            command: parsed,
-          },
-        ]);
-      }
+      setMessages((prev) => [
+        ...prev,
+        parsed.shift || parsed.date || parsed.nurseName
+          ? { raw: text, command: parsed }
+          : { raw: text },
+      ]);
 
       // When awaiting response, accumulate parsed data
       let finalParsed = parsed;
@@ -147,7 +165,8 @@ export function useVoiceAssistantLogic({
           shift: parsed.shift ?? accumulatedDataRef.current.shift,
           date: parsed.date ?? accumulatedDataRef.current.date,
           nurseName: parsed.nurseName ?? accumulatedDataRef.current.nurseName,
-          englishName: parsed.englishName ?? accumulatedDataRef.current.englishName,
+          englishName:
+            parsed.englishName ?? accumulatedDataRef.current.englishName,
         };
         finalParsed = {
           shift: accumulatedDataRef.current.shift,
@@ -213,7 +232,7 @@ export function useVoiceAssistantLogic({
       askForConfirmation,
       askForMissingFields,
       awaitingResponse,
-      speak,
+      speakSafely,
     ],
   );
 

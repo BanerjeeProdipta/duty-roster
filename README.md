@@ -7,7 +7,7 @@ A modern duty roster scheduling system for nurses, built with TypeScript, Next.j
 - **Automated Scheduling**: Constraint programming solver using OR-Tools for optimal nurse shift assignments
 - **Interactive Roster Management**: View and edit monthly schedules with drag-and-drop interface
 - **Admin Dashboard**: Manage users, preferences, and shift allocations
-- **Voice Assistant**: Speech-to-text integration for hands-free roster updates (in development)
+- **Voice Assistant**: Speech-to-text integration for hands-free roster updates
 - **Real-time Updates**: Live schedule synchronization across users
 - **Type-Safe APIs**: End-to-end type safety with tRPC
 - **Progressive Web App**: Installable PWA for mobile access
@@ -55,8 +55,8 @@ This starts:
 
 - Next.js web app on http://localhost:3001
 - Hono server on http://localhost:3000
-- Voice server on http://localhost:3002 (when implemented)
-- Vosk STT on ws://localhost:5001 (when implemented)
+- Voice server on http://localhost:3002
+- Vosk STT on ws://localhost:5001
 
 ## Voice Assistant Setup (Optional)
 
