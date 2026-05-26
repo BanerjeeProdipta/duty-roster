@@ -17,6 +17,7 @@ type Bindings = {
 	BETTER_AUTH_SECRET: string;
 	BETTER_AUTH_URL: string;
 	CORS_ORIGIN: string;
+	GROQ_API_KEY?: string;
 	NODE_ENV?: string;
 };
 
@@ -80,6 +81,37 @@ app.use(
 		},
 	}),
 );
+
+app.post("/api/agent", async (c) => {
+	try {
+		const { text } = await c.req.json<{ text: string }>();
+		if (!text || typeof text !== "string") {
+			return c.json({ error: "Missing or invalid 'text' field" }, 400);
+		}
+
+		const { buildAgent } = await import("@Duty-Roster/agent");
+
+		const agent = buildAgent({ recursionLimit: 5 });
+
+		const result = await Promise.race([
+			agent.invoke({
+				messages: [{ role: "user", content: text }],
+			}),
+			new Promise<never>((_, reject) =>
+				setTimeout(() => reject(new Error("Agent timed out")), 15000),
+			),
+		]);
+
+		const lastMessage = result.messages[result.messages.length - 1];
+		const response =
+			typeof lastMessage?.content === "string" ? lastMessage.content : "";
+
+		return c.json({ response });
+	} catch (e) {
+		console.error("[agent] error:", e);
+		return c.json({ error: (e as Error).message }, 500);
+	}
+});
 
 app.get("/", (c) => {
 	return c.text("OK");

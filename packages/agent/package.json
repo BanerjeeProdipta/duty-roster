@@ -1,0 +1,23 @@
+{
+	"name": "@Duty-Roster/agent",
+	"version": "0.0.1",
+	"private": true,
+	"type": "module",
+	"exports": {
+		".": {
+			"default": "./src/index.ts"
+		}
+	},
+	"dependencies": {
+		"@Duty-Roster/db": "workspace:*",
+		"@langchain/core": "*",
+		"@langchain/langgraph": "*",
+		"@langchain/groq": "*",
+		"drizzle-orm": "catalog:",
+		"zod": "catalog:"
+	},
+	"devDependencies": {
+		"@Duty-Roster/config": "workspace:*",
+		"typescript": "^5"
+	}
+}

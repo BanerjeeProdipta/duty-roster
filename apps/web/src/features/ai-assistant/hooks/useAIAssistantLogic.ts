@@ -1,244 +1,278 @@
 "use client";
 
 import { useCallback, useRef } from "react";
+import type { ParsedMessage } from "../components/MessageItem";
 import { parseCommand } from "../utils/commandParser";
 import { useConfirmShiftUpdate } from "./useConfirmShiftUpdate";
-import type { ParsedMessage } from "../components/MessageItem";
 import { useSpeechSynthesis } from "./useSpeechSynthesis";
 
+const AGENT_URL =
+	process.env.NEXT_PUBLIC_SERVER_URL?.replace(/\/+$/, "") ??
+	"http://localhost:3000";
+
 interface PendingConfirmation {
-  nurseName: string;
-  englishName: string | null;
-  shift: string;
-  date: string;
+	nurseName: string;
+	englishName: string | null;
+	shift: string;
+	date: string;
 }
 
 interface UseAIAssistantLogicProps {
-  pendingConfirmation: PendingConfirmation | null;
-  setPendingConfirmation: (confirmation: PendingConfirmation | null) => void;
-  awaitingResponse: boolean;
-  setAwaitingResponse: (awaiting: boolean) => void;
-  setLastAction: (action: "confirmed" | "cancelled" | null) => void;
-  setMessages: (
-    messages: ParsedMessage[] | ((prev: ParsedMessage[]) => ParsedMessage[]),
-  ) => void;
+	pendingConfirmation: PendingConfirmation | null;
+	setPendingConfirmation: (confirmation: PendingConfirmation | null) => void;
+	awaitingResponse: boolean;
+	setAwaitingResponse: (awaiting: boolean) => void;
+	setLastAction: (action: "confirmed" | "cancelled" | null) => void;
+	setMessages: (
+		messages: ParsedMessage[] | ((prev: ParsedMessage[]) => ParsedMessage[]),
+	) => void;
 }
 
 export function useAIAssistantLogic({
-  pendingConfirmation,
-  setPendingConfirmation,
-  awaitingResponse,
-  setAwaitingResponse,
-  setLastAction,
-  setMessages,
+	pendingConfirmation,
+	setPendingConfirmation,
+	awaitingResponse,
+	setAwaitingResponse,
+	setLastAction,
+	setMessages,
 }: UseAIAssistantLogicProps) {
-  const { confirmShiftUpdate } = useConfirmShiftUpdate();
-  const { speak, isSpeakingRef } = useSpeechSynthesis();
-  const lastActionRef = useRef<"confirmed" | "cancelled" | null>(null);
-  const ignoreNextTranscriptRef = useRef(false);
-  const accumulatedDataRef = useRef<{
-    shift: string | null;
-    date: string | null;
-    nurseName: string | null;
-    englishName: string | null;
-  }>({ shift: null, date: null, nurseName: null, englishName: null });
+	const { confirmShiftUpdate } = useConfirmShiftUpdate();
+	const { speak, isSpeakingRef } = useSpeechSynthesis();
+	const lastActionRef = useRef<"confirmed" | "cancelled" | null>(null);
+	const ignoreNextTranscriptRef = useRef(false);
+	const accumulatedDataRef = useRef<{
+		shift: string | null;
+		date: string | null;
+		nurseName: string | null;
+		englishName: string | null;
+	}>({ shift: null, date: null, nurseName: null, englishName: null });
 
-  const speakSafely = useCallback(
-    (text: string) => {
-      ignoreNextTranscriptRef.current = true;
-      speak(text);
-    },
-    [speak],
-  );
+	const speakSafely = useCallback(
+		(text: string) => {
+			ignoreNextTranscriptRef.current = true;
+			speak(text);
+		},
+		[speak],
+	);
 
-  const askForMissingFields = useCallback(
-    (missingFields: string[]) => {
-      const fieldMap: Record<string, string> = {
-        nurse: "Which nurse?",
-        shift: "Which shift?",
-        date: "Which date?",
-      };
-      const questions = missingFields.map((f) => fieldMap[f]).join(" ");
-      setMessages((prev) => [
-        ...prev,
-        { raw: questions, isSystem: true } as ParsedMessage,
-      ]);
-      setAwaitingResponse(true);
-      speakSafely(questions);
-    },
-    [setMessages, setAwaitingResponse, speakSafely],
-  );
+	const askForMissingFields = useCallback(
+		(missingFields: string[]) => {
+			const fieldMap: Record<string, string> = {
+				nurse: "Which nurse?",
+				shift: "Which shift?",
+				date: "Which date?",
+			};
+			const questions = missingFields.map((f) => fieldMap[f]).join(" ");
+			setMessages((prev) => [
+				...prev,
+				{ raw: questions, isSystem: true } as ParsedMessage,
+			]);
+			setAwaitingResponse(true);
+			speakSafely(questions);
+		},
+		[setMessages, setAwaitingResponse, speakSafely],
+	);
 
-  const askForConfirmation = useCallback(
-    (
-      nurseName: string,
-      englishName: string | null,
-      shift: string,
-      date: string,
-    ) => {
-      const displayName = englishName ?? nurseName;
-      const msg = `Do you want to update ${displayName}'s shift to ${shift} on ${date}? To confirm say yes, to cancel say no.`;
-      setPendingConfirmation({ nurseName, englishName, shift, date });
-      setMessages((prev) => [
-        ...prev,
-        {
-          raw: msg,
-          isSystem: true,
-        } as ParsedMessage,
-      ]);
-      setAwaitingResponse(true);
-      speakSafely(msg);
-    },
-    [setPendingConfirmation, setMessages, setAwaitingResponse, speakSafely],
-  );
+	const askForConfirmation = useCallback(
+		(
+			nurseName: string,
+			englishName: string | null,
+			shift: string,
+			date: string,
+		) => {
+			const displayName = englishName ?? nurseName;
+			const msg = `Do you want to update ${displayName}'s shift to ${shift} on ${date}? To confirm say yes, to cancel say no.`;
+			setPendingConfirmation({ nurseName, englishName, shift, date });
+			setMessages((prev) => [
+				...prev,
+				{
+					raw: msg,
+					isSystem: true,
+				} as ParsedMessage,
+			]);
+			setAwaitingResponse(true);
+			speakSafely(msg);
+		},
+		[setPendingConfirmation, setMessages, setAwaitingResponse, speakSafely],
+	);
 
-  const processMessage = useCallback(
-    (text: string) => {
-      console.log("[AILogic] processMessage:", text);
-      const lowerText = text.toLowerCase();
+	const queryAgent = useCallback(
+		async (text: string): Promise<string | null> => {
+			try {
+				const res = await fetch(`${AGENT_URL}/api/agent`, {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({ text }),
+				});
+				if (!res.ok) return null;
+				const data = await res.json();
+				return data.response ?? null;
+			} catch {
+				return null;
+			}
+		},
+		[],
+	);
 
-      if (ignoreNextTranscriptRef.current) {
-        console.log("[AILogic] skipping echo of own speech");
-        ignoreNextTranscriptRef.current = false;
-        return;
-      }
+	const processMessage = useCallback(
+		(text: string) => {
+			console.log("[AILogic] processMessage:", text);
+			const lowerText = text.toLowerCase();
 
-      if (pendingConfirmation) {
-        if (
-          lowerText.includes("yes") ||
-          lowerText.includes("confirm") ||
-          lowerText.includes("ok") ||
-          lowerText.includes("sure") ||
-          lowerText === "y"
-        ) {
-          confirmShiftUpdate(pendingConfirmation);
+			if (ignoreNextTranscriptRef.current) {
+				console.log("[AILogic] skipping echo of own speech");
+				ignoreNextTranscriptRef.current = false;
+				return;
+			}
 
-          setPendingConfirmation(null);
-          setAwaitingResponse(false);
-          lastActionRef.current = "confirmed";
-          setLastAction("confirmed");
-          return;
-        }
-        if (
-          lowerText.includes("no") ||
-          lowerText.includes("cancel") ||
-          lowerText.includes("not")
-        ) {
-          setMessages((prev) => [
-            ...prev,
-            {
-              raw: "Cancelled.",
-              isSystem: true,
-            } as ParsedMessage,
-          ]);
-          setPendingConfirmation(null);
-          setAwaitingResponse(false);
-          lastActionRef.current = "cancelled";
-          setLastAction("cancelled");
-          return;
-        }
-        setMessages((prev) => [
-          ...prev,
-          {
-            raw: "Please say yes or no to confirm",
-            isSystem: true,
-          } as ParsedMessage,
-        ]);
-        speakSafely("Please say yes or no to confirm");
-        return;
-      }
+			if (pendingConfirmation) {
+				if (
+					lowerText.includes("yes") ||
+					lowerText.includes("confirm") ||
+					lowerText.includes("ok") ||
+					lowerText.includes("sure") ||
+					lowerText === "y"
+				) {
+					confirmShiftUpdate(pendingConfirmation);
+					setPendingConfirmation(null);
+					setAwaitingResponse(false);
+					lastActionRef.current = "confirmed";
+					setLastAction("confirmed");
+					return;
+				}
+				if (
+					lowerText.includes("no") ||
+					lowerText.includes("cancel") ||
+					lowerText.includes("not")
+				) {
+					setMessages((prev) => [
+						...prev,
+						{ raw: "Cancelled.", isSystem: true } as ParsedMessage,
+					]);
+					setPendingConfirmation(null);
+					setAwaitingResponse(false);
+					lastActionRef.current = "cancelled";
+					setLastAction("cancelled");
+					return;
+				}
+				setMessages((prev) => [
+					...prev,
+					{
+						raw: "Please say yes or no to confirm",
+						isSystem: true,
+					} as ParsedMessage,
+				]);
+				speakSafely("Please say yes or no to confirm");
+				return;
+			}
 
-      const parsed = parseCommand(text);
-      console.log("[AILogic] parsed command:", JSON.stringify(parsed));
+			// Try agent API first
+			queryAgent(text).then((agentResponse) => {
+				if (agentResponse) {
+					setMessages((prev) => [
+						...prev,
+						{ raw: text, isUser: true } as ParsedMessage,
+						{ raw: agentResponse, isSystem: true } as ParsedMessage,
+					]);
+					setAwaitingResponse(false);
+					speakSafely(agentResponse);
+					return;
+				}
 
-      setMessages((prev) => [
-        ...prev,
-        parsed.shift || parsed.date || parsed.nurseName
-          ? { raw: text, command: parsed }
-          : { raw: text },
-      ]);
+				// Fall back to rule-based parser
+				const parsed = parseCommand(text);
+				console.log(
+					"[AILogic] parsed command (fallback):",
+					JSON.stringify(parsed),
+				);
 
-      // When awaiting response, accumulate parsed data
-      let finalParsed = parsed;
-      if (awaitingResponse) {
-        accumulatedDataRef.current = {
-          shift: parsed.shift ?? accumulatedDataRef.current.shift,
-          date: parsed.date ?? accumulatedDataRef.current.date,
-          nurseName: parsed.nurseName ?? accumulatedDataRef.current.nurseName,
-          englishName:
-            parsed.englishName ?? accumulatedDataRef.current.englishName,
-        };
-        finalParsed = {
-          shift: accumulatedDataRef.current.shift,
-          date: accumulatedDataRef.current.date,
-          nurseName: accumulatedDataRef.current.nurseName,
-          englishName: accumulatedDataRef.current.englishName,
-          action:
-            accumulatedDataRef.current.shift &&
-            accumulatedDataRef.current.date &&
-            accumulatedDataRef.current.nurseName
-              ? "update"
-              : null,
-          missingFields: [
-            ...(accumulatedDataRef.current.shift ? [] : ["shift"]),
-            ...(accumulatedDataRef.current.date ? [] : ["date"]),
-            ...(accumulatedDataRef.current.nurseName ? [] : ["nurse"]),
-          ],
-        };
-      } else {
-        accumulatedDataRef.current = {
-          shift: parsed.shift,
-          date: parsed.date,
-          nurseName: parsed.nurseName,
-          englishName: parsed.englishName,
-        };
-      }
+				setMessages((prev) => [
+					...prev,
+					parsed.shift || parsed.date || parsed.nurseName
+						? { raw: text, command: parsed }
+						: { raw: text },
+				]);
 
-      if (
-        finalParsed.action === "update" &&
-        finalParsed.nurseName &&
-        finalParsed.shift &&
-        finalParsed.date
-      ) {
-        setAwaitingResponse(false);
-        accumulatedDataRef.current = {
-          shift: null,
-          date: null,
-          nurseName: null,
-          englishName: null,
-        };
-        askForConfirmation(
-          finalParsed.nurseName,
-          finalParsed.englishName,
-          finalParsed.shift,
-          finalParsed.date,
-        );
-      } else if (finalParsed.missingFields.length > 0) {
-        if (awaitingResponse) {
-          return;
-        }
-        askForMissingFields(finalParsed.missingFields);
-      } else {
-        setAwaitingResponse(false);
-      }
-    },
-    [
-      pendingConfirmation,
-      confirmShiftUpdate,
-      setPendingConfirmation,
-      setAwaitingResponse,
-      setLastAction,
-      setMessages,
-      askForConfirmation,
-      askForMissingFields,
-      awaitingResponse,
-      speakSafely,
-    ],
-  );
+				let finalParsed = parsed;
+				if (awaitingResponse) {
+					accumulatedDataRef.current = {
+						shift: parsed.shift ?? accumulatedDataRef.current.shift,
+						date: parsed.date ?? accumulatedDataRef.current.date,
+						nurseName: parsed.nurseName ?? accumulatedDataRef.current.nurseName,
+						englishName:
+							parsed.englishName ?? accumulatedDataRef.current.englishName,
+					};
+					finalParsed = {
+						shift: accumulatedDataRef.current.shift,
+						date: accumulatedDataRef.current.date,
+						nurseName: accumulatedDataRef.current.nurseName,
+						englishName: accumulatedDataRef.current.englishName,
+						action:
+							accumulatedDataRef.current.shift &&
+							accumulatedDataRef.current.date &&
+							accumulatedDataRef.current.nurseName
+								? "update"
+								: null,
+						missingFields: [
+							...(accumulatedDataRef.current.shift ? [] : ["shift"]),
+							...(accumulatedDataRef.current.date ? [] : ["date"]),
+							...(accumulatedDataRef.current.nurseName ? [] : ["nurse"]),
+						],
+					};
+				} else {
+					accumulatedDataRef.current = {
+						shift: parsed.shift,
+						date: parsed.date,
+						nurseName: parsed.nurseName,
+						englishName: parsed.englishName,
+					};
+				}
 
-  return {
-    processMessage,
-    speak,
-    isSpeakingRef,
-  };
+				if (
+					finalParsed.action === "update" &&
+					finalParsed.nurseName &&
+					finalParsed.shift &&
+					finalParsed.date
+				) {
+					setAwaitingResponse(false);
+					accumulatedDataRef.current = {
+						shift: null,
+						date: null,
+						nurseName: null,
+						englishName: null,
+					};
+					askForConfirmation(
+						finalParsed.nurseName,
+						finalParsed.englishName,
+						finalParsed.shift,
+						finalParsed.date,
+					);
+				} else if (finalParsed.missingFields.length > 0) {
+					if (awaitingResponse) return;
+					askForMissingFields(finalParsed.missingFields);
+				} else {
+					setAwaitingResponse(false);
+				}
+			});
+		},
+		[
+			pendingConfirmation,
+			confirmShiftUpdate,
+			setPendingConfirmation,
+			setAwaitingResponse,
+			setLastAction,
+			setMessages,
+			askForConfirmation,
+			askForMissingFields,
+			awaitingResponse,
+			speakSafely,
+			queryAgent,
+		],
+	);
+
+	return {
+		processMessage,
+		speak,
+		isSpeakingRef,
+	};
 }

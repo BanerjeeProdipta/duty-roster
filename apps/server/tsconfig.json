@@ -12,6 +12,8 @@
 			"@Duty-Roster/auth/*": ["../../packages/auth/src/*"],
 			"@Duty-Roster/db": ["../../packages/db/src"],
 			"@Duty-Roster/db/*": ["../../packages/db/src/*"],
+			"@Duty-Roster/agent": ["../../packages/agent/src"],
+			"@Duty-Roster/agent/*": ["../../packages/agent/src/*"],
 			"@Duty-Roster/env": ["../../packages/env/src"],
 			"@Duty-Roster/env/*": ["../../packages/env/src/*"]
 		},
