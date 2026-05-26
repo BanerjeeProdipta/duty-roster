@@ -16,7 +16,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
       {children}
       {process.env.NODE_ENV === "development" && (
         <Suspense fallback={null}>
-          <ReactQueryDevtools />
+          <ReactQueryDevtools buttonPosition="bottom-left" />
         </Suspense>
       )}
     </QueryClientProvider>

@@ -1,17 +1,17 @@
 "use client";
 
-import { useVoiceSearch } from "@Duty-Roster/ui/hooks/useVoiceSearch";
+import { useAISearch } from "@Duty-Roster/ui/hooks/useAISearch";
 import { cn } from "@Duty-Roster/ui/lib/utils";
 import { Mic } from "lucide-react";
 
-interface VoiceInputProps {
+interface AIInputProps {
 	onTranscript: (transcript: string) => void;
 	className?: string;
 }
 
-function VoiceInput({ onTranscript, className }: VoiceInputProps) {
+function AIInput({ onTranscript, className }: AIInputProps) {
 	const { isListening, isBrowserSupported, startListening, stopListening } =
-		useVoiceSearch({
+		useAISearch({
 			onTranscript,
 		});
 
@@ -34,8 +34,8 @@ function VoiceInput({ onTranscript, className }: VoiceInputProps) {
 					: "hover:bg-gray-50",
 				className,
 			)}
-			title={isListening ? "Stop listening" : "Start voice input"}
-			aria-label={isListening ? "Stop listening" : "Start voice input"}
+			title={isListening ? "Stop listening" : "Start AI input"}
+			aria-label={isListening ? "Stop listening" : "Start AI input"}
 		>
 			<Mic
 				className={cn(
@@ -47,4 +47,4 @@ function VoiceInput({ onTranscript, className }: VoiceInputProps) {
 	);
 }
 
-export { VoiceInput };
+export { AIInput };

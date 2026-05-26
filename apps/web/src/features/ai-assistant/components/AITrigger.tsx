@@ -2,13 +2,22 @@
 
 import { useCallback, useEffect, useRef } from "react";
 import { Bot, X } from "lucide-react";
-import { useVoice } from "@/features/voice-assistant/hooks/useVoice";
-import { useVoiceAssistantState } from "@/features/voice-assistant/hooks/useVoiceAssistantState";
-import { useVoiceAssistantLogic } from "@/features/voice-assistant/hooks/useVoiceAssistantLogic";
-import { VoicePopover } from "./VoicePopover";
+import { useAI } from "@/features/ai-assistant/hooks/useAI";
+import { useAIAssistantState } from "@/features/ai-assistant/hooks/useAIAssistantState";
+import { useAIAssistantLogic } from "@/features/ai-assistant/hooks/useAIAssistantLogic";
+import { AIPopover } from "./AIPopover";
 
-export function VoiceTrigger() {
-  const { transcript, partial, isListening, levels, start, stop, ready, error } = useVoice();
+export function AITrigger() {
+  const {
+    transcript,
+    partial,
+    isListening,
+    levels,
+    start,
+    stop,
+    ready,
+    error,
+  } = useAI();
 
   const {
     open,
@@ -23,9 +32,9 @@ export function VoiceTrigger() {
     setAwaitingResponse,
     lastAction,
     setLastAction,
-  } = useVoiceAssistantState();
+  } = useAIAssistantState();
 
-  const { processMessage, speak, isSpeakingRef } = useVoiceAssistantLogic({
+  const { processMessage, speak, isSpeakingRef } = useAIAssistantLogic({
     pendingConfirmation,
     setPendingConfirmation,
     awaitingResponse,
@@ -39,11 +48,11 @@ export function VoiceTrigger() {
 
   // Debug: log transcript/partial changes
   useEffect(() => {
-    if (partial) console.log("[VoiceTrigger] partial transcript:", partial);
+    if (partial) console.log("[AITrigger] partial transcript:", partial);
   }, [partial]);
 
   useEffect(() => {
-    if (transcript) console.log("[VoiceTrigger] final transcript:", transcript);
+    if (transcript) console.log("[AITrigger] final transcript:", transcript);
   }, [transcript]);
 
   const toggleMic = useCallback(() => {
@@ -81,20 +90,20 @@ export function VoiceTrigger() {
       return;
 
     if (isSpeakingRef.current) {
-      console.log("[VoiceTrigger] skipped while speaking:", transcript);
+      console.log("[AITrigger] skipped while speaking:", transcript);
       transcriptSkippedWhileSpeakingRef.current = true;
       lastProcessedTranscriptRef.current = transcript;
       return;
     }
 
     if (transcriptSkippedWhileSpeakingRef.current) {
-      console.log("[VoiceTrigger] skipping echoed transcript:", transcript);
+      console.log("[AITrigger] skipping echoed transcript:", transcript);
       transcriptSkippedWhileSpeakingRef.current = false;
       lastProcessedTranscriptRef.current = transcript;
       return;
     }
 
-    console.log("[VoiceTrigger] processing transcript:", transcript);
+    console.log("[AITrigger] processing transcript:", transcript);
     lastProcessedTranscriptRef.current = transcript;
     processMessage(transcript);
   }, [transcript, lastAction, processMessage, isSpeakingRef]);
@@ -132,7 +141,17 @@ export function VoiceTrigger() {
     if (lastAction !== "cancelled") {
       cancelledRef.current = false;
     }
-  }, [lastAction, stop, speak, setOpen, setMessages, setInputValue, setPendingConfirmation, setAwaitingResponse, setLastAction]);
+  }, [
+    lastAction,
+    stop,
+    speak,
+    setOpen,
+    setMessages,
+    setInputValue,
+    setPendingConfirmation,
+    setAwaitingResponse,
+    setLastAction,
+  ]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -163,9 +182,9 @@ export function VoiceTrigger() {
   );
 
   return (
-    <div className="fixed right-6 bottom-6 z-50 flex flex-col items-end gap-3">
+    <div className="fixed right-6 bottom-6 z-[110] flex flex-col items-end gap-3">
       {open && (
-        <VoicePopover
+        <AIPopover
           isListening={isListening}
           ready={ready}
           levels={levels}
@@ -185,10 +204,14 @@ export function VoiceTrigger() {
       <button
         type="button"
         onClick={open ? handleClose : handleOpen}
-        className="flex h-14 w-14 items-center justify-center rounded-full bg-accent-primary text-white shadow-lg transition-all hover:scale-105 hover:bg-accent-primary-dark focus:outline-none focus:ring-2 focus:ring-accent-primary-light focus:ring-offset-2"
-        aria-label={open ? "Close assistant" : "Open voice assistant"}
+        className="flex h-14 w-14 items-center justify-center rounded-full bg-accent-primary text-white shadow-lg transition-all group hover:bg-accent-primary-dark focus:outline-none focus:ring-2 focus:ring-accent-primary-light focus:ring-offset-2"
+        aria-label={open ? "Close assistant" : "Open AI assistant"}
       >
-        {open ? <X className="h-6 w-6" /> : <Bot className="h-6 w-6" />}
+        {open ? (
+          <X className="h-6 w-6" />
+        ) : (
+          <Bot className="h-6 w-6 group-hover:scale-105" />
+        )}
       </button>
     </div>
   );

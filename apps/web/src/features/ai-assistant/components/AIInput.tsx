@@ -2,7 +2,7 @@
 
 import { Mic, MicOff, Send } from "lucide-react";
 
-interface VoiceInputProps {
+interface AIInputProps {
   inputValue: string;
   onInputChange: (value: string) => void;
   onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
@@ -11,14 +11,14 @@ interface VoiceInputProps {
   isListening: boolean;
 }
 
-export function VoiceInput({
+export function AIInput({
   inputValue,
   onInputChange,
   onKeyDown,
   onSend,
   onToggleMic,
   isListening,
-}: VoiceInputProps) {
+}: AIInputProps) {
   return (
     <div className="border-gray-100 border-t bg-white px-3 py-2.5">
       <div className="flex items-center gap-2">

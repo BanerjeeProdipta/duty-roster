@@ -14,7 +14,7 @@
 		"@Duty-Roster/auth": "workspace:*",
 		"@Duty-Roster/env": "workspace:*",
 		"@Duty-Roster/ui": "workspace:*",
-		"@Duty-Roster/voice-parser": "workspace:*",
+		"@Duty-Roster/ai-parser": "workspace:*",
 		"@tanstack/react-form": "catalog:",
 		"@tanstack/react-query": "catalog:",
 		"@tanstack/react-virtual": "^3.13.24",

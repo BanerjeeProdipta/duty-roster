@@ -10,7 +10,7 @@ interface PendingConfirmation {
   date: string;
 }
 
-interface UseVoiceAssistantStateReturn {
+interface UseAIAssistantStateReturn {
   open: boolean;
   setOpen: (open: boolean) => void;
   toggleOpen: () => void;
@@ -26,7 +26,7 @@ interface UseVoiceAssistantStateReturn {
   setLastAction: (action: "confirmed" | "cancelled" | null) => void;
 }
 
-export function useVoiceAssistantState(): UseVoiceAssistantStateReturn {
+export function useAIAssistantState(): UseAIAssistantStateReturn {
   const [open, setOpen] = useState(false);
   const [inputValue, setInputValue] = useState("");
   const [messages, setMessages] = useState<ParsedMessage[]>([]);

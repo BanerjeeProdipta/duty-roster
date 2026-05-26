@@ -4,9 +4,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useSpeechSynthesis } from "./useSpeechSynthesis";
 
 const WS_URL =
-  process.env.NEXT_PUBLIC_VOICE_WS_URL ?? "ws://localhost:3002/voice/stream";
+  process.env.NEXT_PUBLIC_AI_WS_URL ?? "ws://localhost:3002/ai/stream";
 
-interface UseVoiceReturn {
+interface UseAIReturn {
   transcript: string;
   partial: string;
   isListening: boolean;
@@ -19,7 +19,7 @@ interface UseVoiceReturn {
 }
 
 function log(...args: unknown[]) {
-  console.log(`[Voice ${new Date().toISOString()}]`, ...args);
+  console.log(`[AI ${new Date().toISOString()}]`, ...args);
 }
 
 function cleanupResources(
@@ -49,7 +49,7 @@ function cleanupResources(
   }
 }
 
-export function useVoice(): UseVoiceReturn & { error: string } {
+export function useAI(): UseAIReturn & { error: string } {
   const [transcript, setTranscript] = useState("");
   const [partial, setPartial] = useState("");
   const [isListening, setIsListening] = useState(false);
@@ -209,7 +209,7 @@ export function useVoice(): UseVoiceReturn & { error: string } {
         log("ws message type=", data.type, data.text ? `text="${data.text}"` : "", data.confidence ? `conf=${data.confidence}` : "");
         switch (data.type) {
           case "connected": {
-            log("voice server connected");
+            log("AI server connected");
             break;
           }
           case "partial": {
@@ -237,7 +237,7 @@ export function useVoice(): UseVoiceReturn & { error: string } {
             break;
           }
           case "error": {
-            log("*** VOICE SERVER ERROR ***", data.message);
+            log("*** AI SERVER ERROR ***", data.message);
             setError(data.message);
             break;
           }

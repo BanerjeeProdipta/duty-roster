@@ -1,14 +1,11 @@
 "use client";
 
 import type { ParsedMessage } from "./MessageItem";
-import { VoiceHeader } from "./VoiceHeader";
+import { AIHeader } from "./AIHeader";
 import { MessageList } from "./MessageList";
-import { VoiceInput } from "./VoiceInput";
+import { AIInput } from "./AIInput";
 
-const POPOVER_WIDTH = 380;
-const POPOVER_HEIGHT = 520;
-
-interface VoicePopoverProps {
+interface AIPopoverProps {
   isListening: boolean;
   ready: boolean;
   levels: number[];
@@ -24,7 +21,7 @@ interface VoicePopoverProps {
   onClose: () => void;
 }
 
-export function VoicePopover({
+export function AIPopover({
   isListening,
   ready,
   levels,
@@ -37,13 +34,21 @@ export function VoicePopover({
   onSend,
   onToggleMic,
   onToggleRaw,
-}: VoicePopoverProps) {
+  onClose,
+}: AIPopoverProps) {
   return (
     <div
-      className="flex flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl"
-      style={{ width: POPOVER_WIDTH, height: POPOVER_HEIGHT }}
+      className="
+        fixed inset-0 z-[110]
+        md:absolute md:inset-auto
+        md:bottom-full md:right-0 md:mb-3
+        md:w-[380px] md:h-[520px]
+        flex flex-col overflow-hidden bg-white
+        md:rounded-2xl md:border md:shadow-2xl
+        rounded-none
+      "
     >
-      <VoiceHeader isListening={isListening} ready={ready} />
+      <AIHeader isListening={isListening} ready={ready} onClose={onClose} />
 
       <MessageList
         messages={messages}
@@ -55,7 +60,7 @@ export function VoicePopover({
         onToggleRaw={onToggleRaw}
       />
 
-      <VoiceInput
+      <AIInput
         inputValue={inputValue}
         onInputChange={onInputChange}
         onKeyDown={onKeyDown}

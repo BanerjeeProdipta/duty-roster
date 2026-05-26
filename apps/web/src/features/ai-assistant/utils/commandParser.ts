@@ -1,4 +1,8 @@
-import { bestNameMatch, bengaliToEnglish, parseDateFromText } from "@Duty-Roster/voice-parser";
+import {
+  bengaliToEnglish,
+  bestNameMatch,
+  parseDateFromText,
+} from "@Duty-Roster/ai-parser";
 
 const SHIFT_WORDS = ["morning", "evening", "night", "off"] as const;
 
@@ -59,7 +63,18 @@ export function parseCommand(text: string): ParsedCommand {
   const nurseName = bestNameMatch(nameWords);
   const englishName = nurseName ? bengaliToEnglish(nurseName) : null;
 
-  console.log("[commandParser] input:", text, "| shift:", shift, "| date:", date, "| nameWords:", nameWords, "| nurseName:", nurseName);
+  console.log(
+    "[commandParser] input:",
+    text,
+    "| shift:",
+    shift,
+    "| date:",
+    date,
+    "| nameWords:",
+    nameWords,
+    "| nurseName:",
+    nurseName,
+  );
 
   const missingFields: string[] = [];
   if (!nurseName) missingFields.push("nurse");

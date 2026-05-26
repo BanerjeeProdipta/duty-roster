@@ -13,7 +13,7 @@ interface PendingConfirmation {
   date: string;
 }
 
-interface UseVoiceAssistantLogicProps {
+interface UseAIAssistantLogicProps {
   pendingConfirmation: PendingConfirmation | null;
   setPendingConfirmation: (confirmation: PendingConfirmation | null) => void;
   awaitingResponse: boolean;
@@ -24,14 +24,14 @@ interface UseVoiceAssistantLogicProps {
   ) => void;
 }
 
-export function useVoiceAssistantLogic({
+export function useAIAssistantLogic({
   pendingConfirmation,
   setPendingConfirmation,
   awaitingResponse,
   setAwaitingResponse,
   setLastAction,
   setMessages,
-}: UseVoiceAssistantLogicProps) {
+}: UseAIAssistantLogicProps) {
   const { confirmShiftUpdate } = useConfirmShiftUpdate();
   const { speak, isSpeakingRef } = useSpeechSynthesis();
   const lastActionRef = useRef<"confirmed" | "cancelled" | null>(null);
@@ -94,11 +94,11 @@ export function useVoiceAssistantLogic({
 
   const processMessage = useCallback(
     (text: string) => {
-      console.log("[VoiceLogic] processMessage:", text);
+      console.log("[AILogic] processMessage:", text);
       const lowerText = text.toLowerCase();
 
       if (ignoreNextTranscriptRef.current) {
-        console.log("[VoiceLogic] skipping echo of own speech");
+        console.log("[AILogic] skipping echo of own speech");
         ignoreNextTranscriptRef.current = false;
         return;
       }
@@ -149,7 +149,7 @@ export function useVoiceAssistantLogic({
       }
 
       const parsed = parseCommand(text);
-      console.log("[VoiceLogic] parsed command:", JSON.stringify(parsed));
+      console.log("[AILogic] parsed command:", JSON.stringify(parsed));
 
       setMessages((prev) => [
         ...prev,

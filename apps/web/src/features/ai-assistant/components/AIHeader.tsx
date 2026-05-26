@@ -1,13 +1,14 @@
 "use client";
 
-import { Bot } from "lucide-react";
+import { Bot, X } from "lucide-react";
 
-interface VoiceHeaderProps {
+interface AIHeaderProps {
   isListening: boolean;
   ready: boolean;
+  onClose?: () => void;
 }
 
-export function VoiceHeader({ isListening, ready }: VoiceHeaderProps) {
+export function AIHeader({ isListening, ready, onClose }: AIHeaderProps) {
   return (
     <div className="flex items-center justify-between border-gray-100 border-b bg-gray-50 px-4 py-3">
       <div className="flex items-center gap-2">
@@ -21,6 +22,16 @@ export function VoiceHeader({ isListening, ready }: VoiceHeaderProps) {
           </p>
         </div>
       </div>
+      {onClose && (
+        <button
+          type="button"
+          onClick={onClose}
+          className="flex size-8 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-gray-200 hover:text-gray-600 lg:hidden"
+          aria-label="Close assistant"
+        >
+          <X className="size-5" />
+        </button>
+      )}
     </div>
   );
 }

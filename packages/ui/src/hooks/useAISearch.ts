@@ -2,11 +2,11 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-interface UseVoiceSearchOptions {
+interface UseAISearchOptions {
 	onTranscript?: (transcript: string) => void;
 }
 
-interface UseVoiceSearchReturn {
+interface UseAISearchReturn {
 	isListening: boolean;
 	isBrowserSupported: boolean;
 	startListening: () => void;
@@ -39,9 +39,9 @@ const playSound = (type: "start" | "stop") => {
 	oscillator.stop(audioContext.currentTime + 0.15);
 };
 
-export function useVoiceSearch({
+export function useAISearch({
 	onTranscript,
-}: UseVoiceSearchOptions = {}): UseVoiceSearchReturn {
+}: UseAISearchOptions = {}): UseAISearchReturn {
 	const [isListening, setIsListening] = useState(false);
 	const [isBrowserSupported, setIsBrowserSupported] = useState(false);
 
