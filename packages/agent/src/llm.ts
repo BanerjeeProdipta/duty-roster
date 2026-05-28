@@ -1,14 +1,30 @@
 import { ChatGroq } from "@langchain/groq";
+import { ChatOpenAI } from "@langchain/openai";
 
 export function createLLM() {
-	const apiKey = process.env.GROQ_API_KEY;
-	if (!apiKey) {
-		throw new Error("GROQ_API_KEY is required for the agent LLM");
+	const groqKey = process.env.GROQ_API_KEY;
+	const openRouterKey = process.env.OPENO_ROUTER_API_KEY;
+
+	if (groqKey) {
+		return new ChatGroq({
+			model: "meta-llama/llama-4-scout-17b-16e-instruct",
+			temperature: 0,
+			apiKey: groqKey,
+		});
 	}
 
-	return new ChatGroq({
-		model: "llama-3.3-70b-versatile",
-		temperature: 0,
-		apiKey,
-	});
+	if (openRouterKey) {
+		return new ChatOpenAI({
+			model: "meta-llama/llama-3.1-8b-instruct",
+			temperature: 0,
+			apiKey: openRouterKey,
+			configuration: {
+				baseURL: "https://openrouter.ai/api/v1",
+			},
+		});
+	}
+
+	throw new Error(
+		"No API key available. Set GROQ_API_KEY or OPENO_ROUTER_API_KEY.",
+	);
 }

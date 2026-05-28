@@ -91,14 +91,14 @@ app.post("/api/agent", async (c) => {
 
 		const { buildAgent } = await import("@Duty-Roster/agent");
 
-		const agent = buildAgent({ recursionLimit: 5 });
+		const agent = buildAgent();
 
 		const result = await Promise.race([
 			agent.invoke({
 				messages: [{ role: "user", content: text }],
 			}),
 			new Promise<never>((_, reject) =>
-				setTimeout(() => reject(new Error("Agent timed out")), 15000),
+				setTimeout(() => reject(new Error("Agent timed out")), 30000),
 			),
 		]);
 

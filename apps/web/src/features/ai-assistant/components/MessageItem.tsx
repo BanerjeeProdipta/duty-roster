@@ -5,7 +5,6 @@ import {
   User,
   Calendar,
   Clock,
-  ArrowRight,
   Sun,
   Sunset,
   Moon,
@@ -13,6 +12,18 @@ import {
 } from "lucide-react";
 
 const MAX_BAR_HEIGHT = 48;
+
+const BotIcon = () => (
+  <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-accent-primary">
+    <Bot className="size-4 text-white" />
+  </div>
+);
+
+const UserIcon = () => (
+  <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-blue-600">
+    <User className="size-4 text-white" />
+  </div>
+);
 
 export function WaveAnimation({ levels }: { levels: number[] }) {
   return (
@@ -61,18 +72,6 @@ export function MessageItem({
 }) {
   const { command, raw, showRaw, isSystem } = message;
   const isRecognized = !!command;
-
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, "0")}`;
-  };
-
-  const BotIcon = () => (
-    <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-accent-primary">
-      <Bot className="size-4 text-white" />
-    </div>
-  );
 
   if (isSystem) {
     return (
@@ -166,36 +165,18 @@ export function MessageItem({
             </div>
           )}
 
-          {/* Content Area */}
-          {!command.action && onToggleRaw && (
-            <button
-              type="button"
-              onClick={onToggleRaw}
-              className="absolute top-2.5 right-2.5 flex shrink-0 items-center justify-center rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
-            >
-              {showRaw ? (
-                <ChevronUp className="size-3.5" />
-              ) : (
-                <ChevronDown className="size-3.5" />
-              )}
-            </button>
-          )}
-
           {!command.action && command.date && (
             <div className="absolute top-3 right-3 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 border border-gray-200 z-10">
               <Calendar className="size-3.5" />
               <span>{command.date}</span>
             </div>
           )}
-
           <div className="px-4 py-3">
             {/* Nurse + Shift Row */}
             <div className="flex items-center justify-between">
               {command.nurseName && (
                 <div className="flex items-center gap-2">
-                  <div className="flex size-7 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-blue-600">
-                    <User className="size-3.5 text-white" />
-                  </div>
+                  <UserIcon />
                   <span className="font-bold text-gray-900 text-base">
                     {command.nurseName}
                   </span>
@@ -213,7 +194,6 @@ export function MessageItem({
               )}
             </div>
           </div>
-
           {/* Raw Message */}
           {showRaw && (
             <div className="border-t border-gray-100 px-4 py-2.5 bg-gray-50">
@@ -229,13 +209,11 @@ export function MessageItem({
   }
 
   return (
-    <div className="flex w-full items-start gap-3">
-      <BotIcon />
+    <div className="flex w-full items-start gap-1.5 mt-4">
       <div className="flex-1 rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3">
-        <div className="rounded-xl bg-white px-3 py-2 text-xs text-gray-600">
-          {raw}
-        </div>
+        <p className="text-sm text-gray-800">{raw}</p>
       </div>
+      <UserIcon />
     </div>
   );
 }

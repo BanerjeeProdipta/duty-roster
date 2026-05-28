@@ -16,7 +16,7 @@ export const queryShiftTool = tool(
 			.where(
 				and(
 					sql`DATE(${nurseSchedule.date}) = ${dateKey}`,
-					eq(shift.name, shiftName),
+					sql`${shift.name} = ${shiftName}`,
 				),
 			)
 			.orderBy(nurse.name);

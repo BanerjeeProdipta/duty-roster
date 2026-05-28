@@ -1,91 +1,91 @@
 {
-	"name": "Duty-Roster",
-	"private": true,
-	"workspaces": {
-		"packages": [
-			"apps/*",
-			"packages/*"
-		],
-		"catalog": {
-			"dotenv": "^17.2.2",
-			"zod": "^4.1.13",
-			"@types/bun": "^1.3.4",
-			"hono": "^4.8.2",
-			"@trpc/server": "^11.13.4",
-			"better-auth": "1.5.5",
-			"drizzle-orm": "^0.45.1",
-			"lucide-react": "^0.546.0",
-			"next-themes": "^0.4.6",
-			"next": "15.1.0",
-			"react": "19.0.0",
-			"react-dom": "19.0.0",
-			"sonner": "^2.0.5",
-			"@trpc/tanstack-react-query": "^11.13.4",
-			"@trpc/client": "^11.13.4",
-			"@tanstack/react-query": "^5.90.12",
-			"@tanstack/react-form": "^1.28.0",
-			"@types/react-dom": "^19.2.3",
-			"@better-auth/expo": "1.5.5"
-		}
-	},
-	"type": "module",
-	"scripts": {
-		"dev": "bun run dev:all",
-		"build": "turbo build",
-		"build:cf": "bun install && bunx turbo build:cf",
-		"check-types": "turbo check-types",
-		"dev:web": "turbo -F web dev",
-		"dev:server": "turbo -F server dev",
-		"dev:stt": ".venv/bin/python stt/server.py",
-		"dev:ai": "turbo -F stt-server dev",
-		"dev:setup:stt": ".venv/bin/pip install -r stt/requirements.txt",
-		"dev:all": "trap 'kill 0' EXIT; bun run dev:stt & bun run dev:ai & bun run dev:server & bun run dev:web & wait",
-		"start:web": "turbo -F web start",
-		"start:server": "turbo -F server start",
-		"start": "bun run start:server & bun run start:web",
-		"db:push": "turbo -F @Duty-Roster/db db:push",
-		"db:studio": "turbo -F @Duty-Roster/db db:studio",
-		"db:generate": "turbo -F @Duty-Roster/db db:generate",
-		"db:migrate": "turbo -F @Duty-Roster/db db:migrate",
-		"db:seed": "turbo -F @Duty-Roster/db db:seed",
-		"db:seed:prods": "cd packages/db && NODE_ENV=development bun run db:seed:prods",
-		"db:setup-local": "cd packages/db && NODE_ENV=development bun run db:setup-local",
-		"deploy:server": "cd apps/server && bun run build:cf && bun run deploy",
-		"deploy:web": "cd apps/web && bun run build:cf && bun run deploy",
-		"deploy": "bun install && bun run deploy:server && bun run deploy:web",
-		"check": "biome check --write .",
-		"prepare": "husky"
-	},
-	"dependencies": {
-		"@Duty-Roster/env": "workspace:*",
-		"@langchain/core": "^1.1.48",
-		"@langchain/groq": "^1.2.1",
-		"@langchain/langgraph": "^1.3.2",
-		"@playwright/test": "^1.59.1",
-		"@trpc/tanstack-react-query": "^11.16.0",
-		"dotenv": "catalog:",
-		"next": "15.1.0",
-		"react": "19.0.0",
-		"react-dom": "19.0.0",
-		"react-window": "^2.2.7",
-		"regenerator-runtime": "^0.14.1",
-		"zod": "catalog:",
-		"zustand": "^5.0.12"
-	},
-	"devDependencies": {
-		"@Duty-Roster/config": "workspace:*",
-		"@biomejs/biome": "^2.2.0",
-		"@cloudflare/next-on-pages": "^1.13.16",
-		"@types/bun": "catalog:",
-		"husky": "^9.1.7",
-		"lint-staged": "^16.1.2",
-		"turbo": "^2.8.12",
-		"typescript": "^5"
-	},
-	"lint-staged": {
-		"*.{js,ts,cjs,mjs,d.cts,d.mts,jsx,tsx,json,jsonc}": [
-			"biome check --write"
-		]
-	},
-	"packageManager": "bun@1.3.5"
+  "name": "Duty-Roster",
+  "private": true,
+  "workspaces": {
+    "packages": [
+      "apps/*",
+      "packages/*"
+    ],
+    "catalog": {
+      "dotenv": "^17.2.2",
+      "zod": "^4.1.13",
+      "@types/bun": "^1.3.4",
+      "hono": "^4.8.2",
+      "@trpc/server": "^11.13.4",
+      "better-auth": "1.5.5",
+      "drizzle-orm": "^0.45.1",
+      "lucide-react": "^0.546.0",
+      "next-themes": "^0.4.6",
+      "next": "15.1.0",
+      "react": "19.0.0",
+      "react-dom": "19.0.0",
+      "sonner": "^2.0.5",
+      "@trpc/tanstack-react-query": "^11.13.4",
+      "@trpc/client": "^11.13.4",
+      "@tanstack/react-query": "^5.90.12",
+      "@tanstack/react-form": "^1.28.0",
+      "@types/react-dom": "^19.2.3",
+      "@better-auth/expo": "1.5.5"
+    }
+  },
+  "type": "module",
+  "scripts": {
+    "dev": "bun run dev:all",
+    "build": "turbo build",
+    "build:cf": "bun install && bunx turbo build:cf",
+    "check-types": "turbo check-types",
+    "dev:web": "turbo -F web dev",
+    "dev:server": "turbo -F server dev",
+    "dev:stt": ".venv/bin/pip install -r stt/requirements.txt && sh scripts/setup-stt.sh && .venv/bin/python stt/server.py",
+    "dev:ai": "bun install && turbo -F stt-server dev",
+    "dev:setup:stt": ".venv/bin/pip install -r stt/requirements.txt",
+    "dev:all": "trap 'kill 0' EXIT; bun run dev:stt & bun run dev:ai & bun run dev:server & bun run dev:web & wait",
+    "start:web": "turbo -F web start",
+    "start:server": "turbo -F server start",
+    "start": "bun run start:server & bun run start:web",
+    "db:push": "turbo -F @Duty-Roster/db db:push",
+    "db:studio": "turbo -F @Duty-Roster/db db:studio",
+    "db:generate": "turbo -F @Duty-Roster/db db:generate",
+    "db:migrate": "turbo -F @Duty-Roster/db db:migrate",
+    "db:seed": "turbo -F @Duty-Roster/db db:seed",
+    "db:seed:prods": "cd packages/db && NODE_ENV=development bun run db:seed:prods",
+    "db:setup-local": "cd packages/db && NODE_ENV=development bun run db:setup-local",
+    "deploy:server": "cd apps/server && bun run build:cf && bun run deploy",
+    "deploy:web": "cd apps/web && bun run build:cf && bun run deploy",
+    "deploy": "bun install && bun run deploy:server && bun run deploy:web",
+    "check": "biome check --write .",
+    "prepare": "husky"
+  },
+  "dependencies": {
+    "@Duty-Roster/env": "workspace:*",
+    "@langchain/core": "^1.1.48",
+    "@langchain/groq": "^1.2.1",
+    "@langchain/langgraph": "^1.3.2",
+    "@playwright/test": "^1.59.1",
+    "@trpc/tanstack-react-query": "^11.16.0",
+    "dotenv": "catalog:",
+    "next": "15.1.0",
+    "react": "19.0.0",
+    "react-dom": "19.0.0",
+    "react-window": "^2.2.7",
+    "regenerator-runtime": "^0.14.1",
+    "zod": "catalog:",
+    "zustand": "^5.0.12"
+  },
+  "devDependencies": {
+    "@Duty-Roster/config": "workspace:*",
+    "@biomejs/biome": "^2.2.0",
+    "@cloudflare/next-on-pages": "^1.13.16",
+    "@types/bun": "catalog:",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.1.2",
+    "turbo": "^2.8.12",
+    "typescript": "^5"
+  },
+  "lint-staged": {
+    "*.{js,ts,cjs,mjs,d.cts,d.mts,jsx,tsx,json,jsonc}": [
+      "biome check --write"
+    ]
+  },
+  "packageManager": "bun@1.3.5"
 }

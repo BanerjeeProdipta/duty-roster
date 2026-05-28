@@ -1,7 +1,6 @@
 import { db } from "@Duty-Roster/db";
 import { nurse } from "@Duty-Roster/db/schema/nurse";
 import { tool } from "@langchain/core/tools";
-import { eq } from "drizzle-orm";
 
 export const listNursesTool = tool(
 	async () => {

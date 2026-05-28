@@ -34,17 +34,18 @@ export function AITrigger() {
     setLastAction,
   } = useAIAssistantState();
 
-  const { processMessage, speak, isSpeakingRef } = useAIAssistantLogic({
-    pendingConfirmation,
-    setPendingConfirmation,
-    awaitingResponse,
-    setAwaitingResponse,
-    setLastAction,
-    setMessages,
-  });
+  const { processMessage, speak, isSpeakingRef, lastSpeechEndedRef } =
+    useAIAssistantLogic({
+      pendingConfirmation,
+      setPendingConfirmation,
+      awaitingResponse,
+      setAwaitingResponse,
+      setLastAction,
+      setMessages,
+    });
 
   const lastProcessedTranscriptRef = useRef("");
-  const transcriptSkippedWhileSpeakingRef = useRef(false);
+  const echoDeadlineRef = useRef(0);
 
   // Debug: log transcript/partial changes
   useEffect(() => {
@@ -89,16 +90,22 @@ export function AITrigger() {
     )
       return;
 
-    if (isSpeakingRef.current) {
-      console.log("[AITrigger] skipped while speaking:", transcript);
-      transcriptSkippedWhileSpeakingRef.current = true;
+    const now = Date.now();
+    const recentlySpoke =
+      lastSpeechEndedRef.current > 0 && now - lastSpeechEndedRef.current < 3000;
+
+    if (isSpeakingRef.current || recentlySpoke) {
+      console.log(
+        "[AITrigger] skipped while speaking or immediately after speech:",
+        transcript,
+      );
+      echoDeadlineRef.current = now + 3000;
       lastProcessedTranscriptRef.current = transcript;
       return;
     }
 
-    if (transcriptSkippedWhileSpeakingRef.current) {
+    if (Date.now() < echoDeadlineRef.current) {
       console.log("[AITrigger] skipping echoed transcript:", transcript);
-      transcriptSkippedWhileSpeakingRef.current = false;
       lastProcessedTranscriptRef.current = transcript;
       return;
     }
@@ -156,7 +163,7 @@ export function AITrigger() {
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) => {
       if (e.key === "Enter" && inputValue.trim()) {
-        processMessage(inputValue.trim());
+        processMessage(inputValue.trim(), { skipTTS: true });
         setInputValue("");
       }
     },
@@ -165,7 +172,7 @@ export function AITrigger() {
 
   const handleSend = useCallback(() => {
     if (inputValue.trim()) {
-      processMessage(inputValue.trim());
+      processMessage(inputValue.trim(), { skipTTS: true });
       setInputValue("");
     }
   }, [inputValue, processMessage, setInputValue]);

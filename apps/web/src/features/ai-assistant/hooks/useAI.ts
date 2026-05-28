@@ -111,102 +111,108 @@ export function useAI(): UseAIReturn & { error: string } {
 
   stopRef.current = stop;
 
-  function setupMic(ws: WebSocket) {
-    ws.onopen = async () => {
-      log("ws open");
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          audio: {
-            sampleRate: 16000,
-            channelCount: 1,
-            echoCancellation: true,
-            noiseSuppression: true,
-          },
-        });
-        streamRef.current = stream;
-        log("mic stream acquired");
+  async function setupMic(ws: WebSocket) {
+    log("ws open");
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          sampleRate: 16000,
+          channelCount: 1,
+          echoCancellation: true,
+          noiseSuppression: true,
+        },
+      });
+      streamRef.current = stream;
+      log("mic stream acquired");
 
-        const audioCtx = new AudioContext({ sampleRate: 16000 });
-        audioCtxRef.current = audioCtx;
+      const audioCtx = new AudioContext({ sampleRate: 16000 });
+      audioCtxRef.current = audioCtx;
 
-        await audioCtx.audioWorklet.addModule("/pcm-processor.js");
-        log("audio worklet loaded");
+      await audioCtx.audioWorklet.addModule("/pcm-processor.js");
+      log("audio worklet loaded");
 
-        const source = audioCtx.createMediaStreamSource(stream);
-        sourceRef.current = source;
+      const source = audioCtx.createMediaStreamSource(stream);
+      sourceRef.current = source;
 
-        const workletNode = new AudioWorkletNode(audioCtx, "pcm-processor");
-        workerNodeRef.current = workletNode;
+      const workletNode = new AudioWorkletNode(audioCtx, "pcm-processor");
+      workerNodeRef.current = workletNode;
 
-        workletNode.port.onmessage = (event) => {
-          if (ws.readyState === WebSocket.OPEN) {
-            ws.send(event.data);
+      workletNode.port.onmessage = (event) => {
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(event.data);
+        }
+      };
+
+      source.connect(workletNode);
+
+      const analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 64;
+      analyserRef.current = analyser;
+      source.connect(analyser);
+
+      const bufferLength = analyser.frequencyBinCount;
+      const dataArray = new Uint8Array(bufferLength);
+      const BAR_COUNT = 25;
+
+      const update = () => {
+        analyser.getByteFrequencyData(dataArray);
+        const next = Array.from({ length: BAR_COUNT }, (_, i) => {
+          const startBin = Math.floor((i / BAR_COUNT) * bufferLength);
+          const endBin = Math.floor(((i + 1) / BAR_COUNT) * bufferLength);
+          let sum = 0;
+          for (let j = startBin; j < endBin; j++) {
+            sum += dataArray[j]! / 255;
           }
-        };
-
-        source.connect(workletNode);
-
-        const analyser = audioCtx.createAnalyser();
-        analyser.fftSize = 64;
-        analyserRef.current = analyser;
-        source.connect(analyser);
-
-        const bufferLength = analyser.frequencyBinCount;
-        const dataArray = new Uint8Array(bufferLength);
-        const BAR_COUNT = 25;
-
-        const update = () => {
-          analyser.getByteFrequencyData(dataArray);
-          const next = Array.from({ length: BAR_COUNT }, (_, i) => {
-            const startBin = Math.floor((i / BAR_COUNT) * bufferLength);
-            const endBin = Math.floor(((i + 1) / BAR_COUNT) * bufferLength);
-            let sum = 0;
-            for (let j = startBin; j < endBin; j++) {
-              sum += dataArray[j]! / 255;
-            }
-            return Math.min(1, sum / (endBin - startBin));
-          });
-          setLevels(next);
-          rafRef.current = requestAnimationFrame(update);
-        };
+          return Math.min(1, sum / (endBin - startBin));
+        });
+        setLevels(next);
         rafRef.current = requestAnimationFrame(update);
+      };
+      rafRef.current = requestAnimationFrame(update);
 
-        startingRef.current = false;
-        setIsListening(true);
-        log("listening started");
+      startingRef.current = false;
+      setIsListening(true);
+      log("listening started");
 
-        if (silenceRef.current) clearTimeout(silenceRef.current);
-        silenceRef.current = setTimeout(() => {
-          log("silence timeout — auto-stopping");
-          stopRef.current();
-        }, 15000);
-      } catch (err) {
-        log("mic/audio setup failed", err);
-        startingRef.current = false;
-        ws.close();
-        cleanupResources(
-          workerNodeRef.current,
-          sourceRef.current,
-          audioCtxRef.current,
-          streamRef.current,
-          null,
-        );
-      }
-    };
-
-    function resetSilenceTimer(delay = 3000) {
       if (silenceRef.current) clearTimeout(silenceRef.current);
       silenceRef.current = setTimeout(() => {
         log("silence timeout — auto-stopping");
         stopRef.current();
-      }, delay);
+      }, 15000);
+    } catch (err) {
+      log("mic/audio setup failed", err);
+      startingRef.current = false;
+      ws.close();
+      cleanupResources(
+        workerNodeRef.current,
+        sourceRef.current,
+        audioCtxRef.current,
+        streamRef.current,
+        null,
+      );
     }
+  }
+
+  function resetSilenceTimer(delay = 3000) {
+    if (silenceRef.current) clearTimeout(silenceRef.current);
+    silenceRef.current = setTimeout(() => {
+      log("silence timeout — auto-stopping");
+      stopRef.current();
+    }, delay);
+  }
+
+  function setupWsHandlers(ws: WebSocket) {
 
     ws.onmessage = (event) => {
       try {
         const raw = event.data as string;
         const data = JSON.parse(raw);
-        log("ws message type=", data.type, data.text ? `text="${data.text}"` : "", data.confidence ? `conf=${data.confidence}` : "");
+        log(
+          "ws message type=",
+          data.type,
+          data.text ? `text="${data.text}"` : "",
+          data.confidence ? `conf=${data.confidence}` : "",
+        );
         switch (data.type) {
           case "connected": {
             log("AI server connected");
@@ -260,6 +266,9 @@ export function useAI(): UseAIReturn & { error: string } {
       log("ws error", err);
       startingRef.current = false;
       cleanup();
+      setError(
+        "Unable to connect to the AI speech server. Please verify that the AI backend is running and NEXT_PUBLIC_AI_WS_URL is correct.",
+      );
     };
   }
 
@@ -277,25 +286,23 @@ export function useAI(): UseAIReturn & { error: string } {
     setReady(false);
     setError("");
 
-    const afterGreeting = () => {
-      setReady(true);
-      if (startingRef.current === false) return;
+    const ws = new WebSocket(WS_URL);
+    ws.binaryType = "arraybuffer";
+    wsRef.current = ws;
 
-      const ws = new WebSocket(WS_URL);
-      ws.binaryType = "arraybuffer";
-      wsRef.current = ws;
+    setupWsHandlers(ws);
 
-      setupMic(ws);
+    ws.onopen = () => {
+      log("ws open");
+      if (greetedRef.current) {
+        log("greeting already spoken, skipping");
+        setupMic(ws);
+      } else {
+        greetedRef.current = true;
+        speak("Hey, how can I help?").then(() => setupMic(ws));
+      }
     };
-
-    if (greetedRef.current) {
-      log("greeting already spoken, skipping");
-      afterGreeting();
-    } else {
-      greetedRef.current = true;
-      speak("Hey, how can I help?").then(afterGreeting);
-    }
-  }, [cleanup]);
+  }, [cleanup, speak]);
 
   useEffect(() => {
     return () => {

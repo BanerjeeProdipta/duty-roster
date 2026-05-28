@@ -10,6 +10,21 @@ export function bengaliToEnglish(bengali: string): string | null {
 	return null;
 }
 
+export function resolveNamesInText(text: string): string {
+  const sorted = Object.entries(PHONETIC_MAP).sort(
+    (a, b) => b[0].length - a[0].length,
+  );
+  let result = text;
+  for (const [key, names] of sorted) {
+    const bn = names[0];
+    if (!bn) continue;
+    const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const pattern = `\\b${escaped.replace(/ /g, "\\s+")}\\b`;
+    result = result.replace(new RegExp(pattern, "gi"), bn);
+  }
+  return result;
+}
+
 export function bestNameMatch(words: string[]): string | null {
 	const all = words.join(" ").toLowerCase();
 

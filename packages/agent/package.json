@@ -9,11 +9,14 @@
 		}
 	},
 	"dependencies": {
+		"@Duty-Roster/ai-parser": "workspace:*",
 		"@Duty-Roster/db": "workspace:*",
 		"@langchain/core": "*",
-		"@langchain/langgraph": "*",
 		"@langchain/groq": "*",
+		"@langchain/langgraph": "*",
+		"@langchain/openai": "^1.4.7",
 		"drizzle-orm": "catalog:",
+		"langchain": "^1.4.2",
 		"zod": "catalog:"
 	},
 	"devDependencies": {
