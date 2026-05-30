@@ -14,7 +14,8 @@
 		}
 	},
 	"scripts": {
-		"check-types": "tsc --noEmit"
+		"check-types": "tsc --noEmit",
+		"test": "NODE_OPTIONS=--experimental-vm-modules jest"
 	},
 	"dependencies": {
 		"@Duty-Roster/auth": "workspace:*",
@@ -29,7 +30,10 @@
 	},
 	"devDependencies": {
 		"@Duty-Roster/config": "workspace:*",
+		"@types/jest": "^30.0.0",
 		"hono": "catalog:",
+		"jest": "^30.4.2",
+		"ts-jest": "^29.4.11",
 		"typescript": "^5"
 	}
 }

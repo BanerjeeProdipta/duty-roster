@@ -1,6 +1,6 @@
 "use client";
 
-import { VoiceInput } from "@Duty-Roster/ui/components/voice-input";
+import { AIInput } from "@Duty-Roster/ui/components/ai-input";
 import { cn } from "@Duty-Roster/ui/lib/utils";
 import { X } from "lucide-react";
 import type { ComponentProps } from "react";
@@ -23,13 +23,13 @@ interface SearchInputProps extends Omit<
 
 const banglaUI = {
   stopListening: "শোনা বন্ধ করুন",
-  startVoiceSearch: "কণ্ঠস্বর ইনপুট শুরু করুন",
+  startAISearch: "কণ্ঠস্বর ইনপুট শুরু করুন",
   clear: "পরিষ্কার করুন",
 };
 
 const englishUI = {
   stopListening: "Stop listening",
-  startVoiceSearch: "Start voice search",
+  startAISearch: "Start AI search",
   clear: "Clear",
 };
 
@@ -197,7 +197,7 @@ function SearchInput({
             <X className="h-4 w-4 text-gray-400" />
           </button>
         )}
-        <VoiceInput
+        <AIInput
           onTranscript={(transcript) =>
             handleValueChange(valueRef.current + transcript)
           }

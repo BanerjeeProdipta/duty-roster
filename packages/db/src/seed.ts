@@ -114,42 +114,57 @@ async function seedProds() {
 	}
 }
 
-const nurseNames = [
-	"জয়শ্রী",
-	"মার্গারেট",
-	"মোর্শেদা",
-	"সুপ্রিয়া",
-	"জহোরা",
-	"গীতা",
-	"বিলকিস",
-	"নাসরিন",
-	"সুপ্রিয়া",
-	"সেলিনা",
-	"সালমা",
-	"তাসলিমা",
-	"খালেদা",
-	"তাহমিনা",
-	"ডলি",
-	"ইয়াসমিন",
-	"আনা",
-	"মৌ",
-	"নাসরিন ২",
-	"সেলিনা ২",
-	"মমতাজ",
-	"শ্রাবণী",
-	"মৌসুমী",
-	"মনি",
-	"শিরিন",
-	"সাফিয়া",
-	"অঞ্জলি",
-	"ডামি ১",
-	"ডামি ২",
-	"ডামি ৩",
-	"ডামি ৪",
-	"ডামি ৫",
+interface NurseSeed {
+	id: string;
+	name: string;
+	active: boolean;
+}
+
+const nurseData: NurseSeed[] = [
+	{ id: "nurse_1", name: "জয়শ্রী", active: true },
+	{ id: "nurse_2", name: "মার্গারেট", active: true },
+	{ id: "nurse_3", name: "মোর্শেদা", active: true },
+	{ id: "nurse_4", name: "সুপ্রিয়া", active: true },
+	{ id: "nurse_5", name: "জহোরা", active: true },
+	{ id: "nurse_6", name: "গীতা", active: true },
+	{ id: "nurse_7", name: "বিলকিস", active: true },
+	{ id: "nurse_8", name: "নাসরিন", active: true },
+	{ id: "nurse_9", name: "তাহেরা", active: true },
+	{ id: "nurse_10", name: "সেলিনা", active: true },
+	{ id: "nurse_11", name: "সালমা", active: true },
+	{ id: "nurse_12", name: "তাসলিমা", active: true },
+	{ id: "nurse_13", name: "খালেদা", active: true },
+	{ id: "nurse_14", name: "তাহমিনা", active: true },
+	{ id: "nurse_15", name: "ডলি", active: true },
+	{ id: "nurse_16", name: "ইয়াসমিন", active: true },
+	{ id: "nurse_17", name: "আন্না", active: true },
+	{ id: "nurse_18", name: "মৌ", active: false },
+	{ id: "nurse_19", name: "নাসরিন ২", active: false },
+	{ id: "nurse_20", name: "সেলিনা ২", active: true },
+	{ id: "nurse_21", name: "মমতাজ", active: true },
+	{ id: "nurse_22", name: "শ্রাবণী", active: true },
+	{ id: "nurse_23", name: "মৌসুমী", active: true },
+	{ id: "nurse_24", name: "মনি", active: true },
+	{ id: "nurse_25", name: "শিরিন", active: true },
+	{ id: "nurse_26", name: "সাফিয়া", active: true },
+	{ id: "nurse_27", name: "অঞ্জলি", active: true },
+	{ id: "nurse_28", name: "মালেকা", active: true },
+	{ id: "nurse_29", name: "সাদিয়া", active: true },
+	{ id: "nurse_30", name: "সুবর্ণা", active: true },
+	{ id: "nurse_31", name: "মাধুরী", active: true },
+	{ id: "nurse_32", name: "হালিমা", active: true },
 ];
 
 async function seed() {
+	// -----------------------------
+	// CLEANUP: remove existing nurse data (dummies will be replaced)
+	// -----------------------------
+	console.log("Clearing existing nurse data...");
+	await db.delete(schema.nurseSchedule);
+	await db.delete(schema.nurseShiftPreference);
+	await db.delete(schema.nurse);
+	console.log("Cleared nurse, preference, and schedule tables.");
+
 	// -----------------------------
 	// SEED SHIFTS
 	// -----------------------------
@@ -187,9 +202,10 @@ async function seed() {
 	// -----------------------------
 	console.log("Seeding nurses...");
 
-	const nurses = nurseNames.map((name, i) => ({
-		id: `nurse_${i + 1}`,
-		name,
+	const nurses = nurseData.map((n) => ({
+		id: n.id,
+		name: n.name,
+		active: n.active,
 	}));
 
 	await db.insert(schema.nurse).values(nurses).onConflictDoNothing();
@@ -200,35 +216,67 @@ async function seed() {
 	// -----------------------------
 	console.log("Seeding nurse shift preferences...");
 
-	function generateShiftProportions() {
-		return {
-			morning: 55,
-			evening: 20,
-			night: 10,
-		};
-	}
+	const preferenceWeights: Record<string, Record<string, number>> = {
+		nurse_1: { shift_morning: 81, shift_evening: 0, shift_night: 0 },
+		nurse_2: { shift_morning: 81, shift_evening: 0, shift_night: 0 },
+		nurse_3: { shift_morning: 68, shift_evening: 0, shift_night: 10 },
+		nurse_4: { shift_morning: 68, shift_evening: 0, shift_night: 10 },
+		nurse_5: { shift_morning: 81, shift_evening: 0, shift_night: 0 },
+		nurse_6: { shift_morning: 68, shift_evening: 13, shift_night: 0 },
+		nurse_7: { shift_morning: 71, shift_evening: 0, shift_night: 6 },
+		nurse_8: { shift_morning: 81, shift_evening: 0, shift_night: 0 },
+		nurse_9: { shift_morning: 55, shift_evening: 13, shift_night: 10 },
+		nurse_10: { shift_morning: 68, shift_evening: 0, shift_night: 10 },
+		nurse_11: { shift_morning: 68, shift_evening: 0, shift_night: 10 },
+		nurse_12: { shift_morning: 55, shift_evening: 13, shift_night: 10 },
+		nurse_13: { shift_morning: 68, shift_evening: 0, shift_night: 10 },
+		nurse_14: { shift_morning: 68, shift_evening: 0, shift_night: 10 },
+		nurse_15: { shift_morning: 81, shift_evening: 0, shift_night: 0 },
+		nurse_16: { shift_morning: 55, shift_evening: 13, shift_night: 10 },
+		nurse_17: { shift_morning: 68, shift_evening: 0, shift_night: 10 },
+		nurse_18: { shift_morning: 65, shift_evening: 10, shift_night: 6 },
+		nurse_19: { shift_morning: 65, shift_evening: 10, shift_night: 6 },
+		nurse_20: { shift_morning: 0, shift_evening: 68, shift_night: 10 },
+		nurse_21: { shift_morning: 55, shift_evening: 13, shift_night: 10 },
+		nurse_22: { shift_morning: 55, shift_evening: 13, shift_night: 10 },
+		nurse_23: { shift_morning: 68, shift_evening: 0, shift_night: 10 },
+		nurse_24: { shift_morning: 61, shift_evening: 6, shift_night: 10 },
+		nurse_25: { shift_morning: 68, shift_evening: 0, shift_night: 10 },
+		nurse_26: { shift_morning: 0, shift_evening: 68, shift_night: 10 },
+		nurse_27: { shift_morning: 81, shift_evening: 0, shift_night: 0 },
+		nurse_28: { shift_morning: 81, shift_evening: 0, shift_night: 0 },
+		nurse_29: { shift_morning: 55, shift_evening: 13, shift_night: 10 },
+		nurse_30: { shift_morning: 68, shift_evening: 0, shift_night: 10 },
+		nurse_31: { shift_morning: 0, shift_evening: 68, shift_night: 10 },
+		nurse_32: { shift_morning: 81, shift_evening: 0, shift_night: 0 },
+	};
 
-	const preferences = nurses.flatMap((nurse) => {
-		const proportions = generateShiftProportions();
+	const preferences: {
+		nurseId: string;
+		shiftId: string;
+		weight: number;
+	}[] = [];
 
-		return [
+	for (const nurse of nurses) {
+		const weights = preferenceWeights[nurse.id]!;
+		preferences.push(
 			{
 				nurseId: nurse.id,
 				shiftId: "shift_morning",
-				weight: proportions.morning,
+				weight: weights.shift_morning as number,
 			},
 			{
 				nurseId: nurse.id,
 				shiftId: "shift_evening",
-				weight: proportions.evening,
+				weight: weights.shift_evening as number,
 			},
 			{
 				nurseId: nurse.id,
 				shiftId: "shift_night",
-				weight: proportions.night,
+				weight: weights.shift_night as number,
 			},
-		];
-	});
+		);
+	}
 
 	await db
 		.insert(schema.nurseShiftPreference)

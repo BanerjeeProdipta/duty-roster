@@ -3,6 +3,7 @@
 import { Button } from "@Duty-Roster/ui/components/button";
 import { cn } from "@Duty-Roster/ui/lib/utils";
 import { LayoutDashboard, LogIn, LogOut, Menu, X } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
@@ -11,7 +12,7 @@ import { authClient } from "@/lib/auth-client";
 import { ADMIN_NAV_ITEMS, PUBLIC_NAV_ITEMS, ROUTES } from "@/lib/paths";
 
 const linkBase =
-	"flex items-center gap-1.5 px-3 py-1.5 font-medium text-sm rounded-full transition-all duration-300 ease-out";
+	"relative flex items-center gap-1.5 px-3 py-1.5 font-medium text-sm rounded-full transition-colors duration-200 ease-out";
 
 export default function Header() {
 	const pathname = usePathname();
@@ -29,6 +30,11 @@ export default function Header() {
 		toast.success("Signed out successfully");
 	};
 
+	const navItems = [
+		...PUBLIC_NAV_ITEMS,
+		...(!isPending && isAdmin ? ADMIN_NAV_ITEMS : []),
+	];
+
 	return (
 		<header className="sticky top-0 z-[100] w-full border-border/50 border-b bg-white dark:bg-gray-950">
 			<div className="relative mx-auto flex h-18 items-center justify-between px-4 sm:px-12 lg:px-20">
@@ -40,39 +46,38 @@ export default function Header() {
 					</p>
 				</Link>
 
-				<nav className="absolute left-1/2 my-2 hidden -translate-x-1/2 items-center gap-1 rounded-full bg-gray-50 px-3 py-2 md:flex">
-					{PUBLIC_NAV_ITEMS.map(({ to, label, icon: Icon }) => (
-						<Link
-							key={to}
-							href={to}
-							className={cn(
-								linkBase,
-								pathname === to
-									? "bg-white text-foreground shadow-sm"
-									: "text-muted-foreground hover:bg-white/50 hover:text-foreground",
-							)}
-						>
-							<Icon className="h-4 w-4" />
-							<span>{label}</span>
-						</Link>
-					))}
-					{!isPending &&
-						isAdmin &&
-						ADMIN_NAV_ITEMS.map(({ to, label, icon: Icon }) => (
+				<nav className="absolute left-1/2 my-2 hidden -translate-x-1/2 items-center gap-1 rounded-full bg-gray-50 px-1 py-1 md:flex">
+					{navItems.map(({ to, label, icon: Icon }) => {
+						const isActive = pathname === to;
+						return (
 							<Link
 								key={to}
 								href={to}
 								className={cn(
 									linkBase,
-									pathname === to
-										? "bg-white text-foreground shadow-sm"
-										: "text-muted-foreground hover:bg-white/50 hover:text-foreground",
+									isActive
+										? "text-foreground"
+										: "text-muted-foreground hover:text-foreground",
 								)}
 							>
-								<Icon className="h-4 w-4" />
-								<span>{label}</span>
+								{isActive && (
+									<motion.div
+										layoutId="nav-pill"
+										className="absolute inset-0 z-0 rounded-full bg-white shadow-sm"
+										transition={{
+											type: "spring",
+											stiffness: 350,
+											damping: 30,
+										}}
+									/>
+								)}
+								<div className="relative z-10 flex items-center gap-1.5">
+									<Icon className="h-4 w-4" />
+									<span>{label}</span>
+								</div>
 							</Link>
-						))}
+						);
+					})}
 				</nav>
 
 				{isPending ? (
@@ -110,32 +115,23 @@ export default function Header() {
 				</button>
 			</div>
 
-			{isMenuOpen && (
-				<div className="border-border/50 border-t bg-background p-4 md:hidden">
-					<div className="flex flex-col gap-1">
-						{PUBLIC_NAV_ITEMS.map(({ to, label, icon: Icon }) => (
-							<Link
-								key={to}
-								href={to}
-								onClick={() => setIsMenuOpen(false)}
-								className={cn(
-									"flex items-center gap-2 px-3 py-2 font-medium text-sm transition-colors",
-									pathname === to ? "text-foreground" : "text-muted-foreground",
-								)}
-							>
-								<Icon className="h-4 w-4" />
-								{label}
-							</Link>
-						))}
-						{!isPending &&
-							isAdmin &&
-							ADMIN_NAV_ITEMS.map(({ to, label, icon: Icon }) => (
+			<AnimatePresence>
+				{isMenuOpen && (
+					<motion.div
+						initial={{ height: 0, opacity: 0 }}
+						animate={{ height: "auto", opacity: 1 }}
+						exit={{ height: 0, opacity: 0 }}
+						transition={{ duration: 0.2, ease: "easeOut" }}
+						className="overflow-hidden border-border/50 border-t bg-background md:hidden"
+					>
+						<div className="flex flex-col gap-1 p-4">
+							{navItems.map(({ to, label, icon: Icon }) => (
 								<Link
 									key={to}
 									href={to}
 									onClick={() => setIsMenuOpen(false)}
 									className={cn(
-										"flex w-full items-center gap-2 px-3 py-2 font-medium text-sm transition-colors",
+										"flex items-center gap-2 px-3 py-2 font-medium text-sm transition-colors",
 										pathname === to
 											? "text-foreground"
 											: "text-muted-foreground",
@@ -145,32 +141,33 @@ export default function Header() {
 									{label}
 								</Link>
 							))}
-						{isPending ? (
-							<div className="h-8 w-full animate-pulse rounded-md bg-gray-100 dark:bg-gray-800" />
-						) : session?.user ? (
-							<Button
-								variant="ghost"
-								className="mt-2 w-full justify-start"
-								onClick={handleSignOut}
-							>
-								<LogOut className="h-4 w-4" />
-								<span>{userName}</span>
-							</Button>
-						) : (
-							<Button
-								variant="ghost"
-								className="mt-2 w-full justify-start"
-								onClick={() => {
-									router.push(ROUTES.auth);
-								}}
-							>
-								<LogIn className="h-4 w-4" />
-								Sign In
-							</Button>
-						)}
-					</div>
-				</div>
-			)}
+							{isPending ? (
+								<div className="h-8 w-full animate-pulse rounded-md bg-gray-100 dark:bg-gray-800" />
+							) : session?.user ? (
+								<Button
+									variant="ghost"
+									className="mt-2 w-full justify-start"
+									onClick={handleSignOut}
+								>
+									<LogOut className="h-4 w-4" />
+									<span>{userName}</span>
+								</Button>
+							) : (
+								<Button
+									variant="ghost"
+									className="mt-2 w-full justify-start"
+									onClick={() => {
+										router.push(ROUTES.auth);
+									}}
+								>
+									<LogIn className="h-4 w-4" />
+									Sign In
+								</Button>
+							)}
+						</div>
+					</motion.div>
+				)}
+			</AnimatePresence>
 		</header>
 	);
 }
