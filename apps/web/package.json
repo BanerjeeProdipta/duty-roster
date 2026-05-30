@@ -10,11 +10,11 @@
 		"deploy": "bunx wrangler pages deploy .cloudflare --project-name=duty-roster"
 	},
 	"dependencies": {
+		"@Duty-Roster/ai-parser": "workspace:*",
 		"@Duty-Roster/api": "workspace:*",
 		"@Duty-Roster/auth": "workspace:*",
 		"@Duty-Roster/env": "workspace:*",
 		"@Duty-Roster/ui": "workspace:*",
-		"@Duty-Roster/ai-parser": "workspace:*",
 		"@tanstack/react-form": "catalog:",
 		"@tanstack/react-query": "catalog:",
 		"@tanstack/react-virtual": "^3.13.24",
@@ -25,6 +25,7 @@
 		"better-auth": "catalog:",
 		"dotenv": "catalog:",
 		"lucide-react": "catalog:",
+		"motion": "^12.40.0",
 		"next": "^15.1.0",
 		"next-themes": "catalog:",
 		"ogl": "^1.0.11",
