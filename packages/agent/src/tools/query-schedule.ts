@@ -2,7 +2,7 @@ import { db } from "@Duty-Roster/db";
 import { nurse } from "@Duty-Roster/db/schema/nurse";
 import { nurseSchedule } from "@Duty-Roster/db/schema/nurse-schedule";
 import { shift } from "@Duty-Roster/db/schema/shift";
-import { bestNameMatch } from "@Duty-Roster/ai-parser";
+import { bestNameMatch, formatTime12h } from "@Duty-Roster/ai-parser";
 import { tool } from "@langchain/core/tools";
 import { and, eq, sql } from "drizzle-orm";
 import * as z from "zod";
@@ -66,7 +66,10 @@ export const queryScheduleTool = tool(
 			return `${resolvedName} has no shift (OFF) on ${dateKey}`;
 		}
 
-		return `${resolvedName} is on ${sched.shiftName} shift (${sched.shiftStart}-${sched.shiftEnd}) on ${dateKey}`;
+		const startTime = formatTime12h(sched.shiftStart);
+		const endTime = formatTime12h(sched.shiftEnd);
+
+		return `${resolvedName} is on ${sched.shiftName} shift (${startTime}-${endTime}) on ${dateKey}`;
 	},
 	{
 		name: "querySchedule",

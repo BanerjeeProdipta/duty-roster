@@ -36,6 +36,7 @@ export function AITrigger() {
 
   const { processMessage, speak, isSpeakingRef, lastSpeechEndedRef } =
     useAIAssistantLogic({
+      messages,
       pendingConfirmation,
       setPendingConfirmation,
       awaitingResponse,
@@ -79,8 +80,7 @@ export function AITrigger() {
   const handleOpen = useCallback(() => {
     setOpen(true);
     setLastAction(null);
-    start();
-  }, [setOpen, setLastAction, start]);
+  }, [setOpen, setLastAction]);
 
   useEffect(() => {
     if (

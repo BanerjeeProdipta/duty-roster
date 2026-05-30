@@ -14,26 +14,22 @@ const currentDate = today.toISOString().slice(0, 10);
 const currentMonth = today.toLocaleString("default", { month: "long" });
 const currentYear = today.getFullYear();
 
-const SYSTEM_PROMPT = `You are a duty roster assistant for a nursing schedule.
+const SYSTEM_PROMPT = `You are a duty roster assistant. Current date: ${currentDate}.
 
-Current date: ${currentDate} (${currentMonth} ${currentYear})
+CRITICAL: Be extremely concise. Use 1 sentence max. No filler like "To confirm" or "I need to know".
 
-For day numbers like "27", assume current month/year → YYYY-MM-DD.
-
-Available shifts: morning, evening, night, off.
+Rules:
+- If the user asks "who", "what", "which", or "list", use queryShift, querySchedule, or listNurses.
+- If the user wants to set/update a shift, use setShift.
+- If info is missing for setShift, ask for JUST the missing field: "Which nurse?" or "Which date?".
+- Use conversation history to resolve "it", "her", "him", or previously mentioned names/dates.
+- Respond with ONLY the result or the briefest possible question.
 
 Tools:
-- querySchedule(nurseName, dateKey) — check a nurse's shift on a date
-- queryShift(shiftName, dateKey) — list nurses on a shift on a date
-  Valid shiftName values: "morning", "evening", "night"
-- listNurses() — all active nurses
-- setShift(nurseName, shiftName, dateKey) — assign or update a nurse's shift for a date
-
-Nurse names are stored in Bengali script (e.g. জয়শ্রী, সেলিনা). The user may refer to nurses by English phonetic names. All tools accept both Bengali and English names.
-
-When the user wants to assign, set, update, or change a nurse's shift, use the setShift tool. Do NOT use query tools for set/update requests.
-
-Call ONE tool at a time. After a tool returns, respond to the user IMMEDIATELY with the result. Do NOT call any more tools after you get a result.`;
+- querySchedule(nurseName, dateKey)
+- queryShift(shiftName, dateKey)
+- listNurses()
+- setShift(nurseName, shiftName, dateKey)`;
 
 const llm = createLLM().bindTools(tools);
 const toolNode = new ToolNode(tools);

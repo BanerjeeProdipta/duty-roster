@@ -1,10 +1,11 @@
 export { formatDateKey, parseDate } from "./date-parser";
-export { parseDateFromText } from "./date-utils";
+export { parseDateFromText, formatTime12h } from "./date-utils";
 export { buildNameCandidates, matchName } from "./name-mapper";
 export {
   bestNameMatch,
   bengaliToEnglish,
   resolveNamesInText,
+  resolveBengaliToEnglish,
 } from "./phonetic-names";
 export { parseShiftCommand } from "./shift-parser";
 export type {

@@ -10,6 +10,17 @@ export function bengaliToEnglish(bengali: string): string | null {
 	return null;
 }
 
+export function resolveBengaliToEnglish(text: string): string {
+  const sorted = Object.entries(DISPLAY_NAMES).sort(
+    (a, b) => b[0].length - a[0].length,
+  );
+  let result = text;
+  for (const [bn, en] of sorted) {
+    result = result.split(bn).join(en);
+  }
+  return result;
+}
+
 export function resolveNamesInText(text: string): string {
   const sorted = Object.entries(PHONETIC_MAP).sort(
     (a, b) => b[0].length - a[0].length,

@@ -1,149 +1,75 @@
-# Voice & AI Assistant — System Overview
+# Voice & AI Assistant — Technical Implementation & Workflow
 
-## Purpose
+## Overview
 
-Enable hands-free roster updates and queries via speech or chat. Speech is transcribed by Vosk STT, then processed by an LLM-backed agent that resolves names (English → Bengali) and executes structured tool calls against PostgreSQL.
+The AI Duty Roster Assistant is a context-aware system designed for hands-free nurse scheduling. It uses a LangGraph-orchestrated agent that processes natural language (speech-to-text via Vosk or direct text chat) to query and update a PostgreSQL-backed roster. Key features include phonetic name resolution (English → Bengali), conversation memory, and automated tool execution.
 
-## Architecture
+## System Architecture
 
-```
-Microphone ─► apps/voice-server ─► Vosk STT ─► transcript text
-                                                   │
-                                    normalizeText() (STT corrections)
-                                           │
-                                resolveNamesInText() (EN→BN name replacement)
-                                           │
-                                   POST /api/agent
-                                           │
-                                   LangGraph agent (Groq / llama-3.3-70b)
-                                           │
-                          ┌────────────────┼────────────────┐
-                   querySchedule     queryShift        setShift
-                   listNurses
-                                           │
-                                    Response text
-                                           │
-                              Display + TTS (Web Speech API)
-```
-
-## Components
-
-### `apps/voice-server`
-WebSocket relay between browser and Python Vosk STT server (`stt/server.py`). Receives PCM audio, forwards to Vosk, returns partial/final transcripts.
-
-### `packages/agent`
-LangGraph `createReactAgent` using Groq (`llama-3.3-70b-versatile`). Built by `buildAgent()` and invoked on POST `/api/agent` in `apps/server`.
-
-**Tools:**
-
-| Tool | Params | Description |
-|------|--------|-------------|
-| `querySchedule` | nurseName, dateKey | Get a nurse's shift on a date |
-| `queryShift` | shiftName, dateKey | List nurses on a shift on a date |
-| `listNurses` | (none) | All active nurses |
-| `setShift` | nurseName, shiftName, dateKey | Assign/update a nurse's shift (upsert) |
-
-The system prompt tells the LLM that nurse names are in Bengali and all tools accept Bengali or English names. The agent calls one tool per turn then responds immediately (no multi-turn confirmation flow).
-
-Timeout: 15 seconds. Falls back to rule-based parser on error/timeout.
-
-### `packages/ai-parser`
-
-Provides name resolution utilities used by both the frontend pre-processing pipeline and agent tools:
-
-- `PHONETIC_MAP` — English phonetic variants → Bengali names (e.g. `"joy three"` → `জয়শ্রী`)
-- `DISPLAY_NAMES` — Bengali → English display names (for confirmation UI)
-- `bestNameMatch(words)` — Fuzzy match word arrays against phonetic map (full-string, per-word, then n-gram passes)
-- `resolveNamesInText(text)` — Scans text for phonetic keys (longest-first) and replaces with Bengali names using `\b` word boundaries
-- `bengaliToEnglish(bn)` — Bengali name → English display name
-
-Includes dummy entries (ডামি ১-৫) for development/testing.
-
-### `apps/web/src/features/ai-assistant`
-
-Frontend processing pipeline:
-
-1. **`normalizeText(text)`** — Fixes common STT garbling via `STT_CORRECTIONS` map:
-   - `schiff/schift/sheep` → `shift`
-   - `kinnear` → `can you`
-   - `"can u s"` / `"can u c"` → `can you set`
-   - `"to eat thing"` / `"the thing"` → `evening`
-   - etc.
-
-2. **`resolveNamesInText(normalized)`** — Replaces English phonetic names with Bengali script
-
-3. **`POST /api/agent`** — Sends resolved text to agent, displays response
-
-4. **Fallback `parseCommand()`** — Rule-based parser if agent unavailable (extracts nurse/shift/date from SET commands only)
-
-### `stt/server.py`
-
-Python Vosk streaming speech-to-text server. Receives PCM audio over WebSocket, returns partial and final transcriptions.
-
-## Data flow: set command
-
-```
-User: "set enjoy three to morning shift on twenty seventh"
-  → STT: "set enjoy three to morning shift on twenty seventh"
-  → normalizeText: "set enjoy three to morning shift on twenty seventh" (no corrections needed)
-  → resolveNamesInText: "set জয়শ্রী to morning shift on twenty seventh"
-  → POST /api/agent
-  → agent.querySchedule(name=জয়শ্রী, shift=morning, date=2026-05-27) ... or ...
-  → agent.setShift(nurseName=জয়শ্রী, shiftName=morning, dateKey=2026-05-27)
-  → Response: "Updated: জয়শ্রী is now assigned to morning on 2026-05-27."
+```mermaid
+graph TD
+    A[User Input: Speech/Text] --> B[STT Relay / Voice Server]
+    B --> C[Vosk STT Engine]
+    C --> D[Transcript Text]
+    D --> E[Client-side Normalization]
+    E --> F[Phonetic Name Resolution]
+    F --> G[POST /api/agent + History]
+    
+    subgraph "Backend (Bun/Node)"
+        G --> H[LangGraph Orchestrator]
+        H --> I{LLM: llama-4-scout-17b-16e}
+        I -- Tool Call --> J[Tools: setShift, querySchedule, etc.]
+        J --> K[PostgreSQL / Drizzle ORM]
+        K --> J
+        J --> I
+        I --> L[Natural Language Response]
+    end
+    
+    L --> M[Client: Display + TTS]
 ```
 
-## Data flow: query command
+## Core Workflow
 
-```
-User: "who is on morning shift today"
-  → STT: "who is on morning shift today"
-  → normalizeText: "who is on morning shift today"
-  → resolveNamesInText: "who is on morning shift today" (no name found)
-  → POST /api/agent
-  → agent.queryShift(shiftName=morning, dateKey=2026-05-28)
-  → Response: "The following nurses are on morning shift on 2026-05-28: ..."
-```
+### 1. Pre-processing (Client-side)
+- **Normalization (`normalizeText`)**: Corrects common STT misinterpretations (e.g., "schiff" → "shift", "kinnear" → "can you") using a predefined correction map.
+- **Phonetic Resolution (`resolveNamesInText`)**: Scans the normalized text for English phonetic equivalents of nurse names and replaces them with their Bengali script versions (e.g., "joy three" → "জয়শ্রী"). This ensures the LLM receives the exact keys used in the database.
 
-If the agent times out or errors (15s), the frontend falls back to `parseCommand()`. Query intents are detected and return a helpful message rather than asking "which nurse?".
+### 2. Contextual Agent Loop (`packages/agent`)
+The agent is built using **LangGraph** with a custom state machine:
+- **Extreme Brevity**: The system prompt enforces a "1 sentence max" rule with zero conversational filler.
+- **Intent Prioritization**: Explicit rules force the agent to use query tools for "who/what/which" requests to avoid misinterpreting them as update commands.
+- **State Persistence**: The client passes the full conversation history (`history` array) in every request. This allows the agent to resolve pronouns ("it", "her") and relative references ("on the 31st").
+...
+### 4. Technical Improvements
+- **12-Hour Time Formatting**: The `ai-parser` package provides `formatTime12h()`, ensuring all schedule queries return human-readable times (e.g., "10:00 PM").
+- **TTS Translation Layer**: To handle Bengali script names, the `ai-parser` provides `resolveBengaliToEnglish()`. The client-side logic uses this to translate Bengali names in agent responses to English phonetic equivalents before passing them to the Web Speech API. This ensures names like "জয়শ্রী" are correctly pronounced as "Joysree".
+- **Pronoun Resolution**: By mapping message roles to "human" and "assistant" explicitly in the backend, the LangGraph memory buffer correctly attributes context, enabling commands like "Update **it** to night".
+- **Voice Reliability**: Fixed browser garbage collection issues by maintaining a persistent reference to the `SpeechSynthesisUtterance` object, preventing the audio from cutting off mid-sentence.
+- **Direct Database Interaction**: Agent tools use `@Duty-Roster/db` directly, bypassing the tRPC layer used by the web UI for lower latency and atomic tool execution.
 
-## Not implemented (future)
+## Data Flow: Update Scenario
 
-- **RAG / pgvector**: No vector store or document indexing exists yet
-- **Multi-turn confirmation**: Agent updates directly — no "are you sure?" step
-- **Ollama/OpenAI fallback**: LLM provider is hard-coded to Groq
-- **Cloudflare Workers**: Agent runs in Node/Bun via `apps/server`, not Workers
-- **Shift swap/transfer**: Only single-nurse single-date assignment is supported
+1. **User**: "When is Joyoshree on 31?"
+   - **Transcript**: "When is Joyoshree on 31?"
+   - **Resolved**: "When is জয়শ্রী on 31?"
+   - **Agent Call**: `querySchedule(nurseName: "জয়শ্রী", dateKey: "2026-05-31")`
+   - **Response**: "জয়শ্রী is on morning shift (08:00 AM-02:00 PM) on 2026-05-31."
+2. **User**: "Update it to night."
+   - **Context**: The agent identifies "it" refers to the shift on "2026-05-31" and the nurse "জয়শ্রী".
+   - **Agent Call**: `setShift(nurseName: "জয়শ্রী", shiftName: "night", dateKey: "2026-05-31")`
+   - **Response**: "Updated: জয়শ্রী is now assigned to night on 2026-05-31."
 
-## Key files
+## Key Technical Components
 
-| Path | Role |
-|------|------|
-| `packages/agent/src/llm.ts` | Groq LLM factory (llama-3.3-70b) |
-| `packages/agent/src/graph.ts` | LangGraph agent + system prompt |
-| `packages/agent/src/tools/set-shift.ts` | Shift upsert tool |
-| `packages/agent/src/tools/query-schedule.ts` | Nurse schedule lookup tool |
-| `packages/agent/src/tools/query-shift.ts` | Shift roster query tool |
-| `packages/agent/src/tools/list-nurses.ts` | Active nurse list tool |
-| `apps/server/src/index.ts` | POST /api/agent endpoint |
-| `packages/ai-parser/src/phonetic-map.ts` | EN↔BN name mappings |
-| `packages/ai-parser/src/phonetic-names.ts` | bestNameMatch, resolveNamesInText, bengaliToEnglish |
-| `apps/web/src/features/ai-assistant/hooks/useAIAssistantLogic.ts` | normaliseText, STT_CORRECTIONS, agent call + fallback |
-| `apps/web/src/features/ai-assistant/hooks/useAIAssistantState.ts` | State management (pendingConfirmation, awaitingResponse) |
-| `apps/web/src/features/ai-assistant/hooks/useConfirmShiftUpdate.ts` | Confirmation flow for rule-based fallback |
-| `apps/web/src/features/ai-assistant/utils/commandParser.ts` | Rule-based parser (fallback) |
-| `apps/web/src/features/ai-assistant/components/MessageItem.tsx` | Chat bubble UI (BotIcon, UserIcon) |
-
-## Dev commands
-
-- `bun run dev:stt` — Vosk STT server (`ws://localhost:5001`)
-- `bun run dev:voice` — Voice relay (`http://localhost:3002`)
-- `bun run dev:web` — Next.js frontend
-- `bun run dev` — Full stack (server + web + voice + STT)
+- **Runtime**: Bun (apps/server, apps/ai-server).
+- **Orchestration**: LangGraph (StateGraph, MessagesAnnotation).
+- **ORM**: Drizzle ORM with PostgreSQL.
+- **STT**: Vosk (Python) + WebSocket Relay.
+- **UI**: Next.js + React Query + tRPC (for non-AI features).
 
 ## Configuration
 
-| Env var | Required | Description |
-|---------|----------|-------------|
-| `GROQ_API_KEY` | Yes | LLM provider key for agent |
-| `NEXT_PUBLIC_SERVER_URL` | No | Agent endpoint base URL (default: `http://localhost:3000`) |
+- `GROQ_API_KEY`: Primary LLM provider.
+- `OPENO_ROUTER_API_KEY`: Fallback provider.
+- `STT_WS_URL`: WebSocket endpoint for the STT engine.
+- `AI_PORT`: Port for the AI server relay (default: 3002).

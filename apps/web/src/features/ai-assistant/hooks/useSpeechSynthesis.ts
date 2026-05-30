@@ -73,6 +73,9 @@ async function speakWebSpeechAPI(
       cleanupSpeech();
 
       const utterance = new SpeechSynthesisUtterance(text);
+      // Keep a reference to the utterance to prevent garbage collection
+      (window as any)._lastUtterance = utterance;
+      
       utterance.rate = 1.1;
       utterance.pitch = 1;
       utterance.volume = 1;

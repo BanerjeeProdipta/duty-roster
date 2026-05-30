@@ -84,7 +84,11 @@ app.use(
 
 app.post("/api/agent", async (c) => {
 	try {
-		const { text } = await c.req.json<{ text: string }>();
+		const { text, history } = await c.req.json<{
+			text: string;
+			history?: { role: string; content: string }[];
+		}>();
+
 		if (!text || typeof text !== "string") {
 			return c.json({ error: "Missing or invalid 'text' field" }, 400);
 		}
@@ -93,9 +97,18 @@ app.post("/api/agent", async (c) => {
 
 		const agent = buildAgent();
 
+		const messages = [
+			...(history || []).map((m) =>
+				m.role === "user"
+					? { role: "human", content: m.content }
+					: { role: "assistant", content: m.content },
+			),
+			{ role: "human", content: text },
+		];
+
 		const result = await Promise.race([
 			agent.invoke({
-				messages: [{ role: "user", content: text }],
+				messages,
 			}),
 			new Promise<never>((_, reject) =>
 				setTimeout(() => reject(new Error("Agent timed out")), 30000),

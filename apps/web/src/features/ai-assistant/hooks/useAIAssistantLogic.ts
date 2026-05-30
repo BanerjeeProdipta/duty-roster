@@ -3,7 +3,7 @@
 import { useCallback, useRef } from "react";
 import type { ParsedMessage } from "../components/MessageItem";
 import { parseCommand } from "../utils/commandParser";
-import { resolveNamesInText } from "@Duty-Roster/ai-parser";
+import { resolveNamesInText, resolveBengaliToEnglish } from "@Duty-Roster/ai-parser";
 import { useConfirmShiftUpdate } from "./useConfirmShiftUpdate";
 import { useSpeechSynthesis } from "./useSpeechSynthesis";
 
@@ -14,6 +14,7 @@ const STT_CORRECTIONS: Record<string, string> = {
   sheap: "shift",
   sheep: "shift",
   chift: "shift",
+  fourth: "who's",
   kinnear: "can you",
   "can u s": "can you set",
   "can u c": "can you set",
@@ -44,6 +45,7 @@ interface PendingConfirmation {
 }
 
 interface UseAIAssistantLogicProps {
+  messages: ParsedMessage[];
   pendingConfirmation: PendingConfirmation | null;
   setPendingConfirmation: (confirmation: PendingConfirmation | null) => void;
   awaitingResponse: boolean;
@@ -55,6 +57,7 @@ interface UseAIAssistantLogicProps {
 }
 
 export function useAIAssistantLogic({
+  messages,
   pendingConfirmation,
   setPendingConfirmation,
   awaitingResponse,
@@ -75,7 +78,8 @@ export function useAIAssistantLogic({
 
   const speakSafely = useCallback(
     async (text: string) => {
-      await speakWithTTS(text);
+      const resolved = resolveBengaliToEnglish(text);
+      await speakWithTTS(resolved);
       lastSpeechEndedRef.current = Date.now();
     },
     [speakWithTTS],
@@ -124,12 +128,15 @@ export function useAIAssistantLogic({
   );
 
   const queryAgent = useCallback(
-    async (text: string): Promise<string | null> => {
+    async (
+      text: string,
+      history?: { role: string; content: string }[],
+    ): Promise<string | null> => {
       try {
         const res = await fetch(`${AGENT_URL}/api/agent`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text }),
+          body: JSON.stringify({ text, history }),
         });
         if (!res.ok) return null;
         const data = await res.json();
@@ -192,8 +199,14 @@ export function useAIAssistantLogic({
       const normalized = normalizeText(text);
       const agentText = resolveNamesInText(normalized);
 
+      // Map history for agent
+      const history = messages.map((m) => ({
+        role: m.isUser ? "user" : "assistant",
+        content: m.raw,
+      }));
+
       // Try agent API first
-      queryAgent(agentText).then((agentResponse) => {
+      queryAgent(agentText, history).then((agentResponse) => {
         if (agentResponse) {
           setMessages((prev) => [
             ...prev,
@@ -303,6 +316,7 @@ export function useAIAssistantLogic({
       });
     },
     [
+      messages,
       pendingConfirmation,
       confirmShiftUpdate,
       setPendingConfirmation,

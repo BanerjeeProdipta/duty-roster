@@ -54,7 +54,7 @@ export function AIInput({
           <button
             type="button"
             onClick={onSend}
-            className="flex size-9 shrink-0 items-center justify-center rounded-full bg-gray-900 text-white transition-all hover:bg-gray-800"
+            className="flex size-9 shrink-0 items-center justify-center rounded-full bg-surface text-accent-primary transition-all hover:bg-surface-hover border border-accent-primary"
             aria-label="Send message"
           >
             <Send className="size-4" />

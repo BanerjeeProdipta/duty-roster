@@ -294,13 +294,7 @@ export function useAI(): UseAIReturn & { error: string } {
 
     ws.onopen = () => {
       log("ws open");
-      if (greetedRef.current) {
-        log("greeting already spoken, skipping");
-        setupMic(ws);
-      } else {
-        greetedRef.current = true;
-        speak("Hey, how can I help?").then(() => setupMic(ws));
-      }
+      setupMic(ws);
     };
   }, [cleanup, speak]);
 
