@@ -6,7 +6,7 @@ import { LayoutDashboard, LogIn, LogOut, Menu, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { authClient } from "@/lib/auth-client";
 import { ADMIN_NAV_ITEMS, PUBLIC_NAV_ITEMS, ROUTES } from "@/lib/paths";
@@ -18,7 +18,12 @@ export default function Header() {
 	const pathname = usePathname();
 	const router = useRouter();
 	const [isMenuOpen, setIsMenuOpen] = useState(false);
+	const [hasMounted, setHasMounted] = useState(false);
 	const { data: session, isPending } = authClient.useSession();
+
+	useEffect(() => {
+		setHasMounted(true);
+	}, []);
 
 	const isAdmin = (session?.user as { role?: string })?.role === "admin";
 	const userName = (session?.user as { name?: string })?.name;
@@ -32,7 +37,7 @@ export default function Header() {
 
 	const navItems = [
 		...PUBLIC_NAV_ITEMS,
-		...(!isPending && isAdmin ? ADMIN_NAV_ITEMS : []),
+		...(hasMounted && !isPending && isAdmin ? ADMIN_NAV_ITEMS : []),
 	];
 
 	return (
@@ -80,7 +85,7 @@ export default function Header() {
 					})}
 				</nav>
 
-				{isPending ? (
+				{!hasMounted || isPending ? (
 					<div className="ml-1 hidden h-8 w-20 animate-pulse rounded-md bg-gray-100 md:block dark:bg-gray-800" />
 				) : session?.user ? (
 					<Button

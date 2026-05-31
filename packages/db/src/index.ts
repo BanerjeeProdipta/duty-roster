@@ -5,14 +5,34 @@ import { Pool } from "pg";
 import { getDbEnv } from "./env";
 import * as schema from "./schema";
 
-const isProduction = process.env.NODE_ENV === "production";
-
 export function createDb() {
+	const runtimeEnv = {
+		...(typeof process !== "undefined" ? process.env : {}),
+		...(typeof globalThis !== "undefined" && (globalThis as any)._CF_ENV
+			? (globalThis as any)._CF_ENV
+			: {}),
+	} as Record<string, string>;
+
+	const isProduction = runtimeEnv.NODE_ENV === "production";
+	const cfEnv = (globalThis as any)._CF_ENV;
+	const isCloudflare =
+		typeof globalThis !== "undefined" &&
+		cfEnv &&
+		typeof cfEnv === "object" &&
+		Object.keys(cfEnv).length > 0;
+	const isNode =
+		typeof process !== "undefined" && process.release?.name === "node";
+
 	const env = getDbEnv();
-	const url = process.env.DATABASE_URL_DIRECT || env.DATABASE_URL;
+	const url =
+		runtimeEnv.DATABASE_URL_DIRECT ||
+		runtimeEnv.DATABASE_URL ||
+		env.DATABASE_URL;
+
 	if (!url) throw new Error("DATABASE_URL or DATABASE_URL_DIRECT must be set");
 
-	if (isProduction) {
+	// Use Neon HTTP driver for production OR non-Node environments (Cloudflare Workers)
+	if (isProduction || isCloudflare || !isNode) {
 		const sql = neon(url);
 		return drizzleNeon(sql, { schema });
 	}
