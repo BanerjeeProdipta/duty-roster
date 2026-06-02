@@ -69,6 +69,9 @@ export async function findAllShifts() {
 export async function findSchedulesAndPreferencesByDateRange(
 	startDate: Date,
 	endDate: Date,
+	page?: number,
+	pageSize?: number,
+	searchQuery?: string,
 ) {
 	const start =
 		typeof startDate === "string" ? new Date(startDate) : new Date(startDate);
@@ -81,6 +84,16 @@ export async function findSchedulesAndPreferencesByDateRange(
 
 	console.log(`🔍 Query: ${startStr} to ${endStr}`);
 
+	// When searching, ignore pagination to return all matches
+	const hasPagination =
+		!searchQuery && page !== undefined && pageSize !== undefined;
+	const offset = hasPagination ? (page - 1) * pageSize : 0;
+	const limit = hasPagination ? pageSize : 1_000_000;
+
+	const searchCondition = searchQuery
+		? sql`nurse.name ILIKE ${"%" + searchQuery + "%"}`
+		: sql`TRUE`;
+
 	const result = await db.execute(sql`
     WITH nurse_prefs AS (
       SELECT
@@ -92,6 +105,7 @@ export async function findSchedulesAndPreferencesByDateRange(
         COALESCE(SUM(CASE WHEN nsp.shift_id = 'shift_night'   THEN nsp.weight ELSE 0 END), 0) AS night
       FROM nurse
       LEFT JOIN nurse_shift_preference nsp ON nurse.id = nsp.nurse_id
+      WHERE ${searchCondition}
       GROUP BY nurse.id, nurse.name
     ),
 
@@ -133,9 +147,32 @@ export async function findSchedulesAndPreferencesByDateRange(
     ORDER BY
       np.active DESC NULLS LAST,
       np.name ASC
+    LIMIT ${limit} OFFSET ${offset}
   `);
 
-	return result.rows;
+	return result.rows as {
+		id: string;
+		name: string;
+		active: boolean;
+		prefMorning: number;
+		prefEvening: number;
+		prefNight: number;
+		assignments: Record<string, { id: string; shiftType: string } | null>;
+		shiftMorning: number;
+		shiftEvening: number;
+		shiftNight: number;
+		totalAssigned: number;
+	}[];
+}
+
+export async function countAllNurses(searchQuery?: string) {
+	const [row] = searchQuery
+		? await db
+				.select({ count: sql<number>`COUNT(*)::int` })
+				.from(nurse)
+				.where(sql`nurse.name ILIKE ${"%" + searchQuery + "%"}`)
+		: await db.select({ count: sql<number>`COUNT(*)::int` }).from(nurse);
+	return row?.count ?? 0;
 }
 
 export async function createSchedules(

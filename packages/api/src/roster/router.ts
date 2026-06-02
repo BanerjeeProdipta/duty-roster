@@ -19,6 +19,9 @@ export const rosterRouter = router({
 				.object({
 					startDate: z.string(),
 					endDate: z.string(),
+					page: z.number().int().positive().optional(),
+					pageSize: z.number().int().positive().max(100).optional(),
+					q: z.string().optional(),
 				})
 				.refine((d) => new Date(d.startDate) <= new Date(d.endDate), {
 					message: "startDate must be before or equal to endDate",
@@ -30,6 +33,9 @@ export const rosterRouter = router({
 			rosterService.getSchedulesByDateRange(
 				new Date(input.startDate),
 				new Date(input.endDate),
+				input.page,
+				input.pageSize,
+				input.q,
 			),
 		),
 

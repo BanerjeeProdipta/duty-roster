@@ -3,7 +3,6 @@
 import type { SchedulesResponse } from "@Duty-Roster/api";
 import { useMutationState } from "@tanstack/react-query";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { useSearchParams } from "next/navigation";
 import { useRef } from "react";
 import { useShifts } from "@/hooks/useGetShifts";
 import { useRosterDates } from "@/hooks/useRosterDates";
@@ -20,17 +19,17 @@ interface RosterTableProps {
 }
 
 function useRosterTableData(initialSchedules?: SchedulesResponse) {
-	const { schedules, isLoading } = useSchedules(initialSchedules);
-	return { schedules, isLoading };
+	const { schedules, isLoading, page, pageSize, setPage, setPageSize } =
+		useSchedules(initialSchedules);
+	return { schedules, isLoading, page, pageSize, setPage, setPageSize };
 }
 
 export function RosterTable({
 	editable = false,
 	initialSchedules,
 }: RosterTableProps) {
-	const { schedules, isLoading } = useRosterTableData(initialSchedules);
-	const searchParams = useSearchParams();
-	const qParam = searchParams.get("q") ?? "";
+	const { schedules, isLoading, page, pageSize, setPage, setPageSize } =
+		useRosterTableData(initialSchedules);
 
 	const generatingState = useMutationState({
 		filters: { mutationKey: ["generate-roster"], status: "pending" },
@@ -43,12 +42,12 @@ export function RosterTable({
 
 	const parentRef = useRef<HTMLDivElement>(null);
 
-	const nurseRows = qParam.trim()
-		? (schedules?.nurseRows ?? []).filter((row) =>
-				row.nurse.name.toLowerCase().includes(qParam.toLowerCase()),
-			)
-		: (schedules?.nurseRows ?? []);
+	// Server already filters by name when ?q= is present
+	const nurseRows = schedules?.nurseRows ?? [];
 	const dailyShiftCounts = schedules?.dailyShiftCounts ?? {};
+
+	// Pagination: use server metadata if available, else derive from current data
+	const totalPages = schedules?.pagination?.totalPages ?? 1;
 
 	const rowVirtualizer = useVirtualizer({
 		count: nurseRows.length,
@@ -85,7 +84,7 @@ export function RosterTable({
 
 	return (
 		<div className="flex flex-col gap-4">
-			<div className="relative flex h-[calc(100vh-98px)] flex-col overflow-hidden rounded-2xl border border-gray-200/60 bg-white/80 shadow-[0_8px_30px_rgb(0,0,0,0.04)] backdrop-blur-sm">
+			<div className="relative flex h-[calc(100vh-140px)] flex-col overflow-hidden rounded-2xl border border-gray-200/60 bg-white/80 shadow-[0_8px_30px_rgb(0,0,0,0.04)] backdrop-blur-sm">
 				<div
 					ref={parentRef}
 					className="scrollbar-hide min-h-0 flex-1 overflow-auto"
@@ -239,6 +238,45 @@ export function RosterTable({
 							/>
 						</tbody>
 					</table>
+				</div>
+				<div className="flex items-center justify-between border-gray-200/60 border-t px-4 py-2 text-gray-600 text-sm">
+					<div className="flex items-center gap-2">
+						<label htmlFor="page-size" className="text-gray-500">
+							Rows per page:
+						</label>
+						<select
+							id="page-size"
+							value={pageSize}
+							onChange={(e) => setPageSize(Number(e.target.value))}
+							className="rounded-md border border-gray-200 bg-white px-2 py-1 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300"
+						>
+							<option value={10}>10</option>
+							<option value={25}>25</option>
+							<option value={50}>50</option>
+							<option value={100}>100</option>
+						</select>
+					</div>
+					<div className="flex items-center gap-2">
+						<button
+							type="button"
+							disabled={page <= 1}
+							onClick={() => setPage(page - 1)}
+							className="rounded-md px-2 py-1 text-gray-600 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
+						>
+							← Prev
+						</button>
+						<span className="tabular-nums">
+							Page {page} of {totalPages}
+						</span>
+						<button
+							type="button"
+							disabled={page >= totalPages}
+							onClick={() => setPage(page + 1)}
+							className="rounded-md px-2 py-1 text-gray-600 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
+						>
+							Next →
+						</button>
+					</div>
 				</div>
 			</div>
 		</div>

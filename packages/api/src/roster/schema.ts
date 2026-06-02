@@ -34,6 +34,15 @@ const shiftCountsSchema = z.object({
 	total: z.number(),
 });
 
+export const paginationMetaSchema = z.object({
+	page: z.number(),
+	pageSize: z.number(),
+	total: z.number(),
+	totalPages: z.number(),
+});
+
+export type PaginationMeta = z.infer<typeof paginationMetaSchema>;
+
 export const schedulesResponseSchema = z.object({
 	nurseRows: z.array(
 		z.object({
@@ -59,6 +68,7 @@ export const schedulesResponseSchema = z.object({
 	shiftRequirements: shiftCountsSchema,
 	assignedShiftCounts: shiftCountsSchema,
 	preferenceCapacity: shiftCountsSchema,
+	pagination: paginationMetaSchema.optional(),
 });
 
 export type SchedulesResponse = z.infer<typeof schedulesResponseSchema>;

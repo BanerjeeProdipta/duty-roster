@@ -255,10 +255,14 @@ export async function getShifts() {
 
 /**
  * Fetches schedules and preferences for a date range and computes aggregated metrics.
+ * Supports optional pagination via `page` and `pageSize` params (1-indexed).
  */
 export async function getSchedulesByDateRange(
 	startDate: Date,
 	endDate: Date,
+	page?: number,
+	pageSize?: number,
+	searchQuery?: string,
 ): Promise<SchedulesResponse> {
 	const startStr = startDate.toISOString();
 	const endStr = endDate.toISOString();
@@ -279,6 +283,9 @@ export async function getSchedulesByDateRange(
 	const rows = await rosterDb.findSchedulesAndPreferencesByDateRange(
 		startDate,
 		endDate,
+		page,
+		pageSize,
+		searchQuery,
 	);
 
 	// Debug: check what dates are in results
@@ -413,12 +420,25 @@ export async function getSchedulesByDateRange(
 		shiftRequirements.evening +
 		shiftRequirements.night;
 
+	// ─────────────── PAGINATION ───────────────
+	const totalNurses = await rosterDb.countAllNurses(searchQuery);
+	const pagination =
+		page !== undefined && pageSize !== undefined
+			? {
+					page,
+					pageSize,
+					total: totalNurses,
+					totalPages: Math.max(1, Math.ceil(totalNurses / pageSize)),
+				}
+			: undefined;
+
 	return {
 		nurseRows,
 		dailyShiftCounts,
 		shiftRequirements,
 		assignedShiftCounts,
 		preferenceCapacity,
+		pagination,
 	};
 }
 
