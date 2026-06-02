@@ -71,7 +71,7 @@ export function RosterTable({
 	const colLeftSpacer = columnVirtualItems[0]?.start ?? 0;
 	const colRightSpacer =
 		columnVirtualItems.length > 0
-			? Math.max(0, colTotalSize - columnVirtualItems.at(-1)?.end)
+			? Math.max(0, colTotalSize - columnVirtualItems.at(-1)!.end)
 			: colTotalSize;
 
 	if ((isLoading || isGenerating) && !schedules?.nurseRows?.length) {
