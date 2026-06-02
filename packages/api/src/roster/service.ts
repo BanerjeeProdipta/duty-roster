@@ -280,13 +280,24 @@ export async function getSchedulesByDateRange(
 		`📅 Query range: ${queryStart.toISOString()} to ${queryEnd.toISOString()}`,
 	);
 
-	const rows = await rosterDb.findSchedulesAndPreferencesByDateRange(
-		startDate,
-		endDate,
-		page,
-		pageSize,
-		searchQuery,
-	);
+	const [rows, aggregateStats] = await Promise.all([
+		rosterDb.findSchedulesAndPreferencesByDateRange(
+			startDate,
+			endDate,
+			page,
+			pageSize,
+			searchQuery,
+		),
+		rosterDb.getRosterAggregateStats(
+			startStr,
+			endStr,
+			searchQuery,
+			getDaysCountFromStartAndEndDate(startDate, endDate),
+		),
+	]);
+
+	const { dailyShiftCounts, assignedShiftCounts, preferenceCapacity } =
+		aggregateStats;
 
 	// Debug: check what dates are in results
 	const allDates = new Set<string>();
@@ -302,11 +313,6 @@ export async function getSchedulesByDateRange(
 	);
 
 	const totalDays = getDaysCountFromStartAndEndDate(startDate, endDate);
-
-	const dailyShiftCounts: Record<
-		string,
-		{ morning: number; evening: number; night: number; total: number }
-	> = {};
 
 	const nurseRows = rows.map((row) => {
 		const rawAssignments = (row.assignments ?? {}) as Record<
@@ -326,26 +332,6 @@ export async function getSchedulesByDateRange(
 					shiftType: shiftIdToShiftType(assignment.shiftType),
 				};
 			}
-
-			if (!assignment) continue;
-
-			if (!dailyShiftCounts[normalizedDate]) {
-				dailyShiftCounts[normalizedDate] = {
-					morning: 0,
-					evening: 0,
-					night: 0,
-					total: 0,
-				};
-			}
-
-			if (assignment.shiftType === "morning")
-				dailyShiftCounts[normalizedDate].morning++;
-			else if (assignment.shiftType === "evening")
-				dailyShiftCounts[normalizedDate].evening++;
-			else if (assignment.shiftType === "night")
-				dailyShiftCounts[normalizedDate].night++;
-			if (assignment.shiftType !== "off")
-				dailyShiftCounts[normalizedDate].total++;
 		}
 
 		const preferenceMorning = Math.round(
@@ -379,37 +365,6 @@ export async function getSchedulesByDateRange(
 			},
 		};
 	});
-
-	const assignedShiftCounts = {
-		morning: 0,
-		evening: 0,
-		night: 0,
-		total: 0,
-	};
-
-	const preferenceCapacity = {
-		morning: 0,
-		evening: 0,
-		night: 0,
-		total: 0,
-	};
-
-	for (const [, counts] of Object.entries(dailyShiftCounts)) {
-		assignedShiftCounts.morning += counts.morning ?? 0;
-		assignedShiftCounts.evening += counts.evening ?? 0;
-		assignedShiftCounts.night += counts.night ?? 0;
-		assignedShiftCounts.total += counts.total ?? 0;
-	}
-
-	for (const row of nurseRows) {
-		if (!row.nurse.active) continue;
-
-		const pref = row.preferenceWiseShiftMetrics;
-		preferenceCapacity.morning += pref.morning ?? 0;
-		preferenceCapacity.evening += pref.evening ?? 0;
-		preferenceCapacity.night += pref.night ?? 0;
-		preferenceCapacity.total += pref.total ?? 0;
-	}
 
 	const shiftRequirements = {
 		...getShiftRequirementsForRange(startDate, endDate),

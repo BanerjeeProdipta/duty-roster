@@ -165,6 +165,120 @@ export async function findSchedulesAndPreferencesByDateRange(
 	}[];
 }
 
+/**
+ * Fetches aggregated roster stats (daily shift counts, assigned totals, preference capacity)
+ * across ALL nurses in the date range — no pagination, so stats stay correct regardless of page.
+ */
+export async function getRosterAggregateStats(
+	startStr: string,
+	endStr: string,
+	searchQuery?: string,
+	totalDays?: number,
+): Promise<{
+	dailyShiftCounts: Record<
+		string,
+		{ morning: number; evening: number; night: number; total: number }
+	>;
+	assignedShiftCounts: {
+		morning: number;
+		evening: number;
+		night: number;
+		total: number;
+	};
+	preferenceCapacity: {
+		morning: number;
+		evening: number;
+		night: number;
+		total: number;
+	};
+}> {
+	const searchCondition = searchQuery
+		? sql`nurse.name ILIKE ${`%${searchQuery}%`}`
+		: sql`TRUE`;
+
+	// 1. Daily shift counts across ALL nurses
+	const dailyRows = await db.execute(sql`
+    SELECT
+      TO_CHAR(ns.date, 'YYYY-MM-DD')                                        AS date_key,
+      COUNT(*) FILTER (WHERE s.id = 'shift_morning')::int                   AS morning,
+      COUNT(*) FILTER (WHERE s.id = 'shift_evening')::int                   AS evening,
+      COUNT(*) FILTER (WHERE s.id = 'shift_night')::int                     AS night,
+      COUNT(*) FILTER (WHERE s.id IS NOT NULL)::int                         AS total
+    FROM nurse_schedule ns
+    LEFT JOIN shift s ON s.id = ns.shift_id
+    WHERE ns.date >= ${sql.raw(`'${startStr}'`)}
+      AND ns.date <= ${sql.raw(`'${endStr}'`)}
+    GROUP BY ns.date
+    ORDER BY ns.date
+  `);
+
+	const dailyShiftCounts: Record<
+		string,
+		{ morning: number; evening: number; night: number; total: number }
+	> = {};
+	const assignedShiftCounts = {
+		morning: 0,
+		evening: 0,
+		night: 0,
+		total: 0,
+	};
+
+	for (const row of dailyRows.rows as {
+		date_key: string;
+		morning: number;
+		evening: number;
+		night: number;
+		total: number;
+	}[]) {
+		dailyShiftCounts[row.date_key] = {
+			morning: row.morning,
+			evening: row.evening,
+			night: row.night,
+			total: row.total,
+		};
+		assignedShiftCounts.morning += row.morning;
+		assignedShiftCounts.evening += row.evening;
+		assignedShiftCounts.night += row.night;
+		assignedShiftCounts.total += row.total;
+	}
+
+	// 2. Preference capacity across ALL active nurses
+	const days = totalDays ?? 30;
+	const prefRows = await db.execute(sql`
+    SELECT
+      COALESCE(SUM(ROUND((morning_weight::numeric / 100) * ${days})), 0)::int  AS pref_morning,
+      COALESCE(SUM(ROUND((evening_weight::numeric / 100) * ${days})), 0)::int  AS pref_evening,
+      COALESCE(SUM(ROUND((night_weight::numeric / 100) * ${days})), 0)::int    AS pref_night
+    FROM (
+      SELECT
+        nurse.id,
+        COALESCE(SUM(CASE WHEN nsp.shift_id = 'shift_morning' THEN nsp.weight ELSE 0 END), 0) AS morning_weight,
+        COALESCE(SUM(CASE WHEN nsp.shift_id = 'shift_evening' THEN nsp.weight ELSE 0 END), 0) AS evening_weight,
+        COALESCE(SUM(CASE WHEN nsp.shift_id = 'shift_night' THEN nsp.weight ELSE 0 END), 0)   AS night_weight
+      FROM nurse
+      LEFT JOIN nurse_shift_preference nsp ON nurse.id = nsp.nurse_id
+      WHERE nurse.active = true
+        AND ${searchCondition}
+      GROUP BY nurse.id
+    ) sub
+  `);
+
+	const prefRow = prefRows.rows[0] as
+		| { pref_morning: number; pref_evening: number; pref_night: number }
+		| undefined;
+	const preferenceCapacity = {
+		morning: prefRow?.pref_morning ?? 0,
+		evening: prefRow?.pref_evening ?? 0,
+		night: prefRow?.pref_night ?? 0,
+		total:
+			(prefRow?.pref_morning ?? 0) +
+			(prefRow?.pref_evening ?? 0) +
+			(prefRow?.pref_night ?? 0),
+	};
+
+	return { dailyShiftCounts, assignedShiftCounts, preferenceCapacity };
+}
+
 export async function countAllNurses(searchQuery?: string) {
 	const [row] = searchQuery
 		? await db
