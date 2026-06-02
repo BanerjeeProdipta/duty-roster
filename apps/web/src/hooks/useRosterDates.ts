@@ -16,7 +16,7 @@ export type NormalizedDate = {
 };
 
 function getUTCDayName(dayIndex: number): string {
-	const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+	const days = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
 	return days[dayIndex];
 }
 

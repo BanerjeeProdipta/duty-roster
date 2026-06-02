@@ -68,6 +68,12 @@ export const schedulesResponseSchema = z.object({
 	shiftRequirements: shiftCountsSchema,
 	assignedShiftCounts: shiftCountsSchema,
 	preferenceCapacity: shiftCountsSchema,
+	nurseCounts: z
+		.object({
+			total: z.number(),
+			active: z.number(),
+		})
+		.optional(),
 	pagination: paginationMetaSchema.optional(),
 });
 

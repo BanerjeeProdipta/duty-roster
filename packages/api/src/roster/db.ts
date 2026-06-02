@@ -279,6 +279,24 @@ export async function getRosterAggregateStats(
 	return { dailyShiftCounts, assignedShiftCounts, preferenceCapacity };
 }
 
+export async function createNurse(
+	id: string,
+	name: string,
+	preferences: { shiftId: string; weight: number }[],
+) {
+	await db.insert(nurse).values({ id, name, active: true });
+	if (preferences.length > 0) {
+		await db.insert(nurseShiftPreference).values(
+			preferences.map((p) => ({
+				nurseId: id,
+				shiftId: p.shiftId,
+				weight: p.weight,
+				active: true,
+			})),
+		);
+	}
+}
+
 export async function countAllNurses(searchQuery?: string) {
 	const [row] = searchQuery
 		? await db
@@ -286,6 +304,17 @@ export async function countAllNurses(searchQuery?: string) {
 				.from(nurse)
 				.where(sql`nurse.name ILIKE ${`%${searchQuery}%`}`)
 		: await db.select({ count: sql<number>`COUNT(*)::int` }).from(nurse);
+	return row?.count ?? 0;
+}
+
+export async function countActiveNurses(searchQuery?: string) {
+	const condition = searchQuery
+		? and(sql`nurse.active = true`, sql`nurse.name ILIKE ${`%${searchQuery}%`}`)
+		: sql`nurse.active = true`;
+	const [row] = await db
+		.select({ count: sql<number>`COUNT(*)::int` })
+		.from(nurse)
+		.where(condition);
 	return row?.count ?? 0;
 }
 
@@ -383,6 +412,14 @@ export async function deletePreferencesForNurses(nurseIds: string[]) {
 	await db
 		.delete(nurseShiftPreference)
 		.where(sql`${nurseShiftPreference.nurseId} IN ${nurseIds}`);
+}
+
+/** Delete a nurse by ID (cascades to schedules automatically) */
+export async function deleteNurse(nurseId: string) {
+	// Delete preferences first (no cascade on this table)
+	await deletePreferencesForNurses([nurseId]);
+	// Delete nurse (schedules cascade via FK constraint)
+	await db.delete(nurse).where(eq(nurse.id, nurseId));
 }
 
 /** Upsert preferences with validation - ensures total doesn't exceed daysInMonth */

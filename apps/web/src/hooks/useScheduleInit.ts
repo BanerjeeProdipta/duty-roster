@@ -5,8 +5,19 @@ import { useShiftAllocations } from "@/features/shift-manager/hooks/useShiftAllo
 import { useSchedules } from "./useSchedules";
 
 export function useScheduleInit(initialSchedules?: SchedulesResponse | null) {
-	const { schedules, isLoading, isFetching, totalDays, year, month } =
-		useSchedules(initialSchedules);
+	const {
+		schedules,
+		isLoading,
+		isFetching,
+		totalDays,
+		year,
+		month,
+		page,
+		pageSize,
+		pagination,
+		setPage,
+		setPageSize,
+	} = useSchedules(initialSchedules);
 	const { nurses } = useShiftAllocations(schedules, totalDays);
 
 	return {
@@ -18,5 +29,10 @@ export function useScheduleInit(initialSchedules?: SchedulesResponse | null) {
 		year,
 		month,
 		nurses,
+		page,
+		pageSize,
+		pagination,
+		setPage,
+		setPageSize,
 	};
 }

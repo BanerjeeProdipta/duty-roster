@@ -1,6 +1,7 @@
 "use client";
 
 import type { SchedulesResponse } from "@Duty-Roster/api";
+import { Pagination } from "@Duty-Roster/ui/components/pagination";
 import { useMutationState } from "@tanstack/react-query";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useRef } from "react";
@@ -239,45 +240,14 @@ export function RosterTable({
 						</tbody>
 					</table>
 				</div>
-				<div className="flex items-center justify-between border-gray-200/60 border-t px-4 py-2 text-gray-600 text-sm">
-					<div className="flex items-center gap-2">
-						<label htmlFor="page-size" className="text-gray-500">
-							Rows per page:
-						</label>
-						<select
-							id="page-size"
-							value={pageSize}
-							onChange={(e) => setPageSize(Number(e.target.value))}
-							className="rounded-md border border-gray-200 bg-white px-2 py-1 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300"
-						>
-							<option value={10}>10</option>
-							<option value={25}>25</option>
-							<option value={50}>50</option>
-							<option value={100}>100</option>
-						</select>
-					</div>
-					<div className="flex items-center gap-2">
-						<button
-							type="button"
-							disabled={page <= 1}
-							onClick={() => setPage(page - 1)}
-							className="rounded-md px-2 py-1 text-gray-600 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
-						>
-							← Prev
-						</button>
-						<span className="tabular-nums">
-							Page {page} of {totalPages}
-						</span>
-						<button
-							type="button"
-							disabled={page >= totalPages}
-							onClick={() => setPage(page + 1)}
-							className="rounded-md px-2 py-1 text-gray-600 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
-						>
-							Next →
-						</button>
-					</div>
-				</div>
+				<Pagination
+					page={page}
+					pageSize={pageSize}
+					totalPages={totalPages}
+					onPageChange={setPage}
+					onPageSizeChange={setPageSize}
+					className="border-gray-200/60 border-t"
+				/>
 			</div>
 		</div>
 	);

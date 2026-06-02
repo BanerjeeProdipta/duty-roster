@@ -1,6 +1,7 @@
 "use client";
 
 import type { SchedulesResponse } from "@Duty-Roster/api";
+import { Pagination } from "@Duty-Roster/ui/components/pagination";
 import { SearchInput } from "@Duty-Roster/ui/components/search-input";
 import { Loader2, UserCheck, UserMinus } from "lucide-react";
 import dynamic from "next/dynamic";
@@ -36,6 +37,12 @@ export default function ShiftAllocationsClient({
 		totalDays,
 		nurses,
 		nurseRows: initialNurseRows,
+		page,
+		pageSize,
+		pagination,
+		setPage,
+		setPageSize,
+		schedules: refetchedSchedules,
 	} = useScheduleInit(initialSchedules);
 
 	const [nurseRows, setNurseRows] =
@@ -53,22 +60,26 @@ export default function ShiftAllocationsClient({
 		useSolverValidation({
 			nurseRows,
 			totalDays,
-			shiftRequirements: initialSchedules?.shiftRequirements ?? {
+			shiftRequirements: refetchedSchedules?.shiftRequirements ?? {
 				morning: 0,
 				evening: 0,
 				night: 0,
 				total: 0,
 			},
+			preferenceCapacity: refetchedSchedules?.preferenceCapacity,
+			nurseCounts: refetchedSchedules?.nurseCounts,
 		});
 
 	const shiftCounts = useShiftCounts({
 		nurseRows,
 		nurses,
-		shiftRequirements: initialSchedules?.shiftRequirements,
+		shiftRequirements: refetchedSchedules?.shiftRequirements,
+		preferenceCapacity: refetchedSchedules?.preferenceCapacity,
+		nurseCounts: refetchedSchedules?.nurseCounts,
 	});
 
 	const flexibilityMetrics = useFlexibilityMetrics({
-		shiftRequirements: initialSchedules?.shiftRequirements,
+		shiftRequirements: refetchedSchedules?.shiftRequirements,
 		shiftCounts: {
 			morning: {
 				required: shiftCounts.morning.required,
@@ -83,6 +94,7 @@ export default function ShiftAllocationsClient({
 				preference: shiftCounts.night.preference,
 			},
 		},
+		preferenceCapacity: refetchedSchedules?.preferenceCapacity,
 		totalDays,
 		nurses,
 		nurseRows,
@@ -192,12 +204,23 @@ export default function ShiftAllocationsClient({
 			)}
 
 			{!showLoader && (
-				<NurseTable
-					nurses={filteredNurses}
-					totalDays={totalDays}
-					onShiftChange={handleShiftChange}
-					onActiveChange={handleActiveChange}
-				/>
+				<>
+					<NurseTable
+						nurses={filteredNurses}
+						totalDays={totalDays}
+						onShiftChange={handleShiftChange}
+						onActiveChange={handleActiveChange}
+					/>
+					{pagination && (
+						<Pagination
+							page={page}
+							pageSize={pageSize}
+							totalPages={pagination.totalPages}
+							onPageChange={setPage}
+							onPageSizeChange={setPageSize}
+						/>
+					)}
+				</>
 			)}
 		</div>
 	);

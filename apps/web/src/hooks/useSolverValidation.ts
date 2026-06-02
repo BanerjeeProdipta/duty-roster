@@ -62,16 +62,50 @@ export function useFlexibilityMetrics({
 	shiftRequirements,
 	shiftCounts,
 	shiftAllocated,
-}: UseFlexibilityMetricsProps): FlexibilityMetrics {
+	nurseRows,
+	preferenceCapacity,
+}: UseFlexibilityMetricsProps & {
+	preferenceCapacity?: SchedulesResponse["preferenceCapacity"];
+}): FlexibilityMetrics {
 	const shiftTypes = ["morning", "evening", "night"] as const;
 	const metrics: FlexibilityMetrics = {};
+
+	// If nurseRows is available, compute live totals for preference/available
+	// so constraint warnings update when preferences change locally.
+	const activeRows = nurseRows?.filter((r) => r.nurse.active);
+	const liveTotals = useMemo(() => {
+		const pos = (v: number) => (v > 0 ? v : 0);
+		if (!activeRows || activeRows.length === 0) return null;
+		return {
+			morning: activeRows.reduce(
+				(s, r) => s + pos(r.preferenceWiseShiftMetrics.morning ?? 0),
+				0,
+			),
+			evening: activeRows.reduce(
+				(s, r) => s + pos(r.preferenceWiseShiftMetrics.evening ?? 0),
+				0,
+			),
+			night: activeRows.reduce(
+				(s, r) => s + pos(r.preferenceWiseShiftMetrics.night ?? 0),
+				0,
+			),
+		};
+	}, [activeRows]);
 
 	for (const shift of shiftTypes) {
 		const required = shiftRequirements?.[shift] ?? 0;
 		const needed = shiftAllocated?.[shift] ?? 0;
-		const preference = shiftCounts?.[shift]?.preference ?? 0;
-		// Fall back to preference when available is not explicitly provided
-		const available = shiftCounts?.[shift]?.available ?? preference;
+		const prefFromCounts = shiftCounts?.[shift]?.preference ?? 0;
+		// Prefer server-side preferenceCapacity (all nurses, no pagination).
+		// Fall back to live totals from visible nurseRows (reacts to local edits),
+		// then to shiftCounts from the server.
+		const preference =
+			preferenceCapacity?.[shift] ?? liveTotals?.[shift] ?? prefFromCounts;
+		const available =
+			preferenceCapacity?.[shift] ??
+			liveTotals?.[shift] ??
+			shiftCounts?.[shift]?.available ??
+			preference;
 		const buffer = available - required;
 		const ratio =
 			available > 0 ? required / available : Number.POSITIVE_INFINITY;
@@ -178,12 +212,16 @@ interface UseSolverValidationOptions {
 	nurseRows: SchedulesResponse["nurseRows"];
 	totalDays: number;
 	shiftRequirements: SchedulesResponse["shiftRequirements"];
+	preferenceCapacity?: SchedulesResponse["preferenceCapacity"];
+	nurseCounts?: SchedulesResponse["nurseCounts"];
 }
 
 export function useSolverValidation({
 	nurseRows,
 	totalDays,
 	shiftRequirements,
+	preferenceCapacity,
+	nurseCounts,
 }: UseSolverValidationOptions): {
 	solverValidation: SolverValidation;
 	shiftDeficits: ShiftDeficit[];
@@ -192,13 +230,16 @@ export function useSolverValidation({
 	const activeRows = nurseRows.filter((r) => r.nurse.active);
 
 	const solverValidation = useMemo(() => {
-		if (activeRows.length === 0 || !shiftRequirements) return null;
+		if ((!activeRows.length && !nurseCounts) || !shiftRequirements) return null;
 
 		const req = shiftRequirements;
 		const weeksInMonth = Math.floor(totalDays / 7);
 		const baseMaxShifts = totalDays - weeksInMonth;
 		const totalRequired = req.morning + req.evening + req.night;
-		const totalCapacity = activeRows.length * baseMaxShifts;
+
+		// Use server-side active nurse count when available (all nurses, not paginated)
+		const activeNurseCount = nurseCounts?.active ?? activeRows.length;
+		const totalCapacity = activeNurseCount * baseMaxShifts;
 
 		// Only count positive values — a 0 means "no preference", not a penalty.
 		const pos = (v: number) => (v > 0 ? v : 0);
@@ -217,13 +258,16 @@ export function useSolverValidation({
 			})
 			.filter((n) => n.hasOverlimit);
 
+		// Use server-side preference capacity for shift totals (all nurses, not paginated)
 		const shiftCapacityIssues: ShiftDeficit[] = [];
 		const shiftBuffers: Record<string, number> = {};
 		for (const shift of ["morning", "evening", "night"] as const) {
-			const available = activeRows.reduce(
-				(s, r) => s + pos(r.preferenceWiseShiftMetrics[shift] ?? 0),
-				0,
-			);
+			const available =
+				preferenceCapacity?.[shift] ??
+				activeRows.reduce(
+					(s, r) => s + pos(r.preferenceWiseShiftMetrics[shift] ?? 0),
+					0,
+				);
 			const buffer = available - req[shift];
 			shiftBuffers[shift] = buffer;
 			if (available < req[shift]) {
@@ -246,7 +290,7 @@ export function useSolverValidation({
 			totalRequired,
 			baseMaxShifts,
 			weeksInMonth,
-			activeNurseCount: activeRows.length,
+			activeNurseCount,
 			nurseOverlimits,
 			shiftCapacityIssues,
 			shiftBuffers,
@@ -259,9 +303,9 @@ export function useSolverValidation({
 	}, [
 		shiftRequirements,
 		totalDays,
-		activeRows.map,
-		activeRows.length,
-		activeRows.reduce,
+		activeRows,
+		preferenceCapacity,
+		nurseCounts,
 	]);
 
 	const shiftDeficits = useMemo<ShiftDeficit[]>(() => {
@@ -270,19 +314,26 @@ export function useSolverValidation({
 		// Only count positive values — a 0 means "no preference", not a penalty.
 		const pos = (v: number) => (v > 0 ? v : 0);
 
+		// Use server-side preference capacity when available (all nurses, not paginated)
 		const available = {
-			morning: activeRows.reduce(
-				(s, r) => s + pos(r.preferenceWiseShiftMetrics.morning ?? 0),
-				0,
-			),
-			evening: activeRows.reduce(
-				(s, r) => s + pos(r.preferenceWiseShiftMetrics.evening ?? 0),
-				0,
-			),
-			night: activeRows.reduce(
-				(s, r) => s + pos(r.preferenceWiseShiftMetrics.night ?? 0),
-				0,
-			),
+			morning:
+				preferenceCapacity?.morning ??
+				activeRows.reduce(
+					(s, r) => s + pos(r.preferenceWiseShiftMetrics.morning ?? 0),
+					0,
+				),
+			evening:
+				preferenceCapacity?.evening ??
+				activeRows.reduce(
+					(s, r) => s + pos(r.preferenceWiseShiftMetrics.evening ?? 0),
+					0,
+				),
+			night:
+				preferenceCapacity?.night ??
+				activeRows.reduce(
+					(s, r) => s + pos(r.preferenceWiseShiftMetrics.night ?? 0),
+					0,
+				),
 		};
 
 		const deficits: ShiftDeficit[] = [];
@@ -298,7 +349,7 @@ export function useSolverValidation({
 			}
 		}
 		return deficits;
-	}, [shiftRequirements, activeRows.reduce]);
+	}, [shiftRequirements, activeRows, preferenceCapacity]);
 
 	const showExactMatchWarning = useMemo(() => {
 		if (!shiftRequirements) return false;
@@ -313,7 +364,7 @@ export function useSolverValidation({
 		});
 		const uniqueOffCounts = new Set(offDaysByNurse);
 		return uniqueOffCounts.size > 1;
-	}, [shiftRequirements, totalDays, activeRows.map, activeRows.length]);
+	}, [shiftRequirements, totalDays, activeRows]);
 
 	return {
 		solverValidation,

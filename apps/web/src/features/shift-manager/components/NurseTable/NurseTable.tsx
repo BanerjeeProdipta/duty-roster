@@ -11,8 +11,9 @@ import {
 	TableRow,
 } from "@Duty-Roster/ui/components/table";
 import { cn } from "@Duty-Roster/ui/lib/utils";
-import { Check, Coffee, Moon, Sun, Sunset, X } from "lucide-react";
+import { Check, Coffee, Moon, Sun, Sunset, Trash2, X } from "lucide-react";
 import { useState } from "react";
+import { DeleteNurseDialog } from "@/components/DeleteNurseDialog";
 import { ShiftInput } from "@/features/shift-manager/components/ShiftInput";
 import { useNurseCard } from "@/features/shift-manager/hooks/useNurseCard";
 import type { NurseState } from "@/features/shift-manager/types";
@@ -114,6 +115,7 @@ function NurseTableRow({
 }: NurseTableRowProps) {
 	const [isEditingName, setIsEditingName] = useState(false);
 	const [editName, setEditName] = useState(nurse.name);
+	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
 	const {
 		draft,
@@ -295,9 +297,23 @@ function NurseTableRow({
 						>
 							<X className="h-4 w-4" />
 						</Button>
+						<Button
+							variant="secondary"
+							size="sm"
+							className="text-gray-300 transition-all duration-200 hover:bg-red-50 hover:text-red-500"
+							onClick={() => setDeleteDialogOpen(true)}
+						>
+							<Trash2 className="h-4 w-4" />
+						</Button>
 					</div>
 				</TableCell>
 			</TableRow>
+			<DeleteNurseDialog
+				nurseId={nurse.nurseId}
+				nurseName={draft.name}
+				open={deleteDialogOpen}
+				onOpenChange={setDeleteDialogOpen}
+			/>
 			{/* <TableRow>
 				<TableCell colSpan={8} className="p-0">
 					<div className="px-4 py-2">

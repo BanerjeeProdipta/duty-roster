@@ -110,4 +110,24 @@ export const rosterRouter = router({
 			}),
 		)
 		.mutation(({ input }) => rosterService.updateNurse(input)),
+
+	deleteNurse: adminProcedure
+		.input(z.object({ nurseId: z.string() }))
+		.mutation(({ input }) => rosterService.deleteNurse(input.nurseId)),
+
+	createNurse: adminProcedure
+		.input(
+			z
+				.object({
+					name: z.string().min(1, "Name is required"),
+					morning: z.number().int().min(0).max(100),
+					evening: z.number().int().min(0).max(100),
+					night: z.number().int().min(0).max(100),
+				})
+				.refine((d) => d.morning + d.evening + d.night <= 100, {
+					message: "Total preference must not exceed 100",
+					path: ["night"],
+				}),
+		)
+		.mutation(({ input }) => rosterService.createNurse(input)),
 });

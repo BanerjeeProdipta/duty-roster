@@ -22,17 +22,46 @@ interface UseShiftCountsOptions {
 	nurseRows: SchedulesResponse["nurseRows"];
 	nurses: { active: boolean }[];
 	shiftRequirements?: SchedulesResponse["shiftRequirements"];
+	preferenceCapacity?: SchedulesResponse["preferenceCapacity"];
+	nurseCounts?: SchedulesResponse["nurseCounts"];
 }
 
 export function useShiftCounts({
 	nurseRows,
 	nurses,
 	shiftRequirements,
+	preferenceCapacity,
+	nurseCounts,
 }: UseShiftCountsOptions): UseShiftCountsReturn {
-	const activeRows = nurseRows.filter((row) => row.nurse.active ?? true);
-
 	const shiftCounts = useMemo(() => {
-		// Only count positive values — a 0 means "no preference", not a penalty.
+		// Use server-side aggregate stats (all nurses, no pagination) for preference/available.
+		// This keeps the count cards accurate regardless of which page the user is on.
+		if (preferenceCapacity) {
+			return {
+				total: {
+					required: shiftRequirements?.total ?? 0,
+					preference: preferenceCapacity.total,
+				},
+				morning: {
+					required: shiftRequirements?.morning ?? 0,
+					preference: preferenceCapacity.morning,
+					available: preferenceCapacity.morning,
+				},
+				evening: {
+					required: shiftRequirements?.evening ?? 0,
+					preference: preferenceCapacity.evening,
+					available: preferenceCapacity.evening,
+				},
+				night: {
+					required: shiftRequirements?.night ?? 0,
+					preference: preferenceCapacity.night,
+					available: preferenceCapacity.night,
+				},
+			};
+		}
+
+		// Fallback: compute from nurseRows (e.g. if preferenceCapacity isn't available yet)
+		const activeRows = nurseRows.filter((row) => row.nurse.active ?? true);
 		const pos = (v: number) => (v > 0 ? v : 0);
 		return {
 			total: {
@@ -76,10 +105,14 @@ export function useShiftCounts({
 				),
 			},
 		};
-	}, [shiftRequirements, activeRows]);
+	}, [shiftRequirements, preferenceCapacity, nurseRows]);
 
-	const activeCount = nurses.filter((n) => n.active !== false).length;
-	const inactiveCount = nurses.length - activeCount;
+	const activeCount =
+		nurseCounts?.active ?? nurses.filter((n) => n.active !== false).length;
+	const inactiveCount =
+		nurseCounts != null
+			? nurseCounts.total - nurseCounts.active
+			: nurses.length - activeCount;
 
 	return {
 		...shiftCounts,

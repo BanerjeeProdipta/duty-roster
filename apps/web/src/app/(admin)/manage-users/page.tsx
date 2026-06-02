@@ -1,5 +1,6 @@
 import { Skeleton } from "@Duty-Roster/ui/components/skeleton";
 import { lazy, Suspense } from "react";
+import { AddNurseDialog } from "@/components/AddNurseDialog";
 import { MonthNavigator } from "@/components/MonthNavigator";
 import { PrefillButton } from "@/components/PrefillButton";
 import { ShiftCountsSkeleton } from "@/features/dashboard/components/ShiftCountsSkeleton";
@@ -58,13 +59,14 @@ export default async function ShiftAllocationsPage(props: {
 		return (
 			<Suspense fallback={<ShiftAllocationsLoading />}>
 				<div className="flex flex-col gap-6">
-					<MonthNavigator />
 					<div className="flex flex-wrap items-center justify-between">
 						<Suspense fallback={<Skeleton className="h-10 w-32" />}>
 							<WeekDayCounts month={month} year={year} />
 						</Suspense>
 						<div className="flex items-center gap-2">
+							<AddNurseDialog />
 							<PrefillButton year={year} month={month} />
+							<MonthNavigator />
 						</div>
 					</div>
 					<Suspense fallback={<ShiftCountsSkeleton />}>

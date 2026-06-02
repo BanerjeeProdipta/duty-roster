@@ -15,6 +15,7 @@
 		"@Duty-Roster/auth": "workspace:*",
 		"@Duty-Roster/env": "workspace:*",
 		"@Duty-Roster/ui": "workspace:*",
+		"@hookform/resolvers": "^5.4.0",
 		"@tanstack/react-form": "catalog:",
 		"@tanstack/react-query": "catalog:",
 		"@tanstack/react-virtual": "^3.13.24",
@@ -31,6 +32,7 @@
 		"ogl": "^1.0.11",
 		"react": "^19.0.0",
 		"react-dom": "^19.0.0",
+		"react-hook-form": "^7.77.0",
 		"sonner": "catalog:",
 		"zod": "catalog:",
 		"zustand": "^5.0.3"

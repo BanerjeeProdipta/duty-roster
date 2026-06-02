@@ -68,7 +68,12 @@ export function PrefillButton({
 
 	return (
 		<>
-			<Button variant="outline" size="sm" onClick={() => setShowDialog(true)}>
+			<Button
+				variant="outline"
+				size="sm"
+				className="border-amber-200 bg-amber-50/80 text-amber-600 transition-all hover:border-amber-300 hover:bg-amber-100 hover:text-amber-700"
+				onClick={() => setShowDialog(true)}
+			>
 				Prefill Default
 			</Button>
 			{showDialog && (

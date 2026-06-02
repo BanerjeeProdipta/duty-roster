@@ -50,7 +50,7 @@ export function MessageList({
 			{messages.map((msg, i) => (
 				<MessageItem
 					// biome-ignore lint/suspicious/noArrayIndexKey: messages lack stable id
-			key={`msg-${i}`}
+					key={`msg-${i}`}
 					message={msg}
 					onToggleRaw={onToggleRaw ? () => onToggleRaw(i) : undefined}
 				/>

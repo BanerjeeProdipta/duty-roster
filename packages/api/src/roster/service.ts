@@ -18,10 +18,35 @@ import {
 
 type SolverRoster = Record<string, string[]>;
 
+export async function createNurse({
+	name,
+	morning,
+	evening,
+	night,
+}: {
+	name: string;
+	morning: number;
+	evening: number;
+	night: number;
+}) {
+	const id = `nurse_${crypto.randomUUID().slice(0, 8)}`;
+	const preferences = [
+		{ shiftId: "shift_morning", weight: morning },
+		{ shiftId: "shift_evening", weight: evening },
+		{ shiftId: "shift_night", weight: night },
+	];
+	await rosterDb.createNurse(id, name, preferences);
+	return { id, name };
+}
+
 export { FRIDAY_OFF_NURSES, ROSTER_CONFIG } from "./utils";
 export type { ShiftTypeKey, ShiftUpdateResult };
 
 // ───────────── PREFERENCES (merged logic) ─────────────
+
+export async function deleteNurse(nurseId: string) {
+	await rosterDb.deleteNurse(nurseId);
+}
 
 export async function updateNurse({
 	nurseId,
@@ -280,7 +305,7 @@ export async function getSchedulesByDateRange(
 		`📅 Query range: ${queryStart.toISOString()} to ${queryEnd.toISOString()}`,
 	);
 
-	const [rows, aggregateStats] = await Promise.all([
+	const [rows, aggregateStats, totalNurses, activeNurses] = await Promise.all([
 		rosterDb.findSchedulesAndPreferencesByDateRange(
 			startDate,
 			endDate,
@@ -294,6 +319,8 @@ export async function getSchedulesByDateRange(
 			searchQuery,
 			getDaysCountFromStartAndEndDate(startDate, endDate),
 		),
+		rosterDb.countAllNurses(searchQuery),
+		rosterDb.countActiveNurses(searchQuery),
 	]);
 
 	const { dailyShiftCounts, assignedShiftCounts, preferenceCapacity } =
@@ -376,7 +403,6 @@ export async function getSchedulesByDateRange(
 		shiftRequirements.night;
 
 	// ─────────────── PAGINATION ───────────────
-	const totalNurses = await rosterDb.countAllNurses(searchQuery);
 	const pagination =
 		page !== undefined && pageSize !== undefined
 			? {
@@ -393,6 +419,10 @@ export async function getSchedulesByDateRange(
 		shiftRequirements,
 		assignedShiftCounts,
 		preferenceCapacity,
+		nurseCounts: {
+			total: totalNurses,
+			active: activeNurses,
+		},
 		pagination,
 	};
 }
