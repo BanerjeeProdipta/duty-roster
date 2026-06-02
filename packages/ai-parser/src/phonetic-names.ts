@@ -1,7 +1,10 @@
 import { DISPLAY_NAMES, PHONETIC_MAP } from "./phonetic-map";
 
 export function bengaliToEnglish(bengali: string): string | null {
-	const key = bengali.toLowerCase().replace(/[^a-z0-9\u0980-\u09FF ]/g, "").trim();
+	const key = bengali
+		.toLowerCase()
+		.replace(/[^a-z0-9\u0980-\u09FF ]/g, "")
+		.trim();
 	for (const [bn, en] of Object.entries(DISPLAY_NAMES)) {
 		if (bn.toLowerCase().includes(key) || key.includes(bn.toLowerCase())) {
 			return en;
@@ -11,29 +14,29 @@ export function bengaliToEnglish(bengali: string): string | null {
 }
 
 export function resolveBengaliToEnglish(text: string): string {
-  const sorted = Object.entries(DISPLAY_NAMES).sort(
-    (a, b) => b[0].length - a[0].length,
-  );
-  let result = text;
-  for (const [bn, en] of sorted) {
-    result = result.split(bn).join(en);
-  }
-  return result;
+	const sorted = Object.entries(DISPLAY_NAMES).sort(
+		(a, b) => b[0].length - a[0].length,
+	);
+	let result = text;
+	for (const [bn, en] of sorted) {
+		result = result.split(bn).join(en);
+	}
+	return result;
 }
 
 export function resolveNamesInText(text: string): string {
-  const sorted = Object.entries(PHONETIC_MAP).sort(
-    (a, b) => b[0].length - a[0].length,
-  );
-  let result = text;
-  for (const [key, names] of sorted) {
-    const bn = names[0];
-    if (!bn) continue;
-    const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const pattern = `\\b${escaped.replace(/ /g, "\\s+")}\\b`;
-    result = result.replace(new RegExp(pattern, "gi"), bn);
-  }
-  return result;
+	const sorted = Object.entries(PHONETIC_MAP).sort(
+		(a, b) => b[0].length - a[0].length,
+	);
+	let result = text;
+	for (const [key, names] of sorted) {
+		const bn = names[0];
+		if (!bn) continue;
+		const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+		const pattern = `\\b${escaped.replace(/ /g, "\\s+")}\\b`;
+		result = result.replace(new RegExp(pattern, "gi"), bn);
+	}
+	return result;
 }
 
 export function bestNameMatch(words: string[]): string | null {

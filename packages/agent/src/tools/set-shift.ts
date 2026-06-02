@@ -1,5 +1,5 @@
-import { db, schema } from "@Duty-Roster/db";
 import { bestNameMatch } from "@Duty-Roster/ai-parser";
+import { db, schema } from "@Duty-Roster/db";
 import { tool } from "@langchain/core/tools";
 import { eq } from "drizzle-orm";
 import * as z from "zod";
@@ -10,7 +10,10 @@ export const setShiftTool = tool(
 	async ({ nurseName, shiftName, dateKey }) => {
 		const targetShift = shiftName === "off" ? null : `shift_${shiftName}`;
 
-		if (shiftName !== "off" && !["shift_morning", "shift_evening", "shift_night"].includes(targetShift!)) {
+		if (
+			shiftName !== "off" &&
+			!["shift_morning", "shift_evening", "shift_night"].includes(targetShift!)
+		) {
 			return `Invalid shift "${shiftName}". Valid shifts: morning, evening, night, off.`;
 		}
 
@@ -49,11 +52,16 @@ export const setShiftTool = tool(
 
 		const nid = nurseRow[0].id;
 		const scheduleId = `schedule_${nid}_${dateKey}`;
-		const targetDate = new Date(dateKey + "T00:00:00.000Z");
+		const targetDate = new Date(`${dateKey}T00:00:00.000Z`);
 
 		await db
 			.insert(nurseSchedule)
-			.values({ id: scheduleId, nurseId: nid, date: targetDate, shiftId: targetShift })
+			.values({
+				id: scheduleId,
+				nurseId: nid,
+				date: targetDate,
+				shiftId: targetShift,
+			})
 			.onConflictDoUpdate({
 				target: [nurseSchedule.nurseId, nurseSchedule.date],
 				set: { shiftId: targetShift },
@@ -67,9 +75,7 @@ export const setShiftTool = tool(
 		description:
 			"Assign or update a nurse's shift for a specific date. Use this when the user wants to set, assign, change, or update a nurse's shift.",
 		schema: z.object({
-			nurseName: z
-				.string()
-				.describe("Nurse name in Bengali or English"),
+			nurseName: z.string().describe("Nurse name in Bengali or English"),
 			shiftName: z
 				.string()
 				.describe("Shift to assign: morning, evening, night, or off"),

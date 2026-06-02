@@ -91,7 +91,7 @@ export async function findSchedulesAndPreferencesByDateRange(
 	const limit = hasPagination ? pageSize : 1_000_000;
 
 	const searchCondition = searchQuery
-		? sql`nurse.name ILIKE ${"%" + searchQuery + "%"}`
+		? sql`nurse.name ILIKE ${`%${searchQuery}%`}`
 		: sql`TRUE`;
 
 	const result = await db.execute(sql`
@@ -170,7 +170,7 @@ export async function countAllNurses(searchQuery?: string) {
 		? await db
 				.select({ count: sql<number>`COUNT(*)::int` })
 				.from(nurse)
-				.where(sql`nurse.name ILIKE ${"%" + searchQuery + "%"}`)
+				.where(sql`nurse.name ILIKE ${`%${searchQuery}%`}`)
 		: await db.select({ count: sql<number>`COUNT(*)::int` }).from(nurse);
 	return row?.count ?? 0;
 }

@@ -1,4 +1,3 @@
-import React from "react";
 import { getWeekdayCounts } from "@/utils";
 
 const WeekDayCounts = ({ year, month }: { year: number; month: number }) => {

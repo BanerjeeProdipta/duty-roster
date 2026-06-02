@@ -98,7 +98,7 @@ app.get(
 				everConnected = true;
 				ws.send(JSON.stringify({ type: "stt_ready" }));
 				for (const chunk of audioBuffer) {
-					sttSocket!.send(chunk);
+					sttSocket?.send(chunk);
 				}
 				audioBuffer = [];
 			};

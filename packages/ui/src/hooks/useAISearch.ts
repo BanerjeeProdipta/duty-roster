@@ -33,7 +33,10 @@ const playSound = (type: "start" | "stop") => {
 	}
 
 	gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-	gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
+	gainNode.gain.exponentialRampToValueAtTime(
+		0.01,
+		audioContext.currentTime + 0.15,
+	);
 
 	oscillator.start(audioContext.currentTime);
 	oscillator.stop(audioContext.currentTime + 0.15);
@@ -64,7 +67,8 @@ export function useAISearch({
 		if (isListening) return;
 
 		const SpeechRecognition =
-			(window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+			(window as any).SpeechRecognition ||
+			(window as any).webkitSpeechRecognition;
 
 		if (!SpeechRecognition) {
 			setIsBrowserSupported(false);
@@ -101,7 +105,8 @@ export function useAISearch({
 
 	useEffect(() => {
 		const SpeechRecognition =
-			(window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+			(window as any).SpeechRecognition ||
+			(window as any).webkitSpeechRecognition;
 		setIsBrowserSupported(!!SpeechRecognition);
 	}, []);
 

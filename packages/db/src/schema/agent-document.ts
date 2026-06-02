@@ -1,4 +1,11 @@
-import { index, jsonb, pgTable, text, timestamp, vector } from "drizzle-orm/pg-core";
+import {
+	index,
+	jsonb,
+	pgTable,
+	text,
+	timestamp,
+	vector,
+} from "drizzle-orm/pg-core";
 
 export const agentDocument = pgTable(
 	"agent_document",

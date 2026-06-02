@@ -319,7 +319,7 @@ export function SolverWarnings({
 										<span
 											className={`rounded px-1.5 py-0.5 font-bold text-xs ${gap < 0 ? "bg-red-100 text-red-700" : "bg-emerald-100 text-emerald-700"}`}
 										>
-											{gap < 0 ? gap : "+" + gap}
+											{gap < 0 ? gap : `+${gap}`}
 										</span>
 									</div>
 								))}

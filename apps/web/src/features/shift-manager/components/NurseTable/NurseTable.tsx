@@ -1,5 +1,6 @@
 "use client";
 
+import { AIInput } from "@Duty-Roster/ui/components/ai-input";
 import { Button } from "@Duty-Roster/ui/components/button";
 import {
 	Table,
@@ -9,12 +10,10 @@ import {
 	TableHeader,
 	TableRow,
 } from "@Duty-Roster/ui/components/table";
-import { AIInput } from "@Duty-Roster/ui/components/ai-input";
 import { cn } from "@Duty-Roster/ui/lib/utils";
-import { AlertCircle, Check, Coffee, Moon, Sun, Sunset, X } from "lucide-react";
+import { Check, Coffee, Moon, Sun, Sunset, X } from "lucide-react";
 import { useState } from "react";
 import { ShiftInput } from "@/features/shift-manager/components/ShiftInput";
-import { FourWaySlider } from "@/features/shift-manager/components/Slider";
 import { useNurseCard } from "@/features/shift-manager/hooks/useNurseCard";
 import type { NurseState } from "@/features/shift-manager/types";
 import { ActiveToggle } from "../NurseCard/ActiveToggle";

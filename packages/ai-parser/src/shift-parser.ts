@@ -35,7 +35,7 @@ function extractNameAndDate(
 	let beforeDate = text;
 
 	if (onMatch) {
-		datePhrase = onMatch[1]!.trim();
+		datePhrase = onMatch[1]?.trim();
 		beforeDate = text.slice(0, onMatch.index).trim();
 	}
 

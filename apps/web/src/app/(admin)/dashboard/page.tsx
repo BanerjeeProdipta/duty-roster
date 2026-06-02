@@ -1,6 +1,6 @@
 import { lazy, Suspense } from "react";
-import { ShiftCountsSkeleton } from "@/features/dashboard/components/ShiftCountsSkeleton";
 import { AIAssistantWrapper } from "@/features/dashboard/components/AIAssistantWrapper";
+import { ShiftCountsSkeleton } from "@/features/dashboard/components/ShiftCountsSkeleton";
 import { RosterHeader } from "@/features/dashboard/roster-table/RosterHeader";
 import { RosterTableSkeleton } from "@/features/dashboard/roster-table/RosterTableSkeleton";
 import { getMonthDateRange, getYearMonthFromSearchParams } from "@/utils";

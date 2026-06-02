@@ -40,7 +40,7 @@ export function useRosterPageData(
 			);
 
 			return { nurses: nurseRows, dates, monthName };
-		} catch (err) {
+		} catch (_err) {
 			// Failed to process roster data, return null
 			return null;
 		}

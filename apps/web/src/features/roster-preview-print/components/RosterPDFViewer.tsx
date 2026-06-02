@@ -1,7 +1,5 @@
 "use client";
-
-import { FileText } from "lucide-react";
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { MonthNavigator } from "@/components/MonthNavigator";
 import type { SchedulesResponse } from "@/features/dashboard/roster-table/RosterMatrix.types";
 import {
@@ -58,7 +56,7 @@ export function RosterPDFViewer({ initialSchedules }: RosterPDFViewerProps) {
 		});
 
 		return () => observer.disconnect();
-	}, [hasContent]);
+	}, []);
 
 	const setPageRef = (idx: number) => (el: HTMLDivElement | null) => {
 		if (el) {

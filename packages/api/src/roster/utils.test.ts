@@ -1,11 +1,11 @@
 import {
 	formatDateKey,
+	getCoverageForDay,
 	getDaysInMonth,
+	getDayType,
 	isFriday,
 	normalizeShiftId,
 	shiftIdToShiftType,
-	getDayType,
-	getCoverageForDay,
 } from "./utils";
 
 describe("formatDateKey", () => {

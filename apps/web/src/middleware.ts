@@ -1,6 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
 
-
 export async function middleware(request: NextRequest) {
 	const ctx = (
 		request as unknown as { context: { env: Record<string, string> } }
@@ -21,7 +20,7 @@ export async function middleware(request: NextRequest) {
 	const session = await getSession(request);
 	const isLoggedIn = !!session?.session;
 	const user = session?.user as { role?: string } | null;
-	const role = user?.role;
+	const _role = user?.role;
 
 	// Redirect logged-in users away from auth pages
 	if (isLoggedIn && pathname.startsWith("/auth")) {
@@ -63,7 +62,7 @@ async function getSession(request: NextRequest) {
 			// User session retrieved successfully
 		}
 		return data;
-	} catch (e) {
+	} catch (_e) {
 		// Session retrieval failed
 		return null;
 	}

@@ -63,7 +63,7 @@ async function exportTables() {
 					rows = res.rows;
 					usedName = c;
 					break;
-				} catch (err) {
+				} catch (_err) {
 					// try next candidate
 				}
 			}

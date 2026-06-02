@@ -11,11 +11,11 @@ if (process.env.NODE_ENV === "development") {
 	void setupDevPlatform();
 }
 
-const withAnalyzer = withBundleAnalyzer({
+const _withAnalyzer = withBundleAnalyzer({
 	enabled: process.env.ANALYZE === "true",
 });
 
-const nextConfig: NextConfig = {
+const _nextConfig: NextConfig = {
 	experimental: {
 		externalDir: true,
 		// Activates the babel-plugin-react-compiler already listed in dependencies.

@@ -1,8 +1,8 @@
+import { bestNameMatch, formatTime12h } from "@Duty-Roster/ai-parser";
 import { db } from "@Duty-Roster/db";
 import { nurse } from "@Duty-Roster/db/schema/nurse";
 import { nurseSchedule } from "@Duty-Roster/db/schema/nurse-schedule";
 import { shift } from "@Duty-Roster/db/schema/shift";
-import { bestNameMatch, formatTime12h } from "@Duty-Roster/ai-parser";
 import { tool } from "@langchain/core/tools";
 import { and, eq, sql } from "drizzle-orm";
 import * as z from "zod";
@@ -76,9 +76,7 @@ export const queryScheduleTool = tool(
 		description:
 			"Get a nurse's shift assignment for a specific date. Returns the shift type and timing if assigned, or OFF if no shift.",
 		schema: z.object({
-			nurseName: z
-				.string()
-				.describe("Nurse name in Bengali or English"),
+			nurseName: z.string().describe("Nurse name in Bengali or English"),
 			dateKey: z.string().describe("Date in YYYY-MM-DD format"),
 		}),
 	},

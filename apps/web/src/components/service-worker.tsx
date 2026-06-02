@@ -21,7 +21,7 @@ export default function ServiceWorkerRegistration() {
 				return;
 			}
 
-			navigator.serviceWorker.register("/sw.js").then((registration) => {
+			navigator.serviceWorker.register("/sw.js").then((_registration) => {
 				// Service worker registered successfully
 			});
 		}

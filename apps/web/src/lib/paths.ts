@@ -34,8 +34,21 @@ export const PUBLIC_NAV_ITEMS: NavItem[] = [
 ];
 
 export const ADMIN_NAV_ITEMS: NavItem[] = [
-	{ to: ROUTES.dashboard, label: "Dashboard", icon: ROUTE_ICONS.dashboard, adminOnly: true },
-	{ to: ROUTES.manageUsers, label: "Manage", icon: ROUTE_ICONS.manageUsers, adminOnly: true },
+	{
+		to: ROUTES.dashboard,
+		label: "Dashboard",
+		icon: ROUTE_ICONS.dashboard,
+		adminOnly: true,
+	},
+	{
+		to: ROUTES.manageUsers,
+		label: "Manage",
+		icon: ROUTE_ICONS.manageUsers,
+		adminOnly: true,
+	},
 ];
 
-export const ALL_NAV_ITEMS: NavItem[] = [...PUBLIC_NAV_ITEMS, ...ADMIN_NAV_ITEMS];
+export const ALL_NAV_ITEMS: NavItem[] = [
+	...PUBLIC_NAV_ITEMS,
+	...ADMIN_NAV_ITEMS,
+];

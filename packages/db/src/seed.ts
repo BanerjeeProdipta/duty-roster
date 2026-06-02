@@ -30,7 +30,7 @@ async function seedProds() {
 	let contents: string;
 	try {
 		contents = await fs.readFile(resolvedPath, "utf8");
-	} catch (error) {
+	} catch (_error) {
 		throw new Error(
 			`Unable to read prods seed file at ${resolvedPath}. Set PRODS_SEED_PATH or create the file.`,
 		);

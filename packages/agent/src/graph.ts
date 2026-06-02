@@ -1,6 +1,11 @@
-import { StateGraph, MessagesAnnotation, START, END } from "@langchain/langgraph";
-import { ToolNode } from "@langchain/langgraph/prebuilt";
 import { SystemMessage } from "@langchain/core/messages";
+import {
+	END,
+	MessagesAnnotation,
+	START,
+	StateGraph,
+} from "@langchain/langgraph";
+import { ToolNode } from "@langchain/langgraph/prebuilt";
 import { createLLM } from "./llm";
 import { listNursesTool } from "./tools/list-nurses";
 import { queryScheduleTool } from "./tools/query-schedule";
@@ -11,8 +16,8 @@ const tools = [queryScheduleTool, queryShiftTool, listNursesTool, setShiftTool];
 
 const today = new Date();
 const currentDate = today.toISOString().slice(0, 10);
-const currentMonth = today.toLocaleString("default", { month: "long" });
-const currentYear = today.getFullYear();
+const _currentMonth = today.toLocaleString("default", { month: "long" });
+const _currentYear = today.getFullYear();
 
 const SYSTEM_PROMPT = `You are a duty roster assistant. Current date: ${currentDate}.
 

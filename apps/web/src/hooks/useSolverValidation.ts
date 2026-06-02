@@ -164,8 +164,8 @@ export function formatMetrics(metrics: FlexibilityMetrics[string]) {
 		preference: metrics.preference,
 		buffer: metrics.buffer,
 		ratio: metrics.ratio.toFixed(2),
-		percentRequired: ((metrics.ratio * 100) | 0) + "%",
-		bufferPercent: Math.round((metrics.buffer / metrics.required) * 100) + "%",
+		percentRequired: `${(metrics.ratio * 100) | 0}%`,
+		bufferPercent: `${Math.round((metrics.buffer / metrics.required) * 100)}%`,
 		status: metrics.isInfeasible
 			? "INFEASIBLE"
 			: metrics.isTight
@@ -256,7 +256,13 @@ export function useSolverValidation({
 				nurseOverlimits.length > 0 ||
 				shiftCapacityIssues.length > 0,
 		};
-	}, [shiftRequirements, nurseRows, totalDays]);
+	}, [
+		shiftRequirements,
+		totalDays,
+		activeRows.map,
+		activeRows.length,
+		activeRows.reduce,
+	]);
 
 	const shiftDeficits = useMemo<ShiftDeficit[]>(() => {
 		if (!shiftRequirements) return [];
@@ -292,7 +298,7 @@ export function useSolverValidation({
 			}
 		}
 		return deficits;
-	}, [shiftRequirements, nurseRows]);
+	}, [shiftRequirements, activeRows.reduce]);
 
 	const showExactMatchWarning = useMemo(() => {
 		if (!shiftRequirements) return false;
@@ -307,7 +313,7 @@ export function useSolverValidation({
 		});
 		const uniqueOffCounts = new Set(offDaysByNurse);
 		return uniqueOffCounts.size > 1;
-	}, [shiftRequirements, nurseRows, totalDays]);
+	}, [shiftRequirements, totalDays, activeRows.map, activeRows.length]);
 
 	return {
 		solverValidation,

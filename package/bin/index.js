@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-const { spawn } = require("child_process");
-const { join } = require("path");
+const { spawn } = require("node:child_process");
+const { join } = require("node:path");
 
 spawn(
 	process.execPath,

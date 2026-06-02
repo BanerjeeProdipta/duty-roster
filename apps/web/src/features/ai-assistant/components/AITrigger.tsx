@@ -114,7 +114,13 @@ export function AITrigger() {
 		console.log("[AITrigger] processing transcript:", transcript);
 		lastProcessedTranscriptRef.current = transcript;
 		processMessage(transcript);
-	}, [transcript, lastAction, processMessage, isSpeakingRef]);
+	}, [
+		transcript,
+		lastAction,
+		processMessage,
+		isSpeakingRef,
+		lastSpeechEndedRef.current,
+	]);
 
 	const confirmedRef = useRef(false);
 	const cancelledRef = useRef(false);
