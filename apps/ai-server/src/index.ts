@@ -81,7 +81,6 @@ app.get(
 		};
 
 		function connectSTT(ws: WebSocket) {
-			console.log(`[ai-server] connectSTT: connecting to ${STT_WS_URL} (attempt ${retryCount + 1})`);
 			if (sttSocket) {
 				sttSocket.close();
 				sttSocket = null;
@@ -89,18 +88,15 @@ app.get(
 
 			try {
 				sttSocket = new WebSocket(STT_WS_URL);
-			} catch (e) {
-				console.log(`[ai-server] connectSTT: new WebSocket threw:`, e);
+			} catch {
 				scheduleRetry(ws);
 				return;
 			}
 
 			sttSocket.onopen = () => {
-				console.log(`[ai-server] connectSTT: STT socket OPEN`);
 				retryCount = 0;
 				everConnected = true;
 				ws.send(JSON.stringify({ type: "stt_ready" }));
-				console.log(`[ai-server] sent stt_ready to browser, flushing ${audioBuffer.length} buffered chunks`);
 				for (const chunk of audioBuffer) {
 					sttSocket!.send(chunk);
 				}
@@ -108,28 +104,21 @@ app.get(
 			};
 
 			sttSocket.onmessage = (event) => {
-				console.log(`[ai-server] STT message:`, typeof event.data === 'string' ? event.data.slice(0, 80) : 'binary');
 				ws.send(event.data as string);
 			};
 
-			sttSocket.onclose = (e) => {
-				console.log(`[ai-server] STT socket CLOSED code=${e.code} reason=${e.reason}`);
+			sttSocket.onclose = () => {
 				sttSocket = null;
 				if (everConnected) {
 					ws.send(JSON.stringify({ type: "stt_disconnected" }));
 				}
 				scheduleRetry(ws);
 			};
-
-			sttSocket.onerror = (e) => {
-				console.log(`[ai-server] STT socket ERROR:`, e instanceof Error ? e.message : e);
-			};
 		}
 
 		function scheduleRetry(ws: WebSocket) {
 			if (closed) return;
 			const delay = Math.min(1000 * 2 ** retryCount, MAX_RETRY_DELAY);
-			console.log(`[ai-server] scheduleRetry: retry ${retryCount + 1} in ${delay}ms`);
 			retryCount++;
 			retryTimeout = setTimeout(() => {
 				if (closed) return;

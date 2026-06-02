@@ -11,8 +11,8 @@ import { useSchedules } from "@/hooks/useSchedules";
 import { DayHeaderCell } from "./DayHeaderCell";
 import { LAYOUT } from "./Layout";
 import { NurseIdentityCell } from "./NurseIdentityCell";
-import { NurseRow } from "./NurseRow";
 import { RosterTableSkeleton } from "./RosterTableSkeleton";
+import { ShiftBadge } from "./ShiftDropdown";
 
 interface RosterTableProps {
 	editable?: boolean;
@@ -39,7 +39,7 @@ export function RosterTable({
 	const isGenerating = generatingState.length > 0;
 
 	const shifts = useShifts();
-	const { weekDates, normalizedDates } = useRosterDates();
+	const { normalizedDates } = useRosterDates();
 
 	const parentRef = useRef<HTMLDivElement>(null);
 
@@ -50,14 +50,30 @@ export function RosterTable({
 		: (schedules?.nurseRows ?? []);
 	const dailyShiftCounts = schedules?.dailyShiftCounts ?? {};
 
-	const virtualizer = useVirtualizer({
+	const rowVirtualizer = useVirtualizer({
 		count: nurseRows.length,
 		getScrollElement: () => parentRef.current,
 		estimateSize: () => LAYOUT.rowHeight,
 		overscan: 5,
 	});
 
-	const virtualItems = virtualizer.getVirtualItems();
+	const virtualRows = rowVirtualizer.getVirtualItems();
+
+	const columnVirtualizer = useVirtualizer({
+		count: normalizedDates.length,
+		getScrollElement: () => parentRef.current,
+		estimateSize: () => LAYOUT.cellWidth,
+		horizontal: true,
+		overscan: 2,
+	});
+
+	const columnVirtualItems = columnVirtualizer.getVirtualItems();
+	const colTotalSize = columnVirtualizer.getTotalSize();
+	const colLeftSpacer = columnVirtualItems[0]?.start ?? 0;
+	const colRightSpacer =
+		columnVirtualItems.length > 0
+			? Math.max(0, colTotalSize - columnVirtualItems.at(-1)!.end)
+			: colTotalSize;
 
 	if ((isLoading || isGenerating) && !schedules?.nurseRows?.length) {
 		return <RosterTableSkeleton />;
@@ -89,43 +105,64 @@ export function RosterTable({
 								>
 									Nurses
 								</th>
-								{normalizedDates.map((date) => (
+								{colLeftSpacer > 0 && (
 									<th
-										key={date.key}
-										className="sticky top-0 z-[10] bg-muted"
+										className="border-0 p-0"
 										style={{
-											width: LAYOUT.cellWidth,
+											width: colLeftSpacer,
 											height: LAYOUT.headerHeight,
 										}}
-									>
-										<DayHeaderCell
-											date={date}
-											counts={dailyShiftCounts[date.dateStr]}
-										/>
-									</th>
-								))}
+									/>
+								)}
+								{columnVirtualItems.map((vc) => {
+									const date = normalizedDates[vc.index];
+									return (
+										<th
+											key={date.key}
+											className="sticky top-0 z-[10] bg-muted"
+											style={{
+												width: LAYOUT.cellWidth,
+												height: LAYOUT.headerHeight,
+											}}
+										>
+											<DayHeaderCell
+												date={date}
+												counts={dailyShiftCounts[date.dateStr]}
+											/>
+										</th>
+									);
+								})}
+								{colRightSpacer > 0 && (
+									<th
+										className="border-0 p-0"
+										style={{
+											width: colRightSpacer,
+											height: LAYOUT.headerHeight,
+										}}
+									/>
+								)}
 							</tr>
 						</thead>
 						<tbody>
 							<tr
 								style={{
-									height: `${virtualizer.getVirtualItems()[0]?.start ?? 0}px`,
+									height: `${virtualRows[0]?.start ?? 0}px`,
 								}}
 							/>
-							{virtualItems.map((virtualItem) => {
+							{virtualRows.map((virtualRow) => {
 								const {
 									nurse,
 									assignments,
 									preferenceWiseShiftMetrics,
 									assignedShiftMetrics,
-								} = nurseRows[virtualItem.index];
+								} = nurseRows[virtualRow.index];
 								return (
 									<tr
-										key={virtualItem.key}
-										data-index={virtualItem.index}
-										ref={virtualizer.measureElement}
+										key={virtualRow.key}
+										data-index={virtualRow.index}
+										ref={rowVirtualizer.measureElement}
 										style={{
-											height: `${virtualItem.size}px`,
+											height: `${virtualRow.size}px`,
 										}}
 									>
 										<td
@@ -143,18 +180,51 @@ export function RosterTable({
 												editable={editable}
 											/>
 										</td>
-										<td
-											className="border-gray-200"
-											style={{ height: LAYOUT.rowHeight }}
-										>
-											<NurseRow
-												nurse={nurse}
-												dates={weekDates}
-												assignments={assignments}
-												shifts={shifts}
-												editable={editable}
+										{colLeftSpacer > 0 && (
+											<td
+												className="border-0 p-0"
+												style={{ width: colLeftSpacer }}
 											/>
-										</td>
+										)}
+										{columnVirtualItems.map((vc) => {
+											const date = normalizedDates[vc.index];
+											const dateKey = date.dateStr;
+											const shift = assignments[dateKey];
+											return (
+												<td
+													key={dateKey}
+													className="border-gray-200"
+													style={{
+														width: LAYOUT.cellWidth,
+														height: LAYOUT.rowHeight,
+													}}
+												>
+													<div
+														className="flex h-full items-center justify-center border-r border-b bg-white"
+														style={{
+															width: LAYOUT.cellWidth,
+															height: LAYOUT.rowHeight,
+														}}
+													>
+														<ShiftBadge
+															type={shift?.shiftType ?? "off"}
+															nurseName={nurse?.name ?? "Nurse"}
+															nurseId={nurse.id}
+															date={dateKey}
+															assignmentId={shift?.id}
+															shifts={shifts}
+															editable={editable}
+														/>
+													</div>
+												</td>
+											);
+										})}
+										{colRightSpacer > 0 && (
+											<td
+												className="border-0 p-0"
+												style={{ width: colRightSpacer }}
+											/>
+										)}
 									</tr>
 								);
 							})}
@@ -162,8 +232,8 @@ export function RosterTable({
 								style={{
 									height: `${Math.max(
 										0,
-										virtualizer.getTotalSize() -
-											(virtualItems[virtualItems.length - 1]?.end ?? 0),
+										rowVirtualizer.getTotalSize() -
+											(virtualRows[virtualRows.length - 1]?.end ?? 0),
 									)}px`,
 								}}
 							/>
