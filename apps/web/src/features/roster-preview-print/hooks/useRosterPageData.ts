@@ -20,8 +20,10 @@ interface UseRosterPageDataReturn {
 export function useRosterPageData(
 	initialSchedules?: SchedulesResponse,
 ): UseRosterPageDataReturn {
-	const { schedules, isFetching, year, month } =
-		useScheduleInit(initialSchedules);
+	const { schedules, isFetching, year, month } = useScheduleInit(
+		initialSchedules,
+		{ disablePagination: true },
+	);
 
 	const pageData = useMemo<PageData | null>(() => {
 		if (!schedules?.nurseRows) return null;

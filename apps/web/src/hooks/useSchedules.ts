@@ -8,12 +8,21 @@ import { QUERY_KEYS } from "@/utils/query-keys";
 import { trpcClient } from "@/utils/trpc";
 import { useYearMonth } from "./useYearMonth";
 
-const DEFAULT_PAGE_SIZE = 10;
+const DEFAULT_PAGE_SIZE = 50;
 
-export function useSchedules(initialData?: SchedulesResponse | null) {
+interface UseSchedulesOptions {
+	disablePagination?: boolean;
+}
+
+export function useSchedules(
+	initialData?: SchedulesResponse | null,
+	options: UseSchedulesOptions = {},
+) {
 	const { year, month } = useYearMonth();
 	const searchParams = useSearchParams();
 	const router = useRouter();
+
+	const { disablePagination = false } = options;
 
 	const searchQuery = searchParams.get("q")?.trim() || undefined;
 	const page = searchQuery ? 1 : Number(searchParams.get("page")) || 1;
@@ -22,8 +31,7 @@ export function useSchedules(initialData?: SchedulesResponse | null) {
 	const query = useQuery({
 		queryKey: [
 			...QUERY_KEYS.schedules(year, month),
-			page,
-			pageSize,
+			...(disablePagination ? [] : [page, pageSize]),
 			searchQuery ?? "",
 		],
 		queryFn: async () => {
@@ -32,7 +40,11 @@ export function useSchedules(initialData?: SchedulesResponse | null) {
 			return trpcClient.roster.getSchedules.query({
 				startDate: `${year}-${mm}-01`,
 				endDate: `${year}-${mm}-${String(lastDay).padStart(2, "0")}`,
-				...(searchQuery ? { q: searchQuery } : { page, pageSize }),
+				...(searchQuery
+					? { q: searchQuery }
+					: disablePagination
+						? {}
+						: { page, pageSize }),
 			});
 		},
 		initialData,

@@ -1,8 +1,9 @@
 "use client";
 
-import { Button } from "@Duty-Roster/ui/components/button";
+import { Switch } from "@Duty-Roster/ui/components/switch";
 import { cn } from "@Duty-Roster/ui/lib/utils";
-import { Loader2, UserRoundCheck, UserRoundX } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import type { CSSProperties } from "react";
 
 interface ActiveToggleProps {
 	active: boolean;
@@ -16,26 +17,20 @@ export function ActiveToggle({
 	onToggle,
 }: ActiveToggleProps) {
 	return (
-		<Button
-			onClick={onToggle}
+		<Switch
+			checked={active}
 			disabled={isPending}
-			variant="secondary"
-			className={cn(
-				"group text-gray-500 transition duration-300",
-				isPending && "cursor-not-allowed opacity-70",
-				active
-					? "text-emerald-600 hover:bg-emerald-100/40"
-					: "text-rose-600 hover:bg-rose-100/40",
-			)}
-			title={active ? "Deactivate nurse" : "Activate nurse"}
+			onCheckedChange={onToggle}
+			className={cn("group", isPending && "opacity-70")}
+			style={
+				{
+					"--switch-width": "1.75rem",
+					"--switch-height": "1rem",
+					"--switch-thumb-size": "0.75rem",
+				} as CSSProperties
+			}
 		>
-			{isPending ? (
-				<Loader2 className="h-3 w-3 animate-spin" />
-			) : active ? (
-				<UserRoundCheck className="h-4 w-4" />
-			) : (
-				<UserRoundX className="h-4 w-4" />
-			)}
-		</Button>
+			{isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
+		</Switch>
 	);
 }

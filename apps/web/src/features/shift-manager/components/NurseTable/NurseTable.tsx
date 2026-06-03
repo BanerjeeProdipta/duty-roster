@@ -1,6 +1,5 @@
 "use client";
 
-import { AIInput } from "@Duty-Roster/ui/components/ai-input";
 import { Button } from "@Duty-Roster/ui/components/button";
 import {
 	Table,
@@ -11,10 +10,10 @@ import {
 	TableRow,
 } from "@Duty-Roster/ui/components/table";
 import { cn } from "@Duty-Roster/ui/lib/utils";
-import { Check, Coffee, Moon, Sun, Sunset, Trash2, X } from "lucide-react";
+import { Coffee, Moon, Pencil, Sun, Sunset, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { DeleteNurseDialog } from "@/components/DeleteNurseDialog";
-import { ShiftInput } from "@/features/shift-manager/components/ShiftInput";
+import { EditNurseDialog } from "@/components/EditNurseDialog";
 import { useNurseCard } from "@/features/shift-manager/hooks/useNurseCard";
 import type { NurseState } from "@/features/shift-manager/types";
 import { ActiveToggle } from "../NurseCard/ActiveToggle";
@@ -43,6 +42,7 @@ export function NurseTable({
 				<TableHeader>
 					<TableRow className="bg-gray-50/50">
 						<TableHead className="w-70 text-center">Nurse</TableHead>
+						<TableHead className="text-center">Active</TableHead>
 						<TableHead className="text-center">
 							<div className="inline-flex items-center gap-1.5">
 								<div className="rounded bg-amber-200 p-1 text-amber-900">
@@ -113,61 +113,24 @@ function NurseTableRow({
 	onShiftChange,
 	onActiveChange,
 }: NurseTableRowProps) {
-	const [isEditingName, setIsEditingName] = useState(false);
-	const [editName, setEditName] = useState(nurse.name);
 	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+	const [editDialogOpen, setEditDialogOpen] = useState(false);
 
-	const {
-		draft,
-		sum,
-		isInvalid,
-		hasChanged,
-		isSavingPending,
-		isToggleActivePending,
-		handleFieldChange,
-		handleSave,
-		handleCancel,
-		handleToggleActive,
-		handleUpdateName,
-	} = useNurseCard({
-		nurse,
-		totalDays,
-		onShiftChange: (morning, evening, night) =>
-			onShiftChange?.(nurse.nurseId, morning, evening, night),
-		onActiveChange: (active) => onActiveChange?.(nurse.nurseId, active),
-	});
-
-	const handleStartEditing = () => {
-		setEditName(draft.name);
-		setIsEditingName(true);
-	};
-
-	const handleSaveAll = () => {
-		// Save name if changed
-		if (editName.trim() && editName !== draft.name) {
-			handleUpdateName(editName.trim());
-		}
-		// Save shift changes if any
-		if (hasChanged) {
-			handleSave();
-		}
-		setIsEditingName(false);
-	};
-
-	const handleCancelAll = () => {
-		setEditName(draft.name);
-		setIsEditingName(false);
-		if (hasChanged) {
-			handleCancel();
-		}
-	};
+	const { draft, sum, isInvalid, isToggleActivePending, handleToggleActive } =
+		useNurseCard({
+			nurse,
+			totalDays,
+			onShiftChange: (morning, evening, night) =>
+				onShiftChange?.(nurse.nurseId, morning, evening, night),
+			onActiveChange: (active) => onActiveChange?.(nurse.nurseId, active),
+		});
 
 	return (
 		<>
 			<TableRow
 				className={cn(
 					isInvalid && "bg-red-50/30",
-					draft.active ? "bg-white" : "bg-gray-50 opacity-75",
+					draft.active ? "bg-white" : "bg-gray-100",
 				)}
 			>
 				<TableCell>
@@ -187,75 +150,53 @@ function NurseTableRow({
 								)}
 							/>
 						</div>
+
 						<div className="flex flex-col gap-1">
-							{isEditingName ? (
-								<div className="flex items-center gap-2">
-									<input
-										type="text"
-										value={editName}
-										onChange={(e) => setEditName(e.target.value)}
-										onKeyDown={(e) => {
-											if (e.key === "Enter") handleSaveAll();
-											if (e.key === "Escape") handleCancelAll();
-										}}
-										className="flex-1 rounded-md border border-gray-200 px-2 py-1 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-									/>
-									<AIInput
-										onTranscript={(transcript) => setEditName(transcript)}
-									/>
-								</div>
-							) : (
-								<Button
-									variant="ghost"
-									className={cn(
-										"cursor-pointer pl-4 font-medium text-lg hover:underline",
-										!draft.active && "text-gray-900",
-									)}
-									onClick={handleStartEditing}
-								>
-									{draft.name}
-								</Button>
-							)}
+							<span
+								className={cn(
+									"pl-2 font-medium text-base text-gray-900",
+									!draft.active && "text-gray-400 line-through",
+								)}
+							>
+								{draft.name}
+							</span>
 						</div>
 					</div>
 				</TableCell>
-				<TableCell>
-					<ShiftInput
-						color="bg-shift-morning"
-						value={draft.morning}
-						onChange={(val) => handleFieldChange("morning", val)}
-						max={totalDays}
+				<TableCell className="text-center">
+					<ActiveToggle
+						active={draft.active}
+						isPending={isToggleActivePending}
+						onToggle={handleToggleActive}
 					/>
 				</TableCell>
-				<TableCell>
-					<ShiftInput
-						color="bg-shift-evening"
-						value={draft.evening}
-						onChange={(val) => handleFieldChange("evening", val)}
-						max={totalDays}
-					/>
+				<TableCell className="text-center">
+					<span className="inline-flex min-w-[2.5rem] items-center justify-center rounded-md border border-amber-200/50 bg-amber-50 px-2.5 py-1 font-semibold text-amber-700">
+						{draft.morning}
+					</span>
 				</TableCell>
-				<TableCell>
-					<ShiftInput
-						color="bg-shift-night"
-						value={draft.night}
-						onChange={(val) => handleFieldChange("night", val)}
-						max={totalDays}
-					/>
+				<TableCell className="text-center">
+					<span className="inline-flex min-w-[2.5rem] items-center justify-center rounded-md border border-blue-200/50 bg-blue-50 px-2.5 py-1 font-semibold text-blue-700">
+						{draft.evening}
+					</span>
+				</TableCell>
+				<TableCell className="text-center">
+					<span className="inline-flex min-w-[2.5rem] items-center justify-center rounded-md border border-violet-200/50 bg-violet-50 px-2.5 py-1 font-semibold text-violet-700">
+						{draft.night}
+					</span>
 				</TableCell>
 
-				<TableCell>
-					<div className="relative flex h-full w-full items-center justify-center gap-2">
-						<ShiftInput
-							color="bg-shift-off"
-							value={draft.off}
-							onChange={(val) => handleFieldChange("off", val)}
-							max={totalDays}
-						/>
-
-						<span className="inline-flex items-center justify-center rounded bg-violet-100 px-1 py-0.5 font-bold text-[10px] text-violet-700">
-							+ {draft.night >= 2 ? `${Math.floor(draft.night / 2)}` : 0}
+				<TableCell className="text-center">
+					<div className="relative flex items-center justify-center gap-2">
+						<span className="inline-flex min-w-[2.5rem] items-center justify-center rounded-md border border-gray-200/60 bg-gray-50 px-2.5 py-1 font-semibold text-gray-600">
+							{draft.off}
 						</span>
+
+						{draft.night >= 2 && (
+							<span className="absolute top-1/2 -right-6 inline-flex -translate-y-1/2 items-center justify-center whitespace-nowrap rounded bg-violet-100 px-1 py-0.5 font-bold text-[10px] text-violet-700">
+								+ {Math.floor(draft.night / 2)}
+							</span>
+						)}
 					</div>
 				</TableCell>
 				<TableCell className="text-center">
@@ -267,73 +208,39 @@ function NurseTableRow({
 				</TableCell>
 				<TableCell>
 					<div className="flex items-center justify-center gap-2">
-						<ActiveToggle
-							active={draft.active}
-							isPending={isToggleActivePending}
-							onToggle={handleToggleActive}
-						/>
 						<Button
-							variant="secondary"
+							variant="outline"
 							size="sm"
-							className={cn(
-								"text-gray-400 transition-all duration-200",
-								hasChanged &&
-									"bg-emerald-100/40 text-emerald-700 hover:bg-emerald-200",
-							)}
-							onClick={handleSaveAll}
-							disabled={isSavingPending}
+							className="flex items-center gap-1 border-gray-200 font-medium text-gray-700 text-xs transition-all hover:bg-gray-50 hover:text-gray-900"
+							onClick={() => setEditDialogOpen(true)}
 						>
-							<Check className="h-4 w-4" />
+							<Pencil className="h-3.5 w-3.5" />
+							Edit
 						</Button>
 						<Button
-							variant="secondary"
+							variant="outline"
 							size="sm"
-							className={cn(
-								"text-gray-400 transition-all duration-200",
-								hasChanged && "bg-rose-100/40 text-rose-700 hover:bg-rose-200",
-							)}
-							onClick={handleCancelAll}
-							disabled={isSavingPending}
-						>
-							<X className="h-4 w-4" />
-						</Button>
-						<Button
-							variant="secondary"
-							size="sm"
-							className="text-gray-300 transition-all duration-200 hover:bg-red-50 hover:text-red-500"
+							className="flex items-center gap-1 border-red-100 font-medium text-red-500 text-xs transition-all hover:border-red-200 hover:bg-red-50 hover:text-red-600"
 							onClick={() => setDeleteDialogOpen(true)}
 						>
-							<Trash2 className="h-4 w-4" />
+							<Trash2 className="h-3.5 w-3.5" />
+							Delete
 						</Button>
 					</div>
 				</TableCell>
 			</TableRow>
+			<EditNurseDialog
+				nurse={draft}
+				totalDays={totalDays}
+				open={editDialogOpen}
+				onOpenChange={setEditDialogOpen}
+			/>
 			<DeleteNurseDialog
 				nurseId={nurse.nurseId}
 				nurseName={draft.name}
 				open={deleteDialogOpen}
 				onOpenChange={setDeleteDialogOpen}
 			/>
-			{/* <TableRow>
-				<TableCell colSpan={8} className="p-0">
-					<div className="px-4 py-2">
-						<FourWaySlider
-							total={totalDays}
-							value={{
-								morning: draft.morning,
-								evening: draft.evening,
-								night: draft.night,
-								off: draft.off,
-							}}
-							onChange={(v) => {
-								handleFieldChange("morning", v.morning);
-								handleFieldChange("evening", v.evening);
-								handleFieldChange("night", v.night);
-							}}
-						/>
-					</div>
-				</TableCell>
-			</TableRow> */}
 		</>
 	);
 }

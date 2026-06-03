@@ -50,9 +50,6 @@ interface UseFlexibilityMetricsProps {
 			available?: number; // optional — falls back to preference
 		};
 	};
-	shiftAllocated?: {
-		[shift: string]: number;
-	};
 	totalDays: number;
 	nurses?: Array<{ name: string; active: boolean }>;
 	nurseRows?: SchedulesResponse["nurseRows"];
@@ -61,7 +58,6 @@ interface UseFlexibilityMetricsProps {
 export function useFlexibilityMetrics({
 	shiftRequirements,
 	shiftCounts,
-	shiftAllocated,
 	nurseRows,
 	preferenceCapacity,
 }: UseFlexibilityMetricsProps & {
@@ -94,7 +90,6 @@ export function useFlexibilityMetrics({
 
 	for (const shift of shiftTypes) {
 		const required = shiftRequirements?.[shift] ?? 0;
-		const needed = shiftAllocated?.[shift] ?? 0;
 		const prefFromCounts = shiftCounts?.[shift]?.preference ?? 0;
 		// Prefer server-side preferenceCapacity (all nurses, no pagination).
 		// Fall back to live totals from visible nurseRows (reacts to local edits),
@@ -106,6 +101,7 @@ export function useFlexibilityMetrics({
 			liveTotals?.[shift] ??
 			shiftCounts?.[shift]?.available ??
 			preference;
+		const needed = Math.max(0, required - available);
 		const buffer = available - required;
 		const ratio =
 			available > 0 ? required / available : Number.POSITIVE_INFINITY;

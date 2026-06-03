@@ -54,6 +54,8 @@ export default async function ShiftAllocationsPage(props: {
 		const initialSchedules = await trpcServer.roster.getSchedules.query({
 			startDate,
 			endDate,
+			page: 1,
+			pageSize: 50,
 		});
 
 		return (

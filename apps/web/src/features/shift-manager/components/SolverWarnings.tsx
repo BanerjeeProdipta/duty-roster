@@ -3,10 +3,14 @@
 import {
 	AlertTriangle,
 	CheckCircle2,
+	ChevronDown,
+	ChevronRight,
 	Info,
+	Lightbulb,
 	TrendingDown,
 	XCircle,
 } from "lucide-react";
+import { useState } from "react";
 import type {
 	ShiftDeficit,
 	SolverValidation,
@@ -14,341 +18,294 @@ import type {
 
 interface SolverWarningsProps {
 	solverValidation: SolverValidation;
-	totalDays: number;
 	shiftDeficits: ShiftDeficit[];
 	showExactMatchWarning: boolean;
-	/** Flexibility metrics from improved solver */
-	flexibilityMetrics?: {
-		[shift: string]: {
+	flexibilityMetrics?: Record<
+		string,
+		{
 			required: number;
-			needed: number; // current allocated (0 = req met)
+			needed: number;
 			assignable: number;
 			ratio: number;
 			buffer: number;
-		};
-	};
+		}
+	>;
+}
+
+function Banner({
+	icon: Icon,
+	color,
+	title,
+	children,
+}: {
+	icon: typeof XCircle;
+	color: "red" | "orange" | "yellow" | "emerald";
+	title: string;
+	children?: React.ReactNode;
+}) {
+	const colorStyles = {
+		red: "border-red-200 bg-red-50 text-red-800",
+		orange: "border-orange-200 bg-orange-50 text-orange-800",
+		yellow: "border-yellow-200 bg-yellow-50 text-yellow-800",
+		emerald: "border-emerald-200 bg-emerald-50 text-emerald-800",
+	}[color];
+	return (
+		<div className={`rounded-lg border ${colorStyles} p-3`}>
+			<div className="flex items-center gap-2">
+				<Icon className="size-4 shrink-0" />
+				<span className="font-medium text-sm">{title}</span>
+			</div>
+			{children}
+		</div>
+	);
+}
+
+function CollapsibleSection({
+	label,
+	open,
+	onToggle,
+	children,
+}: {
+	label: string;
+	open: boolean;
+	onToggle: () => void;
+	children: React.ReactNode;
+}) {
+	return (
+		<div>
+			<button
+				type="button"
+				onClick={onToggle}
+				className="mt-2 flex items-center gap-1 font-medium text-gray-500 text-xs hover:text-gray-700"
+			>
+				{open ? (
+					<ChevronDown className="size-3" />
+				) : (
+					<ChevronRight className="size-3" />
+				)}
+				{label}
+			</button>
+			{open && <div className="mt-2 flex flex-col gap-2">{children}</div>}
+		</div>
+	);
+}
+
+function InlineBadge({
+	children,
+	variant,
+}: {
+	children: React.ReactNode;
+	variant?: "red" | "green";
+}) {
+	const variantStyle =
+		variant === "red"
+			? "bg-red-100 text-red-700"
+			: variant === "green"
+				? "bg-emerald-100 text-emerald-700"
+				: "bg-gray-100 text-gray-600";
+	return (
+		<span
+			className={`inline-flex items-center rounded px-1.5 py-0.5 font-medium text-xs ${variantStyle}`}
+		>
+			{children}
+		</span>
+	);
 }
 
 export function SolverWarnings({
 	solverValidation,
-	totalDays,
 	shiftDeficits,
 	showExactMatchWarning,
 	flexibilityMetrics,
 }: SolverWarningsProps) {
+	const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
+	const toggleSection = (key: string) =>
+		setOpenSections((prev) => ({ ...prev, [key]: !prev[key] }));
+
 	if (!solverValidation?.hasIssues && !showExactMatchWarning) return null;
 
-	// Identify infeasible shifts (where assignable < required)
 	const infeasibleShifts = flexibilityMetrics
 		? Object.entries(flexibilityMetrics)
-				.filter(([_, metrics]) => metrics.assignable < metrics.required)
+				.filter(([, metrics]) => metrics.assignable < metrics.required)
 				.map(([shift, metrics]) => ({
 					shift,
-					required: metrics.required,
-					needed: metrics.needed,
-					assignable: metrics.assignable,
+					...metrics,
 					deficit: metrics.required - metrics.assignable,
-					ratio: metrics.ratio,
 				}))
 		: [];
 
-	// Identify tight constraints (buffer is 0)
 	const tightShifts = flexibilityMetrics
 		? Object.entries(flexibilityMetrics)
 				.filter(
-					([_, metrics]) =>
+					([, metrics]) =>
 						metrics.assignable >= metrics.required && metrics.buffer === 0,
 				)
-				.map(([shift, metrics]) => ({
-					shift,
-					required: metrics.required,
-					needed: metrics.needed,
-					assignable: metrics.assignable,
-					buffer: metrics.buffer,
-					ratio: metrics.ratio,
-				}))
+				.map(([shift, metrics]) => ({ shift, ...metrics }))
 		: [];
 
-	const ShiftBadge = ({
-		label,
-		value,
-		variant,
-	}: {
-		label: string;
-		value: number | string;
-		variant?: "default" | "danger" | "success";
-	}) => (
-		<div
-			className={`rounded-lg px-3 py-2 text-center ${variant === "danger" ? "bg-red-100" : variant === "success" ? "bg-emerald-100" : "bg-gray-100"}`}
-		>
-			<div className="text-gray-500 text-xs">{label}</div>
-			<div
-				className={`font-bold ${variant === "danger" ? "text-red-700" : variant === "success" ? "text-emerald-700" : "text-gray-700"}`}
-			>
-				{value}
-			</div>
-		</div>
-	);
-
 	return (
-		<div className="flex flex-col gap-3">
-			{/* CRITICAL: Infeasible Shifts */}
+		<div className="flex flex-col gap-2">
 			{infeasibleShifts.length > 0 && (
-				<div className="relative overflow-hidden rounded-xl border border-red-200 bg-red-50/80 p-4">
-					<div className="absolute top-0 bottom-0 left-0 w-1 bg-red-500" />
-					<div className="flex items-start gap-3">
-						<div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-100">
-							<XCircle className="h-5 w-5 text-red-600" />
-						</div>
-						<div className="min-w-0 flex-1">
-							<h4 className="font-bold text-base text-red-800">
-								Schedule Cannot Be Generated
-							</h4>
-							<p className="mt-1 text-red-600 text-xs">
-								Some shifts have more coverage required than available capacity.
-								Fix these issues before generating.
-							</p>
-
-							<div className="mt-4 space-y-3">
-								{infeasibleShifts.map(
-									({ shift, required, needed, assignable, deficit, ratio }) => (
-										<div
-											key={shift}
-											className="rounded-lg border border-red-200 bg-white/70 p-3"
-										>
-											<div className="mb-3 flex items-center justify-between">
-												<span className="flex items-center gap-2 font-semibold text-red-900 capitalize">
-													{shift} Shift
-												</span>
-												<span className="rounded-full bg-red-100 px-2 py-0.5 font-bold text-red-700 text-xs">
-													Ratio: {ratio.toFixed(2)}
-												</span>
-											</div>
-
-											<div className="mb-3 grid grid-cols-2 gap-2">
-												<ShiftBadge label="Needed" value={needed} />
-												<ShiftBadge label="Required" value={required} />
-												<ShiftBadge
-													label="Assignable"
-													value={assignable}
-													variant="danger"
-												/>
-												<ShiftBadge
-													label="Deficit"
-													value={`-${deficit}`}
-													variant="danger"
-												/>
-											</div>
-
-											<div className="rounded bg-red-50 p-2 text-red-700 text-xs">
-												<span className="font-medium">Suggested fixes:</span>
-												<ul className="mt-1 space-y-0.5 text-red-600">
-													<li>
-														• Reduce {shift} requirement by {deficit}
-													</li>
-													<li>• Increase nurse {shift} capacity</li>
-												</ul>
-											</div>
-										</div>
-									),
-								)}
-							</div>
-
-							{solverValidation?.totalCapacity &&
-								solverValidation?.totalRequired && (
-									<div className="mt-4 rounded-lg border border-red-200 bg-white/70 p-3">
-										<p className="mb-2 font-medium text-red-800 text-xs">
-											Overall Capacity
-										</p>
-										<div className="mb-2 flex items-center gap-3">
-											<div className="flex-1">
-												<div className="mb-1 flex justify-between text-gray-600 text-xs">
-													<span>Required</span>
-													<span className="font-medium">
-														{solverValidation.totalRequired}
-													</span>
-												</div>
-											</div>
-											<div className="flex-1">
-												<div className="mb-1 flex justify-between text-gray-600 text-xs">
-													<span>Available</span>
-													<span className="font-medium">
-														{solverValidation.totalCapacity}
-													</span>
-												</div>
-											</div>
-										</div>
-										<p className="text-red-600 text-xs">
-											Need{" "}
-											<strong>
-												{Math.ceil(
-													(solverValidation.totalRequired -
-														solverValidation.totalCapacity) /
-														solverValidation.baseMaxShifts,
-												)}
-											</strong>{" "}
-											more nurses or reduce requirements.
-										</p>
-									</div>
-								)}
-						</div>
-					</div>
-				</div>
-			)}
-
-			{/* WARNING: Capped Preferences */}
-			{/* INFO: Tight Constraints */}
-			{tightShifts.length > 0 && (
-				<div className="relative overflow-hidden rounded-xl border border-orange-200 bg-orange-50/80 p-4">
-					<div className="absolute top-0 bottom-0 left-0 w-1 bg-orange-400" />
-					<div className="flex items-start gap-3">
-						<div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-orange-100">
-							<TrendingDown className="h-5 w-5 text-orange-600" />
-						</div>
-						<div className="min-w-0 flex-1">
-							<h4 className="font-bold text-base text-orange-800">
-								Tight Constraints
-							</h4>
-							<p className="mt-1 text-orange-700 text-xs">
-								These shifts have minimal buffer. Small preference changes may
-								cause issues.
-							</p>
-
-							<div className="mt-3 flex flex-wrap gap-2">
-								{tightShifts.map(
-									({ shift, required, needed, assignable, buffer }) => (
-										<div
-											key={shift}
-											className="flex items-center gap-2 rounded-lg border border-orange-200 bg-white/70 px-3 py-2"
-										>
-											<span className="font-medium text-orange-900 text-sm capitalize">
-												{shift}
-											</span>
-											<span className="text-orange-600 text-xs">
-												• {needed}/{required} needed
-											</span>
-											<span className="rounded bg-orange-100 px-1.5 py-0.5 font-bold text-orange-700 text-xs">
-												{buffer} left
-											</span>
-										</div>
-									),
-								)}
-							</div>
-						</div>
-					</div>
-				</div>
-			)}
-
-			{/* ERROR: Nurse-level issues */}
-			{solverValidation?.nurseOverlimits &&
-				solverValidation.nurseOverlimits.length > 0 && (
-					<div className="relative overflow-hidden rounded-xl border border-red-200 bg-red-50/80 p-4">
-						<div className="absolute top-0 bottom-0 left-0 w-1 bg-red-500" />
-						<div className="flex items-start gap-3">
-							<div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-100">
-								<AlertTriangle className="h-5 w-5 text-red-600" />
-							</div>
-							<div className="min-w-0 flex-1">
-								<h4 className="font-bold text-base text-red-800">
-									Nurses Exceed Shift Limits
-								</h4>
-								<p className="mt-1 text-red-600 text-xs">
-									These nurses want more shifts than their maximum capacity.
-								</p>
-
-								<div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
-									{solverValidation.nurseOverlimits.slice(0, 6).map((nurse) => (
-										<div
-											key={nurse.name}
-											className="flex items-center justify-between rounded-lg border border-red-200 bg-white/70 px-3 py-2"
-										>
-											<span className="font-medium text-red-800 text-sm">
-												{nurse.name}
-											</span>
-											<div className="flex items-center gap-1 text-xs">
-												<span className="text-red-600">
-													{nurse.assignableTotal}
-												</span>
-												<span className="text-gray-400">/</span>
-												<span className="font-bold text-red-700">
-													{nurse.nurseMax}
-												</span>
-											</div>
-										</div>
-									))}
-									{solverValidation.nurseOverlimits.length > 6 && (
-										<div className="py-1 font-medium text-red-600 text-xs">
-											+ {solverValidation.nurseOverlimits.length - 6} more
-										</div>
-									)}
+				<Banner
+					icon={XCircle}
+					color="red"
+					title="Schedule cannot be generated — some shifts lack capacity"
+				>
+					<CollapsibleSection
+						label={`${infeasibleShifts.length} shift${infeasibleShifts.length > 1 ? "s" : ""} affected`}
+						open={openSections.infeasible}
+						onToggle={() => toggleSection("infeasible")}
+					>
+						{infeasibleShifts.map((shift) => (
+							<div
+								key={shift.shift}
+								className="rounded border border-red-200 bg-white/60 p-2.5 text-xs"
+							>
+								<div className="mb-1.5 flex items-center justify-between">
+									<span className="font-semibold text-red-900 capitalize">
+										{shift.shift}
+									</span>
+									<InlineBadge>Ratio {shift.ratio.toFixed(2)}</InlineBadge>
+								</div>
+								<div className="mb-1.5 flex flex-wrap gap-x-4 gap-y-1">
+									<span>Needed: {shift.needed}</span>
+									<span>Required: {shift.required}</span>
+									<span className="text-red-600">
+										Assignable: {shift.assignable}
+									</span>
+									<span className="text-red-600">
+										Deficit: -{shift.deficit}
+									</span>
+								</div>
+								<div className="flex items-center gap-1 text-red-600">
+									<Lightbulb className="size-3.5" />
+									Reduce requirement by {shift.deficit} or increase nurse
+									capacity.
 								</div>
 							</div>
-						</div>
-					</div>
-				)}
-
-			{/* WARNING: Shift deficits */}
-			{shiftDeficits.length > 0 && (
-				<div className="relative overflow-hidden rounded-xl border border-yellow-200 bg-yellow-50/80 p-4">
-					<div className="absolute top-0 bottom-0 left-0 w-1 bg-yellow-500" />
-					<div className="flex items-start gap-3">
-						<div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-yellow-100">
-							<Info className="h-5 w-5 text-yellow-600" />
-						</div>
-						<div className="min-w-0 flex-1">
-							<h4 className="font-bold text-base text-yellow-800">
-								Insufficient Preference Coverage
-							</h4>
-							<p className="mt-1 text-xs text-yellow-700">
-								Not enough nurses prefer these shifts. Solver will assign with
-								lower satisfaction.
-							</p>
-
-							<div className="mt-3 flex flex-wrap gap-2">
-								{shiftDeficits.map(({ shift, required, available, gap }) => (
-									<div
-										key={shift}
-										className="flex items-center gap-2 rounded-lg border border-yellow-200 bg-white/70 px-3 py-2"
-									>
-										<span className="font-medium text-yellow-900 capitalize">
-											{shift}
-										</span>
-										<span className="text-xs text-yellow-700">
-											{required} needed, {Math.max(0, available)} available
-										</span>
-										<span
-											className={`rounded px-1.5 py-0.5 font-bold text-xs ${gap < 0 ? "bg-red-100 text-red-700" : "bg-emerald-100 text-emerald-700"}`}
-										>
-											{gap < 0 ? gap : `+${gap}`}
-										</span>
-									</div>
-								))}
-							</div>
-						</div>
-					</div>
-				</div>
+						))}
+						{solverValidation.totalCapacity != null &&
+							solverValidation.totalRequired != null &&
+							solverValidation.totalRequired >
+								solverValidation.totalCapacity && (
+								<div className="rounded border border-red-200 bg-white/60 p-2.5 text-red-700 text-xs">
+									Overall: {solverValidation.totalRequired} required /{" "}
+									{solverValidation.totalCapacity} available — need{" "}
+									<strong>
+										{Math.ceil(
+											(solverValidation.totalRequired -
+												solverValidation.totalCapacity) /
+												solverValidation.baseMaxShifts,
+										)}
+									</strong>{" "}
+									more nurses.
+								</div>
+							)}
+					</CollapsibleSection>
+				</Banner>
 			)}
 
-			{/* SUCCESS: All checks pass */}
+			{tightShifts.length > 0 && (
+				<Banner
+					icon={TrendingDown}
+					color="orange"
+					title="Tight constraints — minimal buffer on some shifts"
+				>
+					<CollapsibleSection
+						label="Show details"
+						open={openSections.tight}
+						onToggle={() => toggleSection("tight")}
+					>
+						<div className="flex flex-wrap gap-2">
+							{tightShifts.map((shift) => (
+								<div
+									key={shift.shift}
+									className="flex items-center gap-1.5 rounded border border-orange-200 bg-white/60 px-2.5 py-1.5 text-xs"
+								>
+									<span className="font-medium text-orange-900 capitalize">
+										{shift.shift}
+									</span>
+									<span className="text-orange-600">
+										{shift.needed}/{shift.required}
+									</span>
+									<InlineBadge>{shift.buffer} left</InlineBadge>
+								</div>
+							))}
+						</div>
+					</CollapsibleSection>
+				</Banner>
+			)}
+
+			{solverValidation?.nurseOverlimits?.length > 0 && (
+				<Banner
+					icon={AlertTriangle}
+					color="red"
+					title={`${solverValidation.nurseOverlimits.length} nurse${solverValidation.nurseOverlimits.length > 1 ? "s" : ""} exceed${solverValidation.nurseOverlimits.length > 1 ? "" : "s"} shift limits`}
+				>
+					<CollapsibleSection
+						label="Show affected nurses"
+						open={openSections.overlimits}
+						onToggle={() => toggleSection("overlimits")}
+					>
+						{solverValidation.nurseOverlimits.slice(0, 6).map((nurse) => (
+							<div
+								key={nurse.name}
+								className="flex items-center justify-between rounded border border-red-200 bg-white/60 px-2.5 py-1.5 text-xs"
+							>
+								<span className="font-medium text-red-800">{nurse.name}</span>
+								<span className="text-red-600">
+									{nurse.assignableTotal} /{" "}
+									<strong className="text-red-700">{nurse.nurseMax}</strong>
+								</span>
+							</div>
+						))}
+						{solverValidation.nurseOverlimits.length > 6 && (
+							<div className="text-gray-500 text-xs">
+								+{solverValidation.nurseOverlimits.length - 6} more
+							</div>
+						)}
+					</CollapsibleSection>
+				</Banner>
+			)}
+
+			{shiftDeficits.length > 0 && (
+				<Banner icon={Info} color="yellow" title="Preference coverage gaps">
+					<CollapsibleSection
+						label="Show details"
+						open={openSections.deficit}
+						onToggle={() => toggleSection("deficit")}
+					>
+						<div className="flex flex-wrap gap-2">
+							{shiftDeficits.map((shift) => (
+								<div
+									key={shift.shift}
+									className="flex items-center gap-1.5 rounded border border-yellow-200 bg-white/60 px-2.5 py-1.5 text-xs"
+								>
+									<span className="font-medium text-yellow-900 capitalize">
+										{shift.shift}
+									</span>
+									<span className="text-yellow-700">
+										{shift.required} required, {Math.max(0, shift.available)}{" "}
+										available
+									</span>
+									<InlineBadge variant={shift.gap < 0 ? "red" : "green"}>
+										{shift.gap < 0 ? shift.gap : `+${shift.gap}`}
+									</InlineBadge>
+								</div>
+							))}
+						</div>
+					</CollapsibleSection>
+				</Banner>
+			)}
+
 			{!solverValidation?.hasIssues &&
 				infeasibleShifts.length === 0 &&
 				tightShifts.length === 0 && (
-					<div className="relative overflow-hidden rounded-xl border border-emerald-200 bg-emerald-50/80 p-4">
-						<div className="absolute top-0 bottom-0 left-0 w-1 bg-emerald-500" />
-						<div className="flex items-center gap-3">
-							<div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-100">
-								<CheckCircle2 className="h-5 w-5 text-emerald-600" />
-							</div>
-							<div>
-								<h4 className="font-bold text-base text-emerald-800">
-									All Constraints Met
-								</h4>
-								<p className="mt-0.5 text-emerald-700 text-xs">
-									Schedule generation should succeed with adequate capacity.
-								</p>
-							</div>
-						</div>
-					</div>
+					<Banner
+						icon={CheckCircle2}
+						color="emerald"
+						title="All constraints met"
+					/>
 				)}
 		</div>
 	);

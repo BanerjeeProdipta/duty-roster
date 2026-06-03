@@ -4,7 +4,10 @@ import type { SchedulesResponse } from "@Duty-Roster/api";
 import { useShiftAllocations } from "@/features/shift-manager/hooks/useShiftAllocations";
 import { useSchedules } from "./useSchedules";
 
-export function useScheduleInit(initialSchedules?: SchedulesResponse | null) {
+export function useScheduleInit(
+	initialSchedules?: SchedulesResponse | null,
+	options: { disablePagination?: boolean } = {},
+) {
 	const {
 		schedules,
 		isLoading,
@@ -17,7 +20,7 @@ export function useScheduleInit(initialSchedules?: SchedulesResponse | null) {
 		pagination,
 		setPage,
 		setPageSize,
-	} = useSchedules(initialSchedules);
+	} = useSchedules(initialSchedules, options);
 	const { nurses } = useShiftAllocations(schedules, totalDays);
 
 	return {

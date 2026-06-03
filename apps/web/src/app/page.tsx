@@ -27,6 +27,8 @@ async function HomeContent(props: {
 		const initialSchedules = await trpcServer.roster.getSchedules.query({
 			startDate,
 			endDate,
+			page: 1,
+			pageSize: 10,
 		});
 
 		return (

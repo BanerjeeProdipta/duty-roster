@@ -72,6 +72,7 @@ export default function ShiftAllocationsClient({
 
 	const shiftCounts = useShiftCounts({
 		nurseRows,
+		initialNurseRows,
 		nurses,
 		shiftRequirements: refetchedSchedules?.shiftRequirements,
 		preferenceCapacity: refetchedSchedules?.preferenceCapacity,
@@ -144,7 +145,6 @@ export default function ShiftAllocationsClient({
 		<div className="flex flex-col gap-4">
 			<SolverWarnings
 				solverValidation={solverValidation}
-				totalDays={totalDays}
 				shiftDeficits={shiftDeficits}
 				showExactMatchWarning={showExactMatchWarning}
 				flexibilityMetrics={flexibilityMetrics}

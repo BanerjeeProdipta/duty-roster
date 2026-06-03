@@ -50,29 +50,38 @@ export function useNurseCard({
 	// Local draft state - initialized from prop, updated optimistically
 	const [draft, setDraft] = useState<NurseState>(nurse);
 
+	const {
+		nurseId,
+		name: nurseName,
+		morning: nurseMorning,
+		evening: nurseEvening,
+		night: nurseNight,
+		active: nurseActive,
+	} = nurse;
+
 	// Sync draft when nurse prop changes (different nurse or different base values)
 	useEffect(() => {
-		const nightCooldownOff = Math.floor(nurse.night / 2);
+		const nightCooldownOff = Math.floor(nurseNight / 2);
 		setDraft({
-			...nurse,
+			nurseId,
+			name: nurseName,
+			morning: nurseMorning,
+			evening: nurseEvening,
+			night: nurseNight,
+			active: nurseActive,
 			off: Math.max(
 				0,
-				totalDays -
-					nurse.morning -
-					nurse.evening -
-					nurse.night -
-					nightCooldownOff,
+				totalDays - nurseMorning - nurseEvening - nurseNight - nightCooldownOff,
 			),
 		});
 	}, [
-		nurse.nurseId,
-		nurse.name,
-		nurse.morning,
-		nurse.evening,
-		nurse.night,
-		nurse.active,
+		nurseId,
+		nurseName,
+		nurseMorning,
+		nurseEvening,
+		nurseNight,
+		nurseActive,
 		totalDays,
-		nurse,
 	]);
 
 	// Computed values
@@ -91,10 +100,11 @@ export function useNurseCard({
 	});
 
 	// Active toggle mutation with optimistic updates
+	// skipInvalidate: true — we already optimistically update the UI and sync nurseRows
+	// via onActiveChange. Invalidating the schedule query causes a full refetch that
+	// triggers unnecessary re-renders and scroll-to-top.
 	const updateActiveMutation = useUpdateNurseActive({
-		onSuccess: () => {
-			onActiveChange?.(draft.active);
-		},
+		skipInvalidate: true,
 	});
 
 	// Nurse update mutation (for name updates)
@@ -140,19 +150,28 @@ export function useNurseCard({
 
 	// Cancel handler - resets draft to original nurse values
 	const handleCancel = useCallback(() => {
-		const nightCooldownOff = Math.floor(nurse.night / 2);
+		const nightCooldownOff = Math.floor(nurseNight / 2);
 		setDraft({
-			...nurse,
+			nurseId,
+			name: nurseName,
+			morning: nurseMorning,
+			evening: nurseEvening,
+			night: nurseNight,
+			active: nurseActive,
 			off: Math.max(
 				0,
-				totalDays -
-					nurse.morning -
-					nurse.evening -
-					nurse.night -
-					nightCooldownOff,
+				totalDays - nurseMorning - nurseEvening - nurseNight - nightCooldownOff,
 			),
 		});
-	}, [nurse, totalDays]);
+	}, [
+		nurseId,
+		nurseName,
+		nurseMorning,
+		nurseEvening,
+		nurseNight,
+		nurseActive,
+		totalDays,
+	]);
 
 	// Toggle active handler with optimistic update
 	const handleToggleActive = useCallback(() => {
@@ -162,6 +181,7 @@ export function useNurseCard({
 
 		// Optimistic update - update local state immediately
 		setDraft((prev) => ({ ...prev, active: nextActive }));
+		onActiveChange?.(nextActive);
 
 		// Mutate to server
 		updateActiveMutation.mutate(
@@ -173,10 +193,11 @@ export function useNurseCard({
 				// Rollback on error
 				onError: () => {
 					setDraft((prev) => ({ ...prev, active: !nextActive }));
+					onActiveChange?.(!nextActive);
 				},
 			},
 		);
-	}, [draft.nurseId, draft.active, updateActiveMutation]);
+	}, [draft.nurseId, draft.active, updateActiveMutation, onActiveChange]);
 
 	// Update name handler
 	const handleUpdateName = useCallback(

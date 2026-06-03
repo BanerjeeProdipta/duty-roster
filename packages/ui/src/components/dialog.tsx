@@ -4,6 +4,7 @@ import { cn } from "@Duty-Roster/ui/lib/utils";
 import { XIcon } from "lucide-react";
 import type * as React from "react";
 import { createContext, useCallback, useContext, useState } from "react";
+import { createPortal } from "react-dom";
 
 interface DialogContextValue {
 	open: boolean;
@@ -56,7 +57,11 @@ function DialogTrigger({
 } & React.ButtonHTMLAttributes<HTMLButtonElement>) {
 	const { onOpenChange } = useDialog();
 	if (asChild) {
-		return <button type="button" onClick={() => onOpenChange(true)}>{children}</button>;
+		return (
+			<button type="button" onClick={() => onOpenChange(true)}>
+				{children}
+			</button>
+		);
 	}
 	return (
 		<button type="button" onClick={() => onOpenChange(true)} {...props}>
@@ -74,7 +79,7 @@ function DialogContent({
 
 	if (!open) return null;
 
-	return (
+	return createPortal(
 		// biome-ignore lint/a11y/noStaticElementInteractions: backdrop overlay click-to-close
 		<div
 			role="presentation"
@@ -105,7 +110,8 @@ function DialogContent({
 				</button>
 				{children}
 			</div>
-		</div>
+		</div>,
+		document.body,
 	);
 }
 
