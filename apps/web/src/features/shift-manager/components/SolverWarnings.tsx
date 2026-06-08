@@ -184,7 +184,7 @@ export function SolverWarnings({
 								</div>
 							</div>
 						))}
-						{solverValidation.totalCapacity != null &&
+						{solverValidation?.totalCapacity != null &&
 							solverValidation.totalRequired != null &&
 							solverValidation.totalRequired >
 								solverValidation.totalCapacity && (
@@ -236,37 +236,39 @@ export function SolverWarnings({
 				</Banner>
 			)}
 
-			{solverValidation?.nurseOverlimits?.length > 0 && (
-				<Banner
-					icon={AlertTriangle}
-					color="red"
-					title={`${solverValidation.nurseOverlimits.length} nurse${solverValidation.nurseOverlimits.length > 1 ? "s" : ""} exceed${solverValidation.nurseOverlimits.length > 1 ? "" : "s"} shift limits`}
-				>
-					<CollapsibleSection
-						label="Show affected nurses"
-						open={openSections.overlimits}
-						onToggle={() => toggleSection("overlimits")}
+			{solverValidation &&
+				solverValidation.nurseOverlimits &&
+				solverValidation.nurseOverlimits.length > 0 && (
+					<Banner
+						icon={AlertTriangle}
+						color="red"
+						title={`${solverValidation.nurseOverlimits.length} nurse${solverValidation.nurseOverlimits.length > 1 ? "s" : ""} exceed${solverValidation.nurseOverlimits.length > 1 ? "" : "s"} shift limits`}
 					>
-						{solverValidation.nurseOverlimits.slice(0, 6).map((nurse) => (
-							<div
-								key={nurse.name}
-								className="flex items-center justify-between rounded border border-red-200 bg-white/60 px-2.5 py-1.5 text-xs"
-							>
-								<span className="font-medium text-red-800">{nurse.name}</span>
-								<span className="text-red-600">
-									{nurse.assignableTotal} /{" "}
-									<strong className="text-red-700">{nurse.nurseMax}</strong>
-								</span>
-							</div>
-						))}
-						{solverValidation.nurseOverlimits.length > 6 && (
-							<div className="text-gray-500 text-xs">
-								+{solverValidation.nurseOverlimits.length - 6} more
-							</div>
-						)}
-					</CollapsibleSection>
-				</Banner>
-			)}
+						<CollapsibleSection
+							label="Show affected nurses"
+							open={openSections.overlimits}
+							onToggle={() => toggleSection("overlimits")}
+						>
+							{solverValidation.nurseOverlimits.slice(0, 6).map((nurse) => (
+								<div
+									key={nurse.name}
+									className="flex items-center justify-between rounded border border-red-200 bg-white/60 px-2.5 py-1.5 text-xs"
+								>
+									<span className="font-medium text-red-800">{nurse.name}</span>
+									<span className="text-red-600">
+										{nurse.assignableTotal} /{" "}
+										<strong className="text-red-700">{nurse.nurseMax}</strong>
+									</span>
+								</div>
+							))}
+							{solverValidation.nurseOverlimits.length > 6 && (
+								<div className="text-gray-500 text-xs">
+									+{solverValidation.nurseOverlimits.length - 6} more
+								</div>
+							)}
+						</CollapsibleSection>
+					</Banner>
+				)}
 
 			{shiftDeficits.length > 0 && (
 				<Banner icon={Info} color="yellow" title="Preference coverage gaps">
