@@ -21,7 +21,12 @@ export async function findAllNurses() {
 
 export async function updateNurse(
 	nurseId: string,
-	data: { name?: string; active?: boolean },
+	data: {
+		name?: string;
+		active?: boolean;
+		designation?: string;
+		sortOrder?: number;
+	},
 ) {
 	const [row] = await db
 		.update(nurse)
@@ -136,7 +141,8 @@ export async function findSchedulesAndPreferencesByDateRange(
 			np.id,
 			np.name,
 			np.active,
-			np.designation,
+      np.designation,
+      np.sort_order                                               AS "sortOrder",
       np.morning                                                    AS "prefMorning",
       np.evening                                                    AS "prefEvening",
       np.night                                                      AS "prefNight",

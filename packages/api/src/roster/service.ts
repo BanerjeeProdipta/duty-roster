@@ -52,15 +52,32 @@ export async function updateNurse({
 	nurseId,
 	name,
 	active,
+	designation,
+	sortOrder,
 }: {
 	nurseId: string;
 	name?: string;
 	active?: boolean;
+	designation?: string;
+	sortOrder?: number;
 }) {
-	console.log("📝 updateNurse called:", { nurseId, name, active });
-	const data: { name?: string; active?: boolean } = {};
+	console.log("📝 updateNurse called:", {
+		nurseId,
+		name,
+		active,
+		designation,
+		sortOrder,
+	});
+	const data: {
+		name?: string;
+		active?: boolean;
+		designation?: string;
+		sortOrder?: number;
+	} = {};
 	if (name !== undefined) data.name = name;
 	if (active !== undefined) data.active = active;
+	if (designation !== undefined) data.designation = designation;
+	if (sortOrder !== undefined) data.sortOrder = sortOrder;
 	if (Object.keys(data).length > 0) {
 		console.log("📝 Updating nurse in DB:", { nurseId, data });
 		await rosterDb.updateNurse(nurseId, data);
@@ -371,12 +388,40 @@ export async function getSchedulesByDateRange(
 			((Number(row.prefNight) || 0) / 100) * totalDays,
 		);
 
+		// Force pref-off to be exactly MAX_PREF_OFF regardless of CSV weights.
+		// Distribute the remaining days to morning/evening/night pref counts.
+		const MAX_PREF_OFF = 5;
+		const desiredPrefTotal = Math.max(0, totalDays - MAX_PREF_OFF);
+
+		// Start with evening/night as-is, let morning absorb the remainder.
+		let adjPrefEvening = preferenceEvening;
+		let adjPrefNight = preferenceNight;
+		let adjPrefMorning = Math.max(
+			0,
+			desiredPrefTotal - (adjPrefEvening + adjPrefNight),
+		);
+
+		// If evening+night already exceed desired total, scale them down proportionally
+		// and set morning to whatever remains (may be zero).
+		const sumEN = preferenceEvening + preferenceNight;
+		if (sumEN > desiredPrefTotal && sumEN > 0) {
+			const scale = desiredPrefTotal / sumEN;
+			// Use Math.floor to avoid exceeding desired total, then assign leftover to morning
+			adjPrefEvening = Math.floor(preferenceEvening * scale);
+			adjPrefNight = Math.floor(preferenceNight * scale);
+			adjPrefMorning = Math.max(
+				0,
+				desiredPrefTotal - (adjPrefEvening + adjPrefNight),
+			);
+		}
+
 		return {
 			nurse: {
 				id: row.id as string,
 				name: row.name as string,
 				active: row.active as boolean,
 				designation: (row as any).designation ?? undefined,
+				sortOrder: (row as any).sortOrder ?? undefined,
 			},
 			assignedShiftMetrics: {
 				morning: Number(row.shiftMorning),
@@ -386,10 +431,10 @@ export async function getSchedulesByDateRange(
 			},
 			assignments,
 			preferenceWiseShiftMetrics: {
-				morning: preferenceMorning,
-				evening: preferenceEvening,
-				night: preferenceNight,
-				total: preferenceMorning + preferenceEvening + preferenceNight,
+				morning: adjPrefMorning,
+				evening: adjPrefEvening,
+				night: adjPrefNight,
+				total: adjPrefMorning + adjPrefEvening + adjPrefNight,
 			},
 		};
 	});

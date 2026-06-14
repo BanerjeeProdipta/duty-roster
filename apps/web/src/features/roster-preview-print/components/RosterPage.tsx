@@ -53,7 +53,7 @@ export function RosterPage({
 					}}
 				>
 					<thead>
-						<tr style={{ height: "20px" }}>
+						<tr style={{ height: "18px" }}>
 							<th
 								className="border border-gray-400 bg-gray-300 text-center font-bold"
 								style={{
@@ -101,7 +101,7 @@ export function RosterPage({
 										maxWidth: "16px",
 										fontSize: "7px",
 										padding: "1px 0",
-										height: "20px",
+										height: "18px",
 									}}
 								>
 									<div style={{ lineHeight: "1" }}>{d.dayName}</div>
@@ -119,7 +119,7 @@ export function RosterPage({
 										maxWidth: "16px",
 										fontSize: "8px",
 										padding: 0,
-										height: "20px",
+										height: "18px",
 									}}
 								>
 									{s}
@@ -136,7 +136,7 @@ export function RosterPage({
 
 							return (
 								// biome-ignore lint/suspicious/noArrayIndexKey: nurse name alone is not guaranteed unique; composite key with idx is safest
-								<tr key={`row-${name}-${idx}`} style={{ height: "20px" }}>
+								<tr key={`row-${name}-${idx}`} style={{ height: "18px" }}>
 									<td
 										className={`border border-gray-300 text-center ${bgClass}`}
 										style={{
@@ -145,7 +145,7 @@ export function RosterPage({
 											maxWidth: "8px",
 											fontSize: "9px",
 											padding: "0 2px",
-											height: "20px",
+											height: "18px",
 										}}
 									>
 										{serial}
@@ -163,7 +163,7 @@ export function RosterPage({
 											textOverflow: "ellipsis",
 											width: "140px",
 											minWidth: "140px",
-											height: "20px",
+											height: "18px",
 											padding: "1px 6px",
 										}}
 									>
@@ -179,7 +179,7 @@ export function RosterPage({
 											textOverflow: "ellipsis",
 											width: "50px",
 											minWidth: "50px",
-											height: "20px",
+											height: "18px",
 											padding: "1px 6px",
 										}}
 									>
@@ -198,7 +198,7 @@ export function RosterPage({
 													maxWidth: "16px",
 													fontSize: "9px",
 													padding: 0,
-													height: "20px",
+													height: "18px",
 												}}
 											>
 												{nurse[cellKey] ?? ""}
@@ -228,7 +228,7 @@ export function RosterPage({
 													maxWidth: "16px",
 													fontSize: "9px",
 													padding: 0,
-													height: "20px",
+													height: "18px",
 												}}
 											>
 												{c[s]}
@@ -249,22 +249,22 @@ export function RosterPage({
 
 							return (
 								// biome-ignore lint/suspicious/noArrayIndexKey: filler rows are anonymous placeholders with no identity
-								<tr key={`filler-${fillerIdx}`} style={{ height: "20px" }}>
+								<tr key={`filler-${fillerIdx}`} style={{ height: "18px" }}>
 									<td
 										className={`border border-gray-300 ${bgClass}`}
-										style={{ height: "20px", width: "8px", minWidth: "8px" }}
+										style={{ height: "18px", width: "8px", minWidth: "8px" }}
 									/>
 									<td
 										className={`border border-gray-300 ${bgClass}`}
 										style={{
-											height: "20px",
+											height: "18px",
 											width: "140px",
 											minWidth: "140px",
 										}}
 									/>
 									<td
 										className={`border border-gray-300 ${bgClass}`}
-										style={{ height: "20px", width: "90px", minWidth: "90px" }}
+										style={{ height: "18px", width: "90px", minWidth: "90px" }}
 									/>
 									{dates.map((d) => (
 										<td
@@ -273,29 +273,29 @@ export function RosterPage({
 											style={{
 												width: "16px",
 												maxWidth: "16px",
-												height: "20px",
+												height: "18px",
 											}}
 										/>
 									))}
 									<td
 										key="filler-cnt-M"
 										className={`border border-gray-300 ${bgClass}`}
-										style={{ width: "16px", maxWidth: "16px", height: "20px" }}
+										style={{ width: "16px", maxWidth: "16px", height: "18px" }}
 									/>
 									<td
 										key="filler-cnt-E"
 										className={`border border-gray-300 ${bgClass}`}
-										style={{ width: "16px", maxWidth: "16px", height: "20px" }}
+										style={{ width: "16px", maxWidth: "16px", height: "18px" }}
 									/>
 									<td
 										key="filler-cnt-N"
 										className={`border border-gray-300 ${bgClass}`}
-										style={{ width: "16px", maxWidth: "16px", height: "20px" }}
+										style={{ width: "16px", maxWidth: "16px", height: "18px" }}
 									/>
 									<td
 										key="filler-cnt-O"
 										className={`border border-gray-300 ${bgClass}`}
-										style={{ width: "16px", maxWidth: "16px", height: "20px" }}
+										style={{ width: "16px", maxWidth: "16px", height: "18px" }}
 									/>
 								</tr>
 							);

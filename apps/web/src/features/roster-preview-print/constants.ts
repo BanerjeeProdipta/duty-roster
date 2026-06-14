@@ -1,5 +1,5 @@
 // Layout & pagination constants
-export const NURSES_PER_PAGE = 15;
+export const NURSES_PER_PAGE = 18;
 export const PAGE_WIDTH = "297mm";
 export const PAGE_HEIGHT = "210mm"; // A4 landscape
 export const PAGE_PADDING = "8mm 10mm";
@@ -95,14 +95,14 @@ export const PRINT_STYLES = `
     tr { 
       page-break-inside: avoid;
       page-break-after: auto;
-      height: 24px;
+      height: 18px;
     }
     
     td, th {
       border: 0.5px solid #e5e7eb;
       padding: 1px;
       margin: 0;
-      height: 24px;
+      height: 18px;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }

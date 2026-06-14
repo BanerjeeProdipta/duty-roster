@@ -51,6 +51,7 @@ export const schedulesResponseSchema = z.object({
 				name: z.string(),
 				active: z.boolean().optional(),
 				designation: z.string().optional(),
+				sortOrder: z.number().optional(),
 			}),
 			assignments: z.record(
 				z.string(),

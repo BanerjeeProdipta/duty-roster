@@ -107,6 +107,8 @@ export const rosterRouter = router({
 				nurseId: z.string(),
 				name: z.string().optional(),
 				active: z.boolean().optional(),
+				designation: z.string().optional(),
+				sortOrder: z.number().int().optional(),
 			}),
 		)
 		.mutation(({ input }) => rosterService.updateNurse(input)),

@@ -61,7 +61,9 @@ export function useNurseCard({
 
 	// Sync draft when nurse prop changes (different nurse or different base values)
 	useEffect(() => {
-		const nightCooldownOff = Math.floor(nurseNight / 2);
+		// Show `off` as the remaining days after shifts (do not subtract night cooldown
+		// from the displayed off count). The night-cooldown value will be shown as an
+		// informational badge separately.
 		setDraft({
 			nurseId,
 			name: nurseName,
@@ -69,10 +71,10 @@ export function useNurseCard({
 			evening: nurseEvening,
 			night: nurseNight,
 			active: nurseActive,
-			off: Math.max(
-				0,
-				totalDays - nurseMorning - nurseEvening - nurseNight - nightCooldownOff,
-			),
+			designation: (nurse as any).designation ?? undefined,
+			sortOrder:
+				(nurse as any).sortOrder ?? (nurse as any).sort_order ?? undefined,
+			off: Math.max(0, totalDays - nurseMorning - nurseEvening - nurseNight),
 		});
 	}, [
 		nurseId,
@@ -85,10 +87,11 @@ export function useNurseCard({
 	]);
 
 	// Computed values
-	// Night cooldown: every 2 consecutive nights needs 1 off day
+	// Night cooldown: every 2 consecutive nights needs 1 off day (informational)
 	const nightCooldownOff = Math.floor(draft.night / 2);
-	const sum =
-		draft.morning + draft.evening + draft.night + draft.off + nightCooldownOff;
+	// Do not include nightCooldownOff in the canonical sum — `off` already shows
+	// the visible off-days count. Sum should equal totalDays.
+	const sum = draft.morning + draft.evening + draft.night + draft.off;
 	const isInvalid = sum !== totalDays;
 	const hasChanged = nurseHasChanged(nurse, draft);
 
@@ -120,15 +123,11 @@ export function useNurseCard({
 			setDraft((prev) => {
 				const next = { ...prev, [field]: value };
 				if (field !== "off") {
-					// Night cooldown: every 2 consecutive nights needs 1 off day
-					const nightCooldownOff = Math.floor(next.night / 2);
+					// Recompute off as remaining days after assigned shifts (do not subtract
+					// nightCooldownOff here so the displayed off count matches user expectation).
 					next.off = Math.max(
 						0,
-						totalDays -
-							next.morning -
-							next.evening -
-							next.night -
-							nightCooldownOff,
+						totalDays - next.morning - next.evening - next.night,
 					);
 				}
 				return next;
@@ -150,7 +149,6 @@ export function useNurseCard({
 
 	// Cancel handler - resets draft to original nurse values
 	const handleCancel = useCallback(() => {
-		const nightCooldownOff = Math.floor(nurseNight / 2);
 		setDraft({
 			nurseId,
 			name: nurseName,
@@ -158,10 +156,10 @@ export function useNurseCard({
 			evening: nurseEvening,
 			night: nurseNight,
 			active: nurseActive,
-			off: Math.max(
-				0,
-				totalDays - nurseMorning - nurseEvening - nurseNight - nightCooldownOff,
-			),
+			designation: (nurse as any).designation ?? undefined,
+			sortOrder:
+				(nurse as any).sortOrder ?? (nurse as any).sort_order ?? undefined,
+			off: Math.max(0, totalDays - nurseMorning - nurseEvening - nurseNight),
 		});
 	}, [
 		nurseId,
