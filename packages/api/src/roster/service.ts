@@ -376,6 +376,7 @@ export async function getSchedulesByDateRange(
 				id: row.id as string,
 				name: row.name as string,
 				active: row.active as boolean,
+				designation: (row as any).designation ?? undefined,
 			},
 			assignedShiftMetrics: {
 				morning: Number(row.shiftMorning),

@@ -16,7 +16,7 @@ export async function findAllNurses() {
 			createdAt: nurse.createdAt,
 		})
 		.from(nurse)
-		.orderBy(desc(nurse.active), nurse.name);
+		.orderBy(desc(nurse.active), asc(nurse.sortOrder), nurse.name);
 }
 
 export async function updateNurse(
@@ -100,13 +100,15 @@ export async function findSchedulesAndPreferencesByDateRange(
         nurse.id,
         nurse.name,
         nurse.active                                                 AS active,
+        nurse.sort_order                                             AS sort_order,
+        nurse.designation                                            AS designation,
         COALESCE(SUM(CASE WHEN nsp.shift_id = 'shift_morning' THEN nsp.weight ELSE 0 END), 0) AS morning,
         COALESCE(SUM(CASE WHEN nsp.shift_id = 'shift_evening' THEN nsp.weight ELSE 0 END), 0) AS evening,
         COALESCE(SUM(CASE WHEN nsp.shift_id = 'shift_night'   THEN nsp.weight ELSE 0 END), 0) AS night
       FROM nurse
       LEFT JOIN nurse_shift_preference nsp ON nurse.id = nsp.nurse_id
       WHERE ${searchCondition}
-      GROUP BY nurse.id, nurse.name
+      GROUP BY nurse.id, nurse.name, nurse.sort_order, nurse.designation
     ),
 
     nurse_assignments AS (
@@ -131,9 +133,10 @@ export async function findSchedulesAndPreferencesByDateRange(
     )
 
     SELECT
-      np.id,
-      np.name,
-      np.active,
+			np.id,
+			np.name,
+			np.active,
+			np.designation,
       np.morning                                                    AS "prefMorning",
       np.evening                                                    AS "prefEvening",
       np.night                                                      AS "prefNight",
@@ -146,6 +149,7 @@ export async function findSchedulesAndPreferencesByDateRange(
     LEFT JOIN nurse_assignments na ON np.id = na.nurse_id
     ORDER BY
       np.active DESC NULLS LAST,
+      np.sort_order ASC NULLS LAST,
       np.name ASC
     LIMIT ${limit} OFFSET ${offset}
   `);
@@ -403,7 +407,11 @@ export async function findAllPreferredShiftsByNurse() {
 		})
 		.from(nurseShiftPreference)
 		.innerJoin(nurse, eq(nurse.id, nurseShiftPreference.nurseId))
-		.orderBy(desc(nurseShiftPreference.active), asc(nurse.name));
+		.orderBy(
+			desc(nurseShiftPreference.active),
+			asc(nurse.sortOrder),
+			asc(nurse.name),
+		);
 }
 
 /** Delete preferences for a list of nurse IDs */

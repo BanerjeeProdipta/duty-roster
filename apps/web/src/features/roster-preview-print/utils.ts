@@ -30,7 +30,10 @@ export const transformToNurseRows = (
 	monthIndex: number,
 ): NurseRow[] => {
 	return (schedules?.nurseRows ?? []).map((row) => {
-		const rowData: Record<string, string> = { Name: row.nurse.name };
+		const rowData: Record<string, string> = {
+			Name: row.nurse.name,
+			Designation: (row.nurse as any).designation ?? "",
+		};
 		dates.forEach((dateObj) => {
 			const dateKey = `${year}-${String(monthIndex).padStart(2, "0")}-${String(dateObj.date).padStart(2, "0")}`;
 			const assignment = row.assignments[dateKey];
