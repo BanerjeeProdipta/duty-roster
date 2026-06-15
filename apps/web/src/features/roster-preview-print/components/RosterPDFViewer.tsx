@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { MonthNavigator } from "@/components/MonthNavigator";
 import type { SchedulesResponse } from "@/features/dashboard/roster-table/RosterMatrix.types";
 import {
@@ -9,6 +9,7 @@ import {
 	PRINT_STYLES,
 } from "../constants";
 import { useRosterPageData } from "../hooks/useRosterPageData";
+import { downloadExcel } from "../utils/downloadExcel";
 import { RosterPage } from "./RosterPage";
 
 interface RosterPDFViewerProps {
@@ -25,6 +26,11 @@ export function RosterPDFViewer({ initialSchedules }: RosterPDFViewerProps) {
 		error,
 		handlePrint,
 	} = useRosterPageData(initialSchedules ?? undefined);
+
+	const handleDownloadExcel = useCallback(() => {
+		if (!pageData) return;
+		downloadExcel(pageData.nurses, pageData.dates, pageData.monthName);
+	}, [pageData]);
 
 	const INITIAL_BUFFER = 2;
 	const pageRefs = useRef<Map<number, HTMLDivElement>>(new Map());
@@ -142,6 +148,15 @@ export function RosterPDFViewer({ initialSchedules }: RosterPDFViewerProps) {
 								className="flex items-center gap-2 rounded-lg border border-gray-800 bg-gray-800 px-4 py-2 font-medium text-sm text-white transition-colors hover:bg-gray-700"
 							>
 								🖨️ Print / Save as PDF
+							</button>
+						)}
+						{hasContent && pageData && totalNurses > 0 && (
+							<button
+								type="button"
+								onClick={handleDownloadExcel}
+								className="flex items-center gap-2 rounded-lg border border-emerald-700 bg-emerald-700 px-4 py-2 font-medium text-sm text-white transition-colors hover:bg-emerald-600"
+							>
+								⬇️ Download Excel
 							</button>
 						)}
 					</div>

@@ -29,15 +29,35 @@ async function handleProxy(request: NextRequest) {
 	headers.set("x-forwarded-host", url.host);
 	headers.set("x-forwarded-proto", url.protocol.replace(":", ""));
 
-	const response = await fetch(targetUrl.toString(), {
-		method: request.method,
-		headers,
-		body:
-			request.method !== "GET" && request.method !== "HEAD"
-				? await request.blob()
-				: undefined,
-		redirect: "manual",
-	});
+	let response: Response;
+	try {
+		response = await fetch(targetUrl.toString(), {
+			method: request.method,
+			headers,
+			body:
+				request.method !== "GET" && request.method !== "HEAD"
+					? await request.blob()
+					: undefined,
+			redirect: "manual",
+		});
+	} catch (err) {
+		// Log the error server-side for debugging
+		// eslint-disable-next-line no-console
+		console.error("Proxy fetch failed:", {
+			target: targetUrl.toString(),
+			error: String(err),
+		});
+		return new Response(
+			JSON.stringify({
+				error: "Proxy fetch failed",
+				target: targetUrl.hostname,
+			}),
+			{
+				status: 502,
+				headers: { "content-type": "application/json" },
+			},
+		);
+	}
 
 	const responseHeaders = new Headers(response.headers);
 	// Ensure CORS is handled correctly if needed, though on the same domain it shouldn't be an issue

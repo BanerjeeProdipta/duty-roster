@@ -45,20 +45,13 @@ export type NursePreferenceProfile = {
 
 // ───────────── CONFIG ─────────────
 
-export const ROSTER_CONFIG = {
-	COVERAGE: {
-		WEEKDAY: { morning: 20, evening: 3, night: 2 },
-		FRIDAY: { morning: 3, evening: 3, night: 2 },
-	},
-	CONSTRAINTS: {
-		MAX_CONSECUTIVE_NIGHTS: 2,
-		MAX_CONSECUTIVE_DAYS: 6,
-		MIN_DAYS_OFF_PER_WEEK: 1,
-		NIGHT_CONSTRAIN: 2,
-	},
-} as const;
+import {
+	FRIDAY_OFF_NURSES,
+	ROSTER_CONFIG,
+} from "@Duty-Roster/config/rosterConfig";
 
-export const FRIDAY_OFF_NURSES: string[] = [];
+// Re-export config constants so other modules can import from ./utils
+export { FRIDAY_OFF_NURSES, ROSTER_CONFIG };
 
 // ───────────── DATE HELPERS ─────────────
 

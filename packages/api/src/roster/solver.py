@@ -1,7 +1,8 @@
 import json
 import sys
 from ortools.sat.python import cp_model
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
+import math
 
 
 def analyze_flexibility(data) -> Dict:
@@ -159,36 +160,41 @@ def solve(data):
         for d in range(days):
             model.Add(sum(X[(n, d, s)] for s in shifts) <= 1)
     
-    # HARD: Coverage constraints (non-negotiable)
-    print(f"   Adding HARD coverage constraints ({days * len(shifts)} constraints)...", flush=True)
+    # Coverage minimum constraints — at least this many nurses per shift per day.
+    # Overstaffing is allowed (preference targets may push total above minimum).
+    print(f"   Adding coverage minimum constraints ({days * len(shifts)} constraints)...", flush=True)
     for d in range(days):
         for s in shifts:
-            model.Add(sum(X[(n, d, s)] for n in nurses) == coverage[d][s])
+            model.Add(sum(X[(n, d, s)] for n in nurses) >= coverage[d][s])
     
     # ════════════════════════════════════════════════════════════════════
     # Mandatory rest rule: max 2 consecutive nights
     # ════════════════════════════════════════════════════════════════════
-    print(f"   Adding night rest constraints (max 2 consecutive)...", flush=True)
-    
-    previous_shifts = data.get("previous_shifts", {})
-    for n in nurses:
-        prev = previous_shifts.get(n, ["off", "off"])
-        prev_minus_2 = 1 if prev[0] == "night" else 0
-        prev_minus_1 = 1 if prev[1] == "night" else 0
-        
-        if prev_minus_2 and prev_minus_1 and days > 0:
-            model.Add(sum(X[(n, 0, s)] for s in shifts) == 0)
-        
-        if prev_minus_1 and days > 1:
-            night_on_0 = X[(n, 0, "night")]
-            any_shift_on_1 = sum(X[(n, 1, s)] for s in shifts)
-            model.Add(night_on_0 + any_shift_on_1 <= 1)
-        
-        for d in range(days - 2):
-            night_on_d = X[(n, d, "night")]
-            night_on_d_plus_1 = X[(n, d + 1, "night")]
-            any_shift_on_d_plus_2 = sum(X[(n, d + 2, s)] for s in shifts)
-            model.Add(night_on_d + night_on_d_plus_1 + any_shift_on_d_plus_2 <= 2)
+    if "night" in shifts:
+        print(f"   Adding night rest constraints (max 2 consecutive)...", flush=True)
+    else:
+        print(f"   Skipping night rest (no night shift in roster)", flush=True)
+
+    if "night" in shifts:
+        previous_shifts = data.get("previous_shifts", {})
+        for n in nurses:
+            prev = previous_shifts.get(n, ["off", "off"])
+            prev_minus_2 = 1 if prev[0] == "night" else 0
+            prev_minus_1 = 1 if prev[1] == "night" else 0
+            
+            if prev_minus_2 and prev_minus_1 and days > 0:
+                model.Add(sum(X[(n, 0, s)] for s in shifts) == 0)
+            
+            if prev_minus_1 and days > 1:
+                night_on_0 = X[(n, 0, "night")]
+                any_shift_on_1 = sum(X[(n, 1, s)] for s in shifts)
+                model.Add(night_on_0 + any_shift_on_1 <= 1)
+            
+            for d in range(days - 2):
+                night_on_d = X[(n, d, "night")]
+                night_on_d_plus_1 = X[(n, d + 1, "night")]
+                any_shift_on_d_plus_2 = sum(X[(n, d + 2, s)] for s in shifts)
+                model.Add(night_on_d + night_on_d_plus_1 + any_shift_on_d_plus_2 <= 2)
     
     # Unavailable nurses
     if unavailable:
@@ -237,6 +243,117 @@ def solve(data):
                     hard_limit_count += 1
     
     print(f"   ✅ {hard_limit_count} shift type limits enforced", flush=True)
+
+    # Enforce preference fulfillment: exact == for shift types with enough
+    # target total to cover minimums (overstaffing OK), soft >= with V-shaped
+    # shortfall+surplus penalty for the rest.
+    print(f"   Adding preference-fulfillment constraints...", flush=True)
+
+    # Cap night target to feasible maximum given consecutive-night restriction.
+    max_consecutive_nights = constraints.get("max_consecutive_nights", 2)
+    night_rest_max = (
+        math.ceil(days / (max_consecutive_nights + 1)) * max_consecutive_nights
+    )
+
+    requested_mins: dict[str, list[tuple[str, int]]] = {s: [] for s in shifts}
+
+    for n in nurses:
+        per_nurse: dict[str, int] = {}
+        for s in shifts:
+            pref_pct = preferences.get(n, {}).get(s, 0)
+            req_count = round((pref_pct / 100.0) * days)
+            if req_count <= 0:
+                continue
+
+            assignable_limit: Optional[int] = None
+            if isinstance(max_shifts_per_type, dict):
+                assignable_limit = max_shifts_per_type.get(n, {}).get(s, None)
+            if assignable_limit is None:
+                assignable_limit = days
+            if assignable_limit < 0:
+                continue
+
+            capped_req = min(req_count, assignable_limit)
+
+            if s == "night":
+                capped_req = min(capped_req, night_rest_max)
+
+            if capped_req <= 0:
+                continue
+
+            per_nurse[s] = capped_req
+
+        if not per_nurse:
+            continue
+
+        for s, t in per_nurse.items():
+            if t > 0:
+                requested_mins[s].append((n, t))
+
+    total_coverage_per_shift = {
+        s: sum(coverage[d][s] for d in range(days)) for s in shifts
+    }
+    total_targets_per_shift = {
+        s: sum(t for _, t in requested_mins[s]) for s in shifts
+    }
+
+    # ── Hybrid exact/soft preference enforcement ──────────────────────────
+    # Use exact == for shift types where total targets >= coverage AND
+    # the sum of exact targets doesn't consume nurse-days needed for
+    # coverage of other shift types.  Otherwise use soft (>= + shortfall).
+    exact_shifts: set[str] = set()
+    soft_shifts: set[str] = set()
+    total_nurse_days = len(nurses) * days
+
+    for s in shifts:
+        tt = total_targets_per_shift.get(s, 0)
+        cv = total_coverage_per_shift.get(s, 0)
+        if tt >= cv:
+            exact_shifts.add(s)
+
+    # Backwards check: remove exact types whose combined total leaves
+    # insufficient days for remaining coverage (most-overstaffed first).
+    for s in sorted(
+        exact_shifts,
+        key=lambda s: total_targets_per_shift[s] / max(total_coverage_per_shift[s], 1),
+        reverse=True,
+    ):
+        while s in exact_shifts:
+            exact_total = sum(total_targets_per_shift[t] for t in exact_shifts)
+            min_other = sum(total_coverage_per_shift[t] for t in shifts if t not in exact_shifts)
+            if exact_total + min_other <= total_nurse_days:
+                break
+            exact_shifts.remove(s)
+
+    soft_shifts = set(shifts) - exact_shifts
+
+    SHORTFALL_PENALTY = constraints.get("preference_shortfall_penalty_weight", 1000)
+    SURPLUS_PENALTY = constraints.get("preference_surplus_penalty_weight", 50)
+    deviation_penalties: list[cp_model.IntVar] = []
+    exact_count = 0
+    soft_count = 0
+
+    for s in shifts:
+        use_exact = s in exact_shifts
+        for n, capped_req in requested_mins[s]:
+            if use_exact:
+                model.Add(shift_count[(n, s)] == capped_req)
+                exact_count += 1
+            else:
+                shortfall = model.NewIntVar(0, days, f"shortfall_{n}_{s}")
+                model.Add(shortfall >= capped_req - shift_count[(n, s)])
+                model.Add(shortfall >= 0)
+                deviation_penalties.append(-SHORTFALL_PENALTY * shortfall)
+                surplus = model.NewIntVar(0, days, f"surplus_{n}_{s}")
+                model.Add(surplus >= shift_count[(n, s)] - capped_req)
+                model.Add(surplus >= 0)
+                deviation_penalties.append(-SURPLUS_PENALTY * surplus)
+                soft_count += 1
+
+    print(f"   ✅ {exact_count} exact preference targets for: {sorted(exact_shifts)}", flush=True)
+    if soft_count > 0:
+        soft_shifts_names = sorted(set(shifts) - exact_shifts)
+        print(f"   ⚠️  {soft_count} soft targets (shortfall={SHORTFALL_PENALTY}, surplus={SURPLUS_PENALTY}) for: {soft_shifts_names}", flush=True)
     
     # ════════════════════════════════════════════════════════════════════
     # STEP 4: Build objective (preference satisfaction + fairness)
@@ -283,8 +400,13 @@ def solve(data):
     print(f"   ✅ Added {len(workload_penalties)} workload penalties", flush=True)
     print(f"   ✅ Added {len(nno_rewards)} night-pair rewards", flush=True)
     
-    # Objective
-    objective = sum(preference_terms) + sum(workload_penalties) + sum(nno_rewards)
+    # Objective: preference satisfaction + workload fairness + night patterns + target deviation
+    objective = (
+        sum(preference_terms)
+        + sum(workload_penalties)
+        + sum(nno_rewards)
+        + sum(deviation_penalties)
+    )
     model.Maximize(objective)
     
     print(f"   🎯 Objective: preferences + fairness + night patterns", flush=True)
@@ -351,23 +473,24 @@ def solve(data):
             roster[n].append(assigned)
         nurse_workload[n] = nurse_shifts
     
-    # Verification
+    # Verification (coverage is minimum, so >= is success)
     print(f"\n✅ [SOLVER] VERIFICATION:", flush=True)
     
-    print(f"\n   Coverage by shift type:", flush=True)
+    print(f"\n   Coverage by shift type (actual / minimum):", flush=True)
     all_coverage_met = True
     for s in solve_order:
         required = metrics[s]["required"]
         actual = shift_totals.get(s, 0)
-        status = "✅" if actual == required else "❌"
-        print(f"      {status} {s.upper():7s}: {actual:3d} / {required:3d}", flush=True)
-        if actual != required:
+        status = "✅" if actual >= required else "❌"
+        excess = actual - required
+        print(f"      {status} {s.upper():7s}: {actual:3d} / {required:3d}  (excess {excess:+3d})", flush=True)
+        if actual < required:
             all_coverage_met = False
     
     if all_coverage_met:
-        print(f"\n   ✅ All coverage requirements MET", flush=True)
+        print(f"\n   ✅ All coverage minimums MET", flush=True)
     else:
-        print(f"\n   ❌ Some coverage requirements NOT met", flush=True)
+        print(f"\n   ❌ Some coverage minimums NOT met", flush=True)
     
     print(f"\n   Workload distribution:", flush=True)
     min_load = min(nurse_workload.values()) if nurse_workload else 0

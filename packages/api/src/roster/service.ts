@@ -642,10 +642,7 @@ export async function generateRoster({ year, month }: GenerateRosterParams) {
 		{ morning: number; evening: number; night: number }
 	> = {};
 
-	const maxShiftsPerType: Record<
-		string,
-		{ morning: number; evening: number; night: number }
-	> = {};
+	const maxShiftsPerType: Record<string, Record<string, number>> = {};
 
 	for (const [nurseId, prefs] of nurseShiftPreferenceMap.entries()) {
 		// Use preference weights directly
@@ -655,20 +652,21 @@ export async function generateRoster({ year, month }: GenerateRosterParams) {
 			night: prefs.shift_night ?? 0,
 		};
 
-		// HARD CAP: percentage / 100 * totalDays = max shifts of that type
-		// Use floor to be conservative - never exceed
-		// If weight is 0 or not set, nurse won't get that shift type (use -1 to block completely)
+		// Only set a per-shift-type cap when weight > 0.
+		// Nurses with 0% weight are unblocked — they can fill coverage gaps
+		// when the exact-equality preference constraints are applied for other nurses.
 		const morningWeight = prefs.shift_morning ?? 0;
 		const eveningWeight = prefs.shift_evening ?? 0;
 		const nightWeight = prefs.shift_night ?? 0;
 
-		maxShiftsPerType[nurseId] = {
-			morning:
-				morningWeight > 0 ? Math.round((morningWeight / 100) * totalDays) : -1,
-			evening:
-				eveningWeight > 0 ? Math.round((eveningWeight / 100) * totalDays) : -1,
-			night: nightWeight > 0 ? Math.round((nightWeight / 100) * totalDays) : -1,
-		};
+		const caps: Record<string, number> = {};
+		if (morningWeight > 0)
+			caps.morning = Math.round((morningWeight / 100) * totalDays);
+		if (eveningWeight > 0)
+			caps.evening = Math.round((eveningWeight / 100) * totalDays);
+		if (nightWeight > 0)
+			caps.night = Math.round((nightWeight / 100) * totalDays);
+		maxShiftsPerType[nurseId] = caps;
 	}
 
 	// Log all nurses' preferences
