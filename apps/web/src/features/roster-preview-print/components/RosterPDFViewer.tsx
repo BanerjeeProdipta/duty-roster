@@ -154,7 +154,7 @@ export function RosterPDFViewer({ initialSchedules }: RosterPDFViewerProps) {
 							<button
 								type="button"
 								onClick={handleDownloadExcel}
-								className="flex items-center gap-2 rounded-lg border border-emerald-700 bg-emerald-700 px-4 py-2 font-medium text-sm text-white transition-colors hover:bg-emerald-600"
+								className="flex items-center gap-2 rounded-lg border border-gray-800 bg-gray-800 px-4 py-2 font-medium text-sm text-white transition-colors hover:bg-gray-700"
 							>
 								⬇️ Download Excel
 							</button>

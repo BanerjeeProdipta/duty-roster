@@ -63,16 +63,14 @@ export async function downloadExcel(
 	const totalCols = 3 + dates.length + SUMMARY_COLS.length; // SL + Name + Desig + dates + summary
 
 	sheet.columns = [
-		{ header: "SL", key: "sl", width: 4 },
-		{ header: "Name", key: "name", width: 22 },
-		{ header: "Designation", key: "designation", width: 14 },
+		{ key: "sl", width: 4 },
+		{ key: "name", width: 22 },
+		{ key: "designation", width: 14 },
 		...dates.map((d) => ({
-			header: `${d.dayName}\n${d.date}`,
 			key: `date_${d.date}`,
 			width: 4,
 		})),
 		...SUMMARY_COLS.map((s) => ({
-			header: s,
 			key: `sum_${s}`,
 			width: 4,
 		})),
