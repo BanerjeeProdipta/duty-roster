@@ -736,14 +736,6 @@ export async function generateRoster({ year, month }: GenerateRosterParams) {
 		{ morning: number; evening: number; night: number }
 	> = {};
 
-	// ── Preference target adjustment ──────────────────────────────
-	// Match the display-side adjustment in the /roster endpoint:
-	// force total target per nurse to totalDays - MAX_PREF_OFF (e.g. 25
-	// for 30 days).  Evening/night targets are kept as-is (or scaled
-	// down if they exceed the total), morning absorbs the remainder.
-	// This ensures `assigned == pref` in the roster table display.
-	const MAX_PREF_OFF = 5;
-	const desiredPrefTotal = Math.max(0, totalDays - MAX_PREF_OFF);
 
 	const maxShiftsPerType: Record<string, Record<string, number>> = {};
 
@@ -755,37 +747,21 @@ export async function generateRoster({ year, month }: GenerateRosterParams) {
 			night: prefs.shift_night ?? 0,
 		};
 
+		// Only set a per-shift-type cap when weight > 0.
+		// Nurses with 0% weight are unblocked — they can fill coverage gaps
+		// when the exact-equality preference constraints are applied for other nurses.
 		const morningWeight = prefs.shift_morning ?? 0;
 		const eveningWeight = prefs.shift_evening ?? 0;
 		const nightWeight = prefs.shift_night ?? 0;
 
-		// Compute raw round targets (same as display endpoint)
-		const rawMorning = Math.round((morningWeight / 100) * totalDays);
-		const rawEvening = Math.round((eveningWeight / 100) * totalDays);
-		const rawNight = Math.round((nightWeight / 100) * totalDays);
-
-		// Apply display-side adjustment: cap total to desiredPrefTotal
-		let adjEvening = rawEvening;
-		let adjNight = rawNight;
-
-		const sumEN = rawEvening + rawNight;
-		if (sumEN > desiredPrefTotal && sumEN > 0) {
-			const scale = desiredPrefTotal / sumEN;
-			adjEvening = Math.floor(rawEvening * scale);
-			adjNight = Math.floor(rawNight * scale);
-		}
-
-		const adjMorning = Math.max(0, desiredPrefTotal - (adjEvening + adjNight));
-
 		const caps: Record<string, number> = {};
-		if (adjMorning > 0) caps.morning = adjMorning;
-		if (adjEvening > 0) caps.evening = adjEvening;
-		if (adjNight > 0) caps.night = adjNight;
+		if (morningWeight > 0)
+			caps.morning = Math.round((morningWeight / 100) * totalDays);
+		if (eveningWeight > 0)
+			caps.evening = Math.round((eveningWeight / 100) * totalDays);
+		if (nightWeight > 0)
+			caps.night = Math.round((nightWeight / 100) * totalDays);
 		maxShiftsPerType[nurseId] = caps;
-
-		console.log(
-			`   📐 ${nurseId}: ${morningWeight}/${eveningWeight}/${nightWeight} → raw ${rawMorning}/${rawEvening}/${rawNight} → adj ${adjMorning}/${adjEvening}/${adjNight} (total=${adjMorning + adjEvening + adjNight})`,
-		);
 	}
 
 	// Log all nurses' preferences

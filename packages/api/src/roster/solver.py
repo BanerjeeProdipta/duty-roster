@@ -543,6 +543,7 @@ def solve(data, soft_override: Optional[set] = None):
         else:
             print(f"   ✅ No NNO violations", flush=True)
 
+
     # Verification (coverage is minimum, so >= is success)
     print(f"\n✅ [SOLVER] VERIFICATION:", flush=True)
     
