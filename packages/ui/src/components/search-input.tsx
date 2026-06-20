@@ -46,6 +46,7 @@ function SearchInput({
 	...props
 }: SearchInputProps) {
 	const [internalValue, setInternalValue] = useState("");
+	const [hasInteracted, setHasInteracted] = useState(false);
 	const currentValue = controlledValue ?? internalValue;
 	const valueRef = useRef(currentValue);
 	const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -69,6 +70,7 @@ function SearchInput({
 	};
 
 	const handleValueChange = (newValue: string) => {
+		setHasInteracted(true);
 		valueRef.current = newValue;
 		if (controlledOnChange) {
 			controlledOnChange(newValue);
@@ -140,6 +142,17 @@ function SearchInput({
 		}
 	};
 
+	// Show the suggestion dropdown when async suggestions arrive
+	// for the current input value.
+	const hasMatchingSuggestions =
+		currentValue.length > 0 && filteredSuggestions.length > 0;
+
+	useEffect(() => {
+		if (hasMatchingSuggestions && hasInteracted) {
+			setShowSuggestions(true);
+		}
+	}, [hasMatchingSuggestions, hasInteracted]);
+
 	useEffect(() => {
 		const handleClickOutside = (event: MouseEvent) => {
 			if (
@@ -175,7 +188,10 @@ function SearchInput({
 						handleKeyDown(e);
 						props.onKeyDown?.(e);
 					}}
-					onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
+					onFocus={() => {
+						setHasInteracted(true);
+						suggestions.length > 0 && setShowSuggestions(true);
+					}}
 					placeholder={placeholder}
 					className={cn(
 						"flex-1 bg-transparent text-sm outline-none placeholder:text-gray-400",

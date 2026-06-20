@@ -5,7 +5,7 @@ import { cn } from "@Duty-Roster/ui/lib/utils";
 import { LayoutDashboard, LogIn, LogOut, Menu, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { authClient } from "@/lib/auth-client";
@@ -17,6 +17,8 @@ const linkBase =
 export default function Header() {
 	const pathname = usePathname();
 	const router = useRouter();
+	const searchParams = useSearchParams();
+	const currentQ = searchParams.get("q");
 	const [isMenuOpen, setIsMenuOpen] = useState(false);
 	const [hasMounted, setHasMounted] = useState(false);
 	const { data: session, isPending } = authClient.useSession();
@@ -54,10 +56,13 @@ export default function Header() {
 				<nav className="absolute left-1/2 my-2 hidden -translate-x-1/2 items-center gap-1 rounded-full bg-gray-50 px-1 py-1 md:flex">
 					{navItems.map(({ to, label, icon: Icon }) => {
 						const isActive = pathname === to;
+						const href = currentQ
+							? `${to}?q=${encodeURIComponent(currentQ)}`
+							: to;
 						return (
 							<Link
 								key={to}
-								href={to}
+								href={href}
 								className={cn(
 									linkBase,
 									isActive
@@ -130,22 +135,27 @@ export default function Header() {
 						className="overflow-hidden border-border/50 border-t bg-background md:hidden"
 					>
 						<div className="flex flex-col gap-1 p-4">
-							{navItems.map(({ to, label, icon: Icon }) => (
-								<Link
-									key={to}
-									href={to}
-									onClick={() => setIsMenuOpen(false)}
-									className={cn(
-										"flex items-center gap-2 px-3 py-2 font-medium text-sm transition-colors",
-										pathname === to
-											? "text-foreground"
-											: "text-muted-foreground",
-									)}
-								>
-									<Icon className="h-4 w-4" />
-									{label}
-								</Link>
-							))}
+							{navItems.map(({ to, label, icon: Icon }) => {
+								const href = currentQ
+									? `${to}?q=${encodeURIComponent(currentQ)}`
+									: to;
+								return (
+									<Link
+										key={to}
+										href={href}
+										onClick={() => setIsMenuOpen(false)}
+										className={cn(
+											"flex items-center gap-2 px-3 py-2 font-medium text-sm transition-colors",
+											pathname === to
+												? "text-foreground"
+												: "text-muted-foreground",
+										)}
+									>
+										<Icon className="h-4 w-4" />
+										{label}
+									</Link>
+								);
+							})}
 							{isPending ? (
 								<div className="h-8 w-full animate-pulse rounded-md bg-gray-100 dark:bg-gray-800" />
 							) : session?.user ? (

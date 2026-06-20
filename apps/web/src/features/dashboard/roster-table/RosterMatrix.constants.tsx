@@ -37,35 +37,3 @@ export const SHIFT_ICONS: Record<ShiftType, React.ReactNode> = {
 	night: <Moon className="h-8 w-8" />,
 	off: <Coffee className="h-8 w-8" />,
 };
-
-export const SHIFT_OPTIONS: {
-	value: ShiftType;
-	label: string;
-	icon: React.ReactNode;
-	time: string;
-}[] = [
-	{
-		value: "morning",
-		label: SHIFT_LABELS.morning,
-		icon: <Sun className="h-7 w-7" />,
-		time: SHIFT_TIMES.morning,
-	},
-	{
-		value: "evening",
-		label: SHIFT_LABELS.evening,
-		icon: <Sunset className="h-7 w-7" />,
-		time: SHIFT_TIMES.evening,
-	},
-	{
-		value: "night",
-		label: SHIFT_LABELS.night,
-		icon: <Moon className="h-7 w-7" />,
-		time: SHIFT_TIMES.night,
-	},
-	{
-		value: "off",
-		label: SHIFT_LABELS.off,
-		icon: <Coffee className="h-7 w-7" />,
-		time: SHIFT_TIMES.off,
-	},
-];

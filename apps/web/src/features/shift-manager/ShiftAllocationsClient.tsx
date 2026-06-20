@@ -5,6 +5,7 @@ import { Pagination } from "@Duty-Roster/ui/components/pagination";
 import { SearchInput } from "@Duty-Roster/ui/components/search-input";
 import { Loader2, UserCheck, UserMinus } from "lucide-react";
 import dynamic from "next/dynamic";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { ShiftCountCard } from "@/features/dashboard/components/ShiftCountCard";
 import { useScheduleInit } from "@/hooks/useScheduleInit";
@@ -12,6 +13,7 @@ import {
 	useFlexibilityMetrics,
 	useSolverValidation,
 } from "@/hooks/useSolverValidation";
+import { trpcClient } from "@/utils/trpc";
 import { NurseTable } from "./components/NurseTable/NurseTable";
 import { useShiftCounts } from "./hooks/useShiftCounts";
 
@@ -45,10 +47,46 @@ export default function ShiftAllocationsClient({
 		schedules: refetchedSchedules,
 	} = useScheduleInit(initialSchedules);
 
+	const searchParams = useSearchParams();
+	const router = useRouter();
+
 	const [nurseRows, setNurseRows] =
 		useState<SchedulesResponse["nurseRows"]>(initialNurseRows);
-	const [searchTerm, setSearchTerm] = useState("");
+	const [searchTerm, setSearchTerm] = useState(searchParams.get("q") ?? "");
+	const [suggestions, setSuggestions] = useState<string[]>([]);
 	const [language, setLanguage] = useState<"en-US" | "bn-BD">("bn-BD");
+
+	const handleSearch = useCallback(
+		(value: string) => {
+			setSearchTerm(value);
+			const params = new URLSearchParams(searchParams.toString());
+			if (value) {
+				params.set("q", value);
+			} else {
+				params.delete("q");
+			}
+			router.replace(`?${params.toString()}`, { scroll: false });
+		},
+		[router, searchParams],
+	);
+
+	useEffect(() => {
+		if (searchTerm.length === 0) {
+			setSuggestions([]);
+			return;
+		}
+		const timer = setTimeout(async () => {
+			try {
+				const result = await trpcClient.roster.searchNurseNames.query({
+					q: searchTerm,
+				});
+				setSuggestions(result.map((n) => n.name));
+			} catch {
+				// ignore fetch errors
+			}
+		}, 200);
+		return () => clearTimeout(timer);
+	}, [searchTerm]);
 
 	// Sync nurseRows when query refetches (e.g. after prefill)
 	useEffect(() => {
@@ -179,8 +217,10 @@ export default function ShiftAllocationsClient({
 			{/* Search Bar + Nurse Totals */}
 			<div className="flex w-full flex-col items-center justify-between sm:flex-row sm:gap-4">
 				<SearchInput
-					placeholder={language === "bn-BD" ? "নার্স খুঁজুন..." : "Search nurses..."}
-					onSearch={setSearchTerm}
+					value={searchTerm}
+					onChange={setSearchTerm}
+					onSearch={handleSearch}
+					suggestions={suggestions}
 					language={language}
 					onLanguageChange={(lang) => setLanguage(lang)}
 					className="w-full"

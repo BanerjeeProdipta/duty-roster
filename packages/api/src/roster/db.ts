@@ -1,5 +1,5 @@
 import { db, schema } from "@Duty-Roster/db";
-import { and, asc, desc, eq, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 
 const { nurse, nurseSchedule, shift, nurseShiftPreference } = schema;
 
@@ -396,6 +396,33 @@ export async function findScheduleById(id: string) {
 	return row;
 }
 
+export async function findSchedulesByIds(ids: string[]) {
+	if (ids.length === 0) return [];
+	return db.select().from(nurseSchedule).where(inArray(nurseSchedule.id, ids));
+}
+
+export async function batchUpsertSchedules(
+	items: {
+		id: string;
+		nurseId: string;
+		dateKey: string;
+		shiftId: string | null;
+	}[],
+) {
+	if (items.length === 0) return;
+
+	const values = items
+		.map((s) => {
+			const date = new Date(`${s.dateKey}T00:00:00.000Z`);
+			return `('${s.id}', '${s.nurseId}', '${date.toISOString()}', ${s.shiftId ? `'${s.shiftId}'` : "NULL"})`;
+		})
+		.join(", ");
+
+	await db.execute(
+		sql`INSERT INTO nurse_schedule (id, nurse_id, date, shift_id) VALUES ${sql.raw(values)} ON CONFLICT (id) DO UPDATE SET shift_id = EXCLUDED.shift_id`,
+	);
+}
+
 // ─────────────── PREFERENCES (combined query) ───────────────
 
 /** Get all nurse preferences with nurse info */
@@ -418,6 +445,16 @@ export async function findAllPreferredShiftsByNurse() {
 			asc(nurse.sortOrder),
 			asc(nurse.name),
 		);
+}
+
+export async function searchNurseNames(query: string) {
+	const result = await db
+		.select({ id: nurse.id, name: nurse.name })
+		.from(nurse)
+		.where(sql`nurse.name ILIKE ${`%${query}%`}`)
+		.orderBy(asc(nurse.sortOrder), asc(nurse.name))
+		.limit(10);
+	return result;
 }
 
 /** Delete preferences for a list of nurse IDs */

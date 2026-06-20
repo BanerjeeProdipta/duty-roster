@@ -54,7 +54,6 @@ export function RosterHeader({
 				value={searchValue}
 				onChange={setSearchValue}
 				onSearch={handleSearch}
-				placeholder="নার্সের নাম দিয়ে খুঁজুন..."
 				suggestions={nurseNames}
 				suggestionCount={nurseCount}
 			/>

@@ -289,6 +289,12 @@ export async function prefillDefault(
 	await rosterDb.upsertNurseShiftPreferences(preferences, totalDays);
 	return { success: true, updated: activeNurses.length };
 }
+// ───────────── SEARCH ─────────────
+
+export async function searchNurseNames(query: string) {
+	return rosterDb.searchNurseNames(query);
+}
+
 // ───────────── SCHEDULES ─────────────
 
 export async function getShifts() {
@@ -513,6 +519,52 @@ export async function upsertSchedule(
 		oldShiftType,
 		newShiftType: resultShiftType,
 	};
+}
+
+export async function batchUpsertSchedules(
+	items: {
+		id: string;
+		shiftId: string | null;
+		nurseId: string;
+		dateKey: string;
+	}[],
+): Promise<ShiftUpdateResult[]> {
+	const existingIds = items.filter((i) => i.id !== "new").map((i) => i.id);
+	const existing =
+		existingIds.length > 0
+			? await rosterDb.findSchedulesByIds(existingIds)
+			: [];
+	const existingMap = new Map(existing.map((s) => [s.id, s]));
+
+	const results: ShiftUpdateResult[] = [];
+	const dbItems: {
+		id: string;
+		nurseId: string;
+		dateKey: string;
+		shiftId: string | null;
+	}[] = [];
+
+	for (const item of items) {
+		const existingSchedule = existingMap.get(item.id);
+		const oldShiftType = existingSchedule?.shiftId
+			? shiftIdToShiftType(existingSchedule.shiftId as string)
+			: null;
+
+		const id =
+			item.id === "new" ? `schedule_${item.nurseId}_${item.dateKey}` : item.id;
+
+		dbItems.push({ ...item, id });
+		results.push({
+			id,
+			dateKey: item.dateKey,
+			nurseId: item.nurseId,
+			oldShiftType,
+			newShiftType: shiftIdToShiftType(item.shiftId),
+		});
+	}
+
+	await rosterDb.batchUpsertSchedules(dbItems);
+	return results;
 }
 
 // ───────────── GENERATE ROSTER ─────────────
