@@ -27,7 +27,8 @@ const Switch = React.forwardRef<
 		>
 			<SwitchPrimitive.Thumb
 				className={cn(
-					"block h-[var(--switch-thumb-size)] w-[var(--switch-thumb-size)] shrink-0 rounded-full bg-white ring-[2px] ring-ring/30 transition-transform",
+					"block h-[var(--switch-thumb-size)] w-[var(--switch-thumb-size)] shrink-0 rounded-full bg-white transition-transform",
+					"data-[state=unchecked]:translate-x-0.5",
 					"data-[state=checked]:translate-x-full",
 					"data-[state=checked]:bg-accent-primary",
 				)}
