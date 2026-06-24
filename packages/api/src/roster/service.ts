@@ -401,17 +401,11 @@ export async function getSchedulesByDateRange(
 			((Number(row.prefNight) || 0) / 100) * totalDays,
 		);
 
-		// Force pref-off to be exactly MAX_PREF_OFF regardless of CSV weights.
-		// Distribute the remaining days to morning/evening/night pref counts.
-		const MAX_PREF_OFF = 5;
-		const desiredPrefTotal = Math.max(0, totalDays - MAX_PREF_OFF);
-
-		// Start with evening/night as-is, let morning absorb the remainder.
-		let adjPrefEvening = preferenceEvening;
-		let adjPrefNight = preferenceNight;
-		let adjPrefMorning = Math.max(
-			0,
-			desiredPrefTotal - (adjPrefEvening + adjPrefNight),
+		const adjusted = computeAdjustedPrefMetrics(
+			preferenceMorning,
+			preferenceEvening,
+			preferenceNight,
+			totalDays,
 		);
 
 		// If evening+night already exceed desired total, scale them down proportionally
@@ -442,12 +436,7 @@ export async function getSchedulesByDateRange(
 				total: Number(row.totalAssigned),
 			},
 			assignments,
-			preferenceWiseShiftMetrics: {
-				morning: adjPrefMorning,
-				evening: adjPrefEvening,
-				night: adjPrefNight,
-				total: adjPrefMorning + adjPrefEvening + adjPrefNight,
-			},
+			preferenceWiseShiftMetrics: adjusted,
 		};
 	});
 
