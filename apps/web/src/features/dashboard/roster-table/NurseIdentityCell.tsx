@@ -50,36 +50,22 @@ export function NurseIdentityCell({
 							{nurse?.name || "Nurse"}
 						</span>
 					)}
-					<div
-						className={cn(
-							"shrink-0 rounded-md border px-1.5 py-0.5 font-black text-[9px]",
-							isOverWorked
-								? "border-red-200 bg-red-50 text-red-700"
-								: isPerfect
-									? "border-emerald-200 bg-emerald-50 text-emerald-700"
-									: "border-gray-200 bg-gray-50 text-gray-600",
-						)}
-						title={`Total assigned: ${totalAssigned} / Goal: ${targetWorkedDays}`}
-						suppressHydrationWarning
-					>
-						{totalAssigned}/{targetWorkedDays}
-					</div>
 				</div>
 
 				<div className="flex items-center justify-between gap-0.5">
 					<ShiftBadge
 						count={counts?.morning || 0}
-						max={pref?.morning || 0}
+						pref={pref?.morning || 0}
 						shiftType="morning"
 					/>
 					<ShiftBadge
 						count={counts?.evening || 0}
-						max={pref?.evening || 0}
+						pref={pref?.evening || 0}
 						shiftType="evening"
 					/>
 					<ShiftBadge
 						count={counts?.night || 0}
-						max={pref?.night || 0}
+						pref={pref?.night || 0}
 						shiftType="night"
 					/>
 				</div>

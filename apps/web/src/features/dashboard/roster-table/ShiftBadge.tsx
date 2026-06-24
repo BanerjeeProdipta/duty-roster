@@ -1,19 +1,20 @@
 import { cn } from "@Duty-Roster/ui/lib/utils";
+import { equal } from "assert/strict";
 import { SHIFT_BADGE_STYLES } from "./RosterMatrix.constants";
 
 export interface ShiftBadgeProps {
 	count: number;
 	min?: number;
-	max?: number;
+	pref?: number;
 	shiftType: "morning" | "evening" | "night";
 }
 
-export function ShiftBadge({ count, min, max, shiftType }: ShiftBadgeProps) {
+export function ShiftBadge({ count, min, pref, shiftType }: ShiftBadgeProps) {
 	const isUnder = min !== undefined && count < min;
-	const isOver = max !== undefined && count > max;
-	const isError = isUnder || isOver;
+	const isNotEqual = pref !== undefined && count !== pref;
+	const isError = isUnder || isNotEqual;
 
-	const display = min ?? max ?? 0;
+	const display = min ?? pref ?? 0;
 
 	return (
 		<span
@@ -21,7 +22,7 @@ export function ShiftBadge({ count, min, max, shiftType }: ShiftBadgeProps) {
 				"relative inline-flex items-center gap-1 rounded px-1.5 py-0.5 font-medium text-[10px] opacity-70",
 				SHIFT_BADGE_STYLES[shiftType],
 			)}
-			title={`${shiftType.charAt(0).toUpperCase() + shiftType.slice(1)}: ${count} (min: ${min ?? "-"}, max: ${max ?? "-"})`}
+			title={`${shiftType.charAt(0).toUpperCase() + shiftType.slice(1)}: ${count} (min: ${min ?? "-"}, pref: ${pref ?? "-"})`}
 		>
 			{isError && (
 				<span className="relative flex h-1.5 w-1.5">
