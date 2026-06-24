@@ -5,6 +5,7 @@ import { MonthNavigator } from "@/components/MonthNavigator";
 import { PrefillButton } from "@/components/PrefillButton";
 import { ShiftCountsSkeleton } from "@/features/dashboard/components/ShiftCountsSkeleton";
 import { RosterTableSkeleton } from "@/features/dashboard/roster-table/RosterTableSkeleton";
+import { CoverageConfig } from "@/features/shift-manager/CoverageConfig";
 import { getMonthDateRange, getYearMonthFromSearchParams } from "@/utils";
 import { getAuthedTRPCServer } from "@/utils/trpc-server";
 
@@ -61,10 +62,16 @@ export default async function ShiftAllocationsPage(props: {
 		return (
 			<Suspense fallback={<ShiftAllocationsLoading />}>
 				<div className="flex flex-col gap-6">
-					<div className="flex flex-wrap items-center justify-between">
-						<Suspense fallback={<Skeleton className="h-10 w-32" />}>
-							<WeekDayCounts month={month} year={year} />
-						</Suspense>
+					<div className="flex flex-wrap items-center justify-between gap-2">
+						<div className="flex flex-wrap items-center gap-3">
+							<Suspense fallback={<Skeleton className="h-10 w-32" />}>
+								<WeekDayCounts month={month} year={year} />
+							</Suspense>
+							<CoverageConfig
+								weekday={initialSchedules.coverageConfig.weekday}
+								friday={initialSchedules.coverageConfig.friday}
+							/>
+						</div>
 						<div className="flex items-center gap-2">
 							<AddNurseDialog />
 							<PrefillButton year={year} month={month} />

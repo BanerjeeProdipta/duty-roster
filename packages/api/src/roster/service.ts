@@ -3,9 +3,12 @@ import type { SchedulesResponse } from "./schema";
 
 import {
 	buildCoverageForMonth,
+	computeAdjustedPrefMetrics,
+	computeShiftCoverage,
 	FRIDAY_OFF_NURSES,
 	getDaysCountFromStartAndEndDate,
 	getDaysInMonth,
+	getFridayAndWeekdayCounts,
 	getFridayIndicesForMonth,
 	getShiftRequirementsForRange,
 	normalizeDateKey,
@@ -346,8 +349,12 @@ export async function getSchedulesByDateRange(
 		rosterDb.countActiveNurses(searchQuery),
 	]);
 
-	const { dailyShiftCounts, assignedShiftCounts, preferenceCapacity } =
-		aggregateStats;
+	const {
+		dailyShiftCounts,
+		assignedShiftCounts,
+		preferenceCapacity,
+		rawNursePreferences,
+	} = aggregateStats;
 
 	// Debug: check what dates are in results
 	const allDates = new Set<string>();
@@ -394,32 +401,12 @@ export async function getSchedulesByDateRange(
 			((Number(row.prefNight) || 0) / 100) * totalDays,
 		);
 
-		// Force pref-off to be exactly MAX_PREF_OFF regardless of CSV weights.
-		// Distribute the remaining days to morning/evening/night pref counts.
-		const MAX_PREF_OFF = 5;
-		const desiredPrefTotal = Math.max(0, totalDays - MAX_PREF_OFF);
-
-		// Start with evening/night as-is, let morning absorb the remainder.
-		let adjPrefEvening = preferenceEvening;
-		let adjPrefNight = preferenceNight;
-		let adjPrefMorning = Math.max(
-			0,
-			desiredPrefTotal - (adjPrefEvening + adjPrefNight),
+		const adjusted = computeAdjustedPrefMetrics(
+			preferenceMorning,
+			preferenceEvening,
+			preferenceNight,
+			totalDays,
 		);
-
-		// If evening+night already exceed desired total, scale them down proportionally
-		// and set morning to whatever remains (may be zero).
-		const sumEN = preferenceEvening + preferenceNight;
-		if (sumEN > desiredPrefTotal && sumEN > 0) {
-			const scale = desiredPrefTotal / sumEN;
-			// Use Math.floor to avoid exceeding desired total, then assign leftover to morning
-			adjPrefEvening = Math.floor(preferenceEvening * scale);
-			adjPrefNight = Math.floor(preferenceNight * scale);
-			adjPrefMorning = Math.max(
-				0,
-				desiredPrefTotal - (adjPrefEvening + adjPrefNight),
-			);
-		}
 
 		return {
 			nurse: {
@@ -436,12 +423,7 @@ export async function getSchedulesByDateRange(
 				total: Number(row.totalAssigned),
 			},
 			assignments,
-			preferenceWiseShiftMetrics: {
-				morning: adjPrefMorning,
-				evening: adjPrefEvening,
-				night: adjPrefNight,
-				total: adjPrefMorning + adjPrefEvening + adjPrefNight,
-			},
+			preferenceWiseShiftMetrics: adjusted,
 		};
 	});
 
@@ -453,6 +435,40 @@ export async function getSchedulesByDateRange(
 		shiftRequirements.morning +
 		shiftRequirements.evening +
 		shiftRequirements.night;
+
+	// ─── Adjusted preference capacity (respects 5-off-day constraint) ───
+	const adjustedPreferenceCapacity = {
+		morning: 0,
+		evening: 0,
+		night: 0,
+		total: 0,
+	};
+	for (const raw of rawNursePreferences) {
+		const adj = computeAdjustedPrefMetrics(
+			raw.morning,
+			raw.evening,
+			raw.night,
+			totalDays,
+		);
+		adjustedPreferenceCapacity.morning += adj.morning;
+		adjustedPreferenceCapacity.evening += adj.evening;
+		adjustedPreferenceCapacity.night += adj.night;
+		adjustedPreferenceCapacity.total += adj.total;
+	}
+
+	// ─── Dynamic coverage config from adjusted preference totals ───
+	const { fridayCount, weekdayCount } = getFridayAndWeekdayCounts(
+		startDate,
+		endDate,
+	);
+	const coverageConfig = computeShiftCoverage(
+		adjustedPreferenceCapacity.morning,
+		adjustedPreferenceCapacity.evening,
+		adjustedPreferenceCapacity.night,
+		weekdayCount,
+		fridayCount,
+		0.15,
+	);
 
 	// ─────────────── PAGINATION ───────────────
 	const pagination =
@@ -471,6 +487,8 @@ export async function getSchedulesByDateRange(
 		shiftRequirements,
 		assignedShiftCounts,
 		preferenceCapacity,
+		adjustedPreferenceCapacity,
+		coverageConfig,
 		nurseCounts: {
 			total: totalNurses,
 			active: activeNurses,

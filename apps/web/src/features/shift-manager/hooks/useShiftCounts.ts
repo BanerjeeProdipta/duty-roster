@@ -24,6 +24,7 @@ interface UseShiftCountsOptions {
 	nurses: { active: boolean }[];
 	shiftRequirements?: SchedulesResponse["shiftRequirements"];
 	preferenceCapacity?: SchedulesResponse["preferenceCapacity"];
+	adjustedPreferenceCapacity?: SchedulesResponse["adjustedPreferenceCapacity"];
 	nurseCounts?: SchedulesResponse["nurseCounts"];
 }
 
@@ -33,31 +34,33 @@ export function useShiftCounts({
 	nurses,
 	shiftRequirements,
 	preferenceCapacity,
+	adjustedPreferenceCapacity,
 	nurseCounts,
 }: UseShiftCountsOptions): UseShiftCountsReturn {
 	const shiftCounts = useMemo(() => {
 		// Use server-side aggregate stats (all nurses, no pagination) for preference/available.
-		// This keeps the count cards accurate regardless of which page the user is on.
-		if (preferenceCapacity) {
+		// Prefer adjustedPreferenceCapacity (respects 5-off constraint) so cards match table.
+		const capacity = adjustedPreferenceCapacity ?? preferenceCapacity;
+		if (capacity) {
 			const result = {
 				total: {
 					required: shiftRequirements?.total ?? 0,
-					preference: preferenceCapacity.total,
+					preference: capacity.total,
 				},
 				morning: {
 					required: shiftRequirements?.morning ?? 0,
-					preference: preferenceCapacity.morning,
-					available: preferenceCapacity.morning,
+					preference: capacity.morning,
+					available: capacity.morning,
 				},
 				evening: {
 					required: shiftRequirements?.evening ?? 0,
-					preference: preferenceCapacity.evening,
-					available: preferenceCapacity.evening,
+					preference: capacity.evening,
+					available: capacity.evening,
 				},
 				night: {
 					required: shiftRequirements?.night ?? 0,
-					preference: preferenceCapacity.night,
-					available: preferenceCapacity.night,
+					preference: capacity.night,
+					available: capacity.night,
 				},
 			};
 
@@ -95,10 +98,11 @@ export function useShiftCounts({
 					}
 				}
 			}
+
 			return result;
 		}
 
-		// Fallback: compute from nurseRows (e.g. if preferenceCapacity isn't available yet)
+		// Fallback: compute from nurseRows (e.g. if neither capacity aggregate is available yet)
 		const activeRows = nurseRows.filter((row) => row.nurse.active ?? true);
 		const pos = (v: number) => (v > 0 ? v : 0);
 		return {
@@ -143,7 +147,13 @@ export function useShiftCounts({
 				),
 			},
 		};
-	}, [shiftRequirements, preferenceCapacity, nurseRows, initialNurseRows]);
+	}, [
+		shiftRequirements,
+		preferenceCapacity,
+		adjustedPreferenceCapacity,
+		nurseRows,
+		initialNurseRows,
+	]);
 
 	const { activeCount, inactiveCount } = useMemo(() => {
 		const baseActive =

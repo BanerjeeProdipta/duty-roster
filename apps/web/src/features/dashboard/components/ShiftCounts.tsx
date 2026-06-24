@@ -39,29 +39,21 @@ export function ShiftCounts({ initialSchedules }: ShiftCountsProps) {
 						(assignedShiftCounts?.evening ?? 0) +
 						(assignedShiftCounts?.night ?? 0)
 					}
-					capacity={
-						(preferenceCapacity?.morning ?? 0) +
-						(preferenceCapacity?.evening ?? 0) +
-						(preferenceCapacity?.night ?? 0)
-					}
 				/>
 				<ShiftCountCard
 					shift="morning"
 					required={shiftRequirements?.morning ?? 0}
 					assigned={assignedShiftCounts?.morning ?? 0}
-					capacity={preferenceCapacity?.morning ?? 0}
 				/>
 				<ShiftCountCard
 					shift="evening"
 					required={shiftRequirements?.evening ?? 0}
 					assigned={assignedShiftCounts?.evening ?? 0}
-					capacity={preferenceCapacity?.evening ?? 0}
 				/>
 				<ShiftCountCard
 					shift="night"
 					required={shiftRequirements?.night ?? 0}
 					assigned={assignedShiftCounts?.night ?? 0}
-					capacity={preferenceCapacity?.night ?? 0}
 				/>
 			</div>
 		</div>

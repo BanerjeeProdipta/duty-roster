@@ -46,7 +46,6 @@ interface ShiftCountCardProps {
 	required: number;
 	preference?: number;
 	assigned?: number;
-	capacity?: number;
 }
 
 export function ShiftCountCard({
@@ -54,7 +53,6 @@ export function ShiftCountCard({
 	required,
 	preference,
 	assigned,
-	capacity,
 }: ShiftCountCardProps) {
 	const config = shiftConfig[shift];
 	const isFulfilled = (assigned ?? preference ?? 0) >= required;
@@ -86,9 +84,7 @@ export function ShiftCountCard({
 				</div>
 			</div>
 
-			<div
-				className={cn("grid gap-2", preference ? "grid-cols-2" : "grid-cols-3")}
-			>
+			<div className="grid grid-cols-2 gap-2">
 				<div className="flex flex-col items-center rounded-lg bg-white/60 p-2">
 					<Label className="text-[10px]">Required</Label>
 					<span className={cn("font-bold text-lg", config.text)}>
@@ -102,14 +98,6 @@ export function ShiftCountCard({
 						</Label>
 						<span className={cn("font-bold text-lg", config.text)}>
 							{displayValue}
-						</span>
-					</div>
-				)}
-				{capacity !== undefined && (
-					<div className="flex flex-col items-center rounded-lg bg-white/60 p-2">
-						<Label className="text-[10px]">Preference</Label>
-						<span className={cn("font-bold text-lg", config.text)}>
-							{Math.round(capacity)}
 						</span>
 					</div>
 				)}

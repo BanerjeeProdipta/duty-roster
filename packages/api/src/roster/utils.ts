@@ -349,6 +349,74 @@ export function getShiftRequirementsForRange(
 	};
 }
 
+export function computeAdjustedPrefMetrics(
+	rawMorning: number,
+	rawEvening: number,
+	rawNight: number,
+	totalDays: number,
+): { morning: number; evening: number; night: number; total: number } {
+	const MAX_PREF_OFF = 5;
+	const desiredPrefTotal = Math.max(0, totalDays - MAX_PREF_OFF);
+
+	let adjEvening = rawEvening;
+	let adjNight = rawNight;
+	let adjMorning = Math.max(0, desiredPrefTotal - (adjEvening + adjNight));
+
+	const sumEN = rawEvening + rawNight;
+	if (sumEN > desiredPrefTotal && sumEN > 0) {
+		const scale = desiredPrefTotal / sumEN;
+		adjEvening = Math.floor(rawEvening * scale);
+		adjNight = Math.floor(rawNight * scale);
+		adjMorning = Math.max(0, desiredPrefTotal - (adjEvening + adjNight));
+	}
+
+	return {
+		morning: adjMorning,
+		evening: adjEvening,
+		night: adjNight,
+		total: adjMorning + adjEvening + adjNight,
+	};
+}
+
+export function computeShiftCoverage(
+	morningTotal: number,
+	eveningTotal: number,
+	nightTotal: number,
+	weekdayCount: number,
+	fridayCount: number,
+	fridayFactor: number,
+): {
+	weekday: { morning: number; evening: number; night: number; total: number };
+	friday: { morning: number; evening: number; night: number; total: number };
+} {
+	const denominator = weekdayCount + fridayCount * fridayFactor;
+	if (denominator <= 0) {
+		return {
+			weekday: { morning: 0, evening: 0, night: 0, total: 0 },
+			friday: { morning: 0, evening: 0, night: 0, total: 0 },
+		};
+	}
+
+	const wdMorning = morningTotal / denominator;
+	const wdEvening = eveningTotal / denominator;
+	const wdNight = nightTotal / denominator;
+
+	return {
+		weekday: {
+			morning: Math.round(wdMorning),
+			evening: Math.round(wdEvening),
+			night: Math.round(wdNight),
+			total: Math.round(wdMorning + wdEvening + wdNight),
+		},
+		friday: {
+			morning: Math.round(wdMorning * fridayFactor),
+			evening: Math.round(wdEvening * fridayFactor),
+			night: Math.round(wdNight * fridayFactor),
+			total: Math.round((wdMorning + wdEvening + wdNight) * fridayFactor),
+		},
+	};
+}
+
 export function buildCoverageForMonth(
 	year: number,
 	month: number,

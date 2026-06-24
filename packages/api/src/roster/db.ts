@@ -201,6 +201,7 @@ export async function getRosterAggregateStats(
 		night: number;
 		total: number;
 	};
+	rawNursePreferences: { morning: number; evening: number; night: number }[];
 }> {
 	const searchCondition = searchQuery
 		? sql`nurse.name ILIKE ${`%${searchQuery}%`}`
@@ -252,13 +253,14 @@ export async function getRosterAggregateStats(
 		assignedShiftCounts.total += row.total;
 	}
 
-	// 2. Preference capacity across ALL active nurses
+	// 2. Preference capacity across ALL active nurses (per-nurse raw values)
 	const days = totalDays ?? 30;
 	const prefRows = await db.execute(sql`
     SELECT
-      COALESCE(SUM(ROUND((morning_weight::numeric / 100) * ${days})), 0)::int  AS pref_morning,
-      COALESCE(SUM(ROUND((evening_weight::numeric / 100) * ${days})), 0)::int  AS pref_evening,
-      COALESCE(SUM(ROUND((night_weight::numeric / 100) * ${days})), 0)::int    AS pref_night
+      sub.id,
+      COALESCE(ROUND((morning_weight::numeric / 100) * ${days}), 0)::int  AS pref_morning,
+      COALESCE(ROUND((evening_weight::numeric / 100) * ${days}), 0)::int  AS pref_evening,
+      COALESCE(ROUND((night_weight::numeric / 100) * ${days}), 0)::int    AS pref_night
     FROM (
       SELECT
         nurse.id,
@@ -273,20 +275,35 @@ export async function getRosterAggregateStats(
     ) sub
   `);
 
-	const prefRow = prefRows.rows[0] as
-		| { pref_morning: number; pref_evening: number; pref_night: number }
-		| undefined;
-	const preferenceCapacity = {
-		morning: prefRow?.pref_morning ?? 0,
-		evening: prefRow?.pref_evening ?? 0,
-		night: prefRow?.pref_night ?? 0,
-		total:
-			(prefRow?.pref_morning ?? 0) +
-			(prefRow?.pref_evening ?? 0) +
-			(prefRow?.pref_night ?? 0),
-	};
+	const rawNursePreferences = (
+		prefRows.rows as {
+			pref_morning: number;
+			pref_evening: number;
+			pref_night: number;
+		}[]
+	).map((row) => ({
+		morning: Number(row.pref_morning),
+		evening: Number(row.pref_evening),
+		night: Number(row.pref_night),
+	}));
 
-	return { dailyShiftCounts, assignedShiftCounts, preferenceCapacity };
+	const preferenceCapacity = {
+		morning: rawNursePreferences.reduce((s, r) => s + r.morning, 0),
+		evening: rawNursePreferences.reduce((s, r) => s + r.evening, 0),
+		night: rawNursePreferences.reduce((s, r) => s + r.night, 0),
+		total: 0,
+	};
+	preferenceCapacity.total =
+		preferenceCapacity.morning +
+		preferenceCapacity.evening +
+		preferenceCapacity.night;
+
+	return {
+		dailyShiftCounts,
+		assignedShiftCounts,
+		preferenceCapacity,
+		rawNursePreferences,
+	};
 }
 
 export async function createNurse(

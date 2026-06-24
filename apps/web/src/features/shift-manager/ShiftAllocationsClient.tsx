@@ -114,6 +114,7 @@ export default function ShiftAllocationsClient({
 		nurses,
 		shiftRequirements: refetchedSchedules?.shiftRequirements,
 		preferenceCapacity: refetchedSchedules?.preferenceCapacity,
+		adjustedPreferenceCapacity: refetchedSchedules?.adjustedPreferenceCapacity,
 		nurseCounts: refetchedSchedules?.nurseCounts,
 	});
 

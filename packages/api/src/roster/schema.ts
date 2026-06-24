@@ -70,6 +70,11 @@ export const schedulesResponseSchema = z.object({
 	shiftRequirements: shiftCountsSchema,
 	assignedShiftCounts: shiftCountsSchema,
 	preferenceCapacity: shiftCountsSchema,
+	adjustedPreferenceCapacity: shiftCountsSchema,
+	coverageConfig: z.object({
+		weekday: shiftCountsSchema,
+		friday: shiftCountsSchema,
+	}),
 	nurseCounts: z
 		.object({
 			total: z.number(),
