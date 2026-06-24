@@ -45,12 +45,20 @@ export function DayHeaderCell({
 				/>
 				<ShiftBadge
 					count={counts?.evening || 0}
-					min={ROSTER_CONFIG.COVERAGE.WEEKDAY.evening}
+					min={
+						isFriday
+							? ROSTER_CONFIG.COVERAGE.FRIDAY.evening
+							: ROSTER_CONFIG.COVERAGE.WEEKDAY.evening
+					}
 					shiftType="evening"
 				/>
 				<ShiftBadge
 					count={counts?.night || 0}
-					min={ROSTER_CONFIG.COVERAGE.WEEKDAY.night}
+					min={
+						isFriday
+							? ROSTER_CONFIG.COVERAGE.FRIDAY.night
+							: ROSTER_CONFIG.COVERAGE.WEEKDAY.night
+					}
 					shiftType="night"
 				/>
 			</div>
