@@ -408,6 +408,19 @@ export async function getSchedulesByDateRange(
 			totalDays,
 		);
 
+		// If evening+night already exceed desired total, scale them down proportionally
+		// and set morning to whatever remains (may be zero).
+		const sumEN = preferenceEvening + preferenceNight;
+		if (sumEN > desiredPrefTotal && sumEN > 0) {
+			const scale = desiredPrefTotal / sumEN;
+			// Use Math.floor to avoid exceeding desired total, then assign leftover to morning
+			adjPrefEvening = Math.floor(preferenceEvening * scale);
+			adjPrefNight = Math.floor(preferenceNight * scale);
+			adjPrefMorning = Math.max(
+				0,
+				desiredPrefTotal - (adjPrefEvening + adjPrefNight),
+			);
+		}
 		return {
 			nurse: {
 				id: row.id as string,
@@ -467,7 +480,11 @@ export async function getSchedulesByDateRange(
 		adjustedPreferenceCapacity.night,
 		weekdayCount,
 		fridayCount,
-		0.15,
+		{
+			morning: { weekday: 1.0, friday: 0.15 },
+			evening: { weekday: 0.6, friday: 0.4 },
+			night: { weekday: 0.5, friday: 0.5 },
+		},
 	);
 
 	// ─────────────── PAGINATION ───────────────
