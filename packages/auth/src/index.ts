@@ -3,7 +3,6 @@ import * as schema from "@Duty-Roster/db/schema/auth";
 import { expo } from "@better-auth/expo";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { nextCookies } from "better-auth/next-js";
 import { admin } from "better-auth/plugins";
 import { env } from "./env";
 
@@ -115,7 +114,7 @@ export function createAuth(options?: { baseURL?: string }) {
 				httpOnly: true,
 			},
 		},
-		plugins: [admin(), expo(), nextCookies()],
+		plugins: [admin(), expo()],
 	});
 }
 

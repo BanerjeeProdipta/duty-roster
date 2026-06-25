@@ -2,17 +2,21 @@
 
 import type { SchedulesResponse } from "@Duty-Roster/api";
 import { Pagination } from "@Duty-Roster/ui/components/pagination";
+import { cn } from "@Duty-Roster/ui/lib/utils";
 import { useMutationState } from "@tanstack/react-query";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { useRef } from "react";
-import { useShifts } from "@/hooks/useGetShifts";
+import { useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useBatchUpdateShifts } from "@/hooks/useBatchUpdateShifts";
 import { useRosterDates } from "@/hooks/useRosterDates";
 import { useSchedules } from "@/hooks/useSchedules";
 import { DayHeaderCell } from "./DayHeaderCell";
 import { LAYOUT } from "./Layout";
 import { NurseIdentityCell } from "./NurseIdentityCell";
+import type { ShiftType } from "./RosterMatrix.types";
 import { RosterTableSkeleton } from "./RosterTableSkeleton";
-import { ShiftBadge } from "./ShiftDropdown";
+import { SelectionPopover } from "./SelectionPopover";
+import { ShiftCellBadge } from "./ShiftCellBadge";
 
 interface RosterTableProps {
 	editable?: boolean;
@@ -20,10 +24,14 @@ interface RosterTableProps {
 }
 
 function useRosterTableData(initialSchedules?: SchedulesResponse) {
+	const searchParams = useSearchParams();
+	const searchQuery = searchParams.get("q") || undefined;
 	const { schedules, isLoading, page, pageSize, setPage, setPageSize } =
-		useSchedules(initialSchedules);
+		useSchedules(initialSchedules, { searchQuery });
 	return { schedules, isLoading, page, pageSize, setPage, setPageSize };
 }
+
+const DRAG_THRESHOLD = 4;
 
 export function RosterTable({
 	editable = false,
@@ -38,16 +46,13 @@ export function RosterTable({
 	});
 	const isGenerating = generatingState.length > 0;
 
-	const shifts = useShifts();
 	const { normalizedDates } = useRosterDates();
 
 	const parentRef = useRef<HTMLDivElement>(null);
 
-	// Server already filters by name when ?q= is present
 	const nurseRows = schedules?.nurseRows ?? [];
 	const dailyShiftCounts = schedules?.dailyShiftCounts ?? {};
 
-	// Pagination: use server metadata if available, else derive from current data
 	const totalPages = schedules?.pagination?.totalPages ?? 1;
 
 	const rowVirtualizer = useVirtualizer({
@@ -72,8 +77,212 @@ export function RosterTable({
 	const colLeftSpacer = columnVirtualItems[0]?.start ?? 0;
 	const colRightSpacer =
 		columnVirtualItems.length > 0
-			? Math.max(0, colTotalSize - columnVirtualItems.at(-1)!.end)
+			? Math.max(0, colTotalSize - (columnVirtualItems.at(-1)?.end ?? 0))
 			: colTotalSize;
+
+	// ── Row-only selection state ──
+
+	const [selectedRowIdx, setSelectedRowIdx] = useState<number | null>(null);
+	const [selectedColRange, setSelectedColRange] = useState<
+		[number, number] | null
+	>(null);
+	const [showPopover, setShowPopover] = useState(false);
+
+	const isDraggingRef = useRef(false);
+	const dragRowRef = useRef<number | null>(null);
+	const dragAnchorColRef = useRef<number | null>(null);
+	const pointerStartRef = useRef<{ x: number; y: number } | null>(null);
+
+	const batchMutation = useBatchUpdateShifts();
+	const hasSelection = selectedRowIdx !== null && selectedColRange !== null;
+
+	// Derived selected set for visual highlight
+	const selectedDateKeys = useMemo(() => {
+		if (!hasSelection) return new Set<string>();
+		const [minCol, maxCol] = selectedColRange;
+		const row = nurseRows[selectedRowIdx];
+		if (!row) return new Set<string>();
+		const keys = new Set<string>();
+		for (let c = minCol; c <= maxCol; c++) {
+			const dateKey = normalizedDates[c]?.dateStr;
+			if (dateKey) keys.add(`${row.nurse.id}:${dateKey}`);
+		}
+		return keys;
+	}, [
+		hasSelection,
+		selectedRowIdx,
+		selectedColRange,
+		nurseRows,
+		normalizedDates,
+	]);
+
+	const clearSelection = useCallback(() => {
+		setSelectedRowIdx(null);
+		setSelectedColRange(null);
+		setShowPopover(false);
+		isDraggingRef.current = false;
+		dragRowRef.current = null;
+		dragAnchorColRef.current = null;
+		pointerStartRef.current = null;
+	}, []);
+
+	const handlePopoverSelect = useCallback(
+		(value: ShiftType) => {
+			if (selectedRowIdx === null || selectedColRange === null) return;
+
+			const row = nurseRows[selectedRowIdx];
+			if (!row) return;
+
+			const [minCol, maxCol] = selectedColRange;
+			const items: {
+				id: string;
+				shiftId: string | null;
+				nurseId: string;
+				dateKey: string;
+			}[] = [];
+
+			for (let c = minCol; c <= maxCol; c++) {
+				const dateKey = normalizedDates[c]?.dateStr;
+				if (!dateKey) continue;
+				const assignment = row.assignments[dateKey];
+				items.push({
+					id: assignment?.id || "new",
+					shiftId: value === "off" ? null : `shift_${value}`,
+					nurseId: row.nurse.id,
+					dateKey,
+				});
+			}
+
+			if (items.length === 0) return;
+			batchMutation.mutate(items);
+			clearSelection();
+		},
+		[
+			selectedRowIdx,
+			selectedColRange,
+			nurseRows,
+			normalizedDates,
+			batchMutation,
+			clearSelection,
+		],
+	);
+
+	// ── Pointer event delegation ──
+
+	useEffect(() => {
+		const el = parentRef.current;
+		if (!el) return;
+
+		const handlePointerDown = (e: PointerEvent) => {
+			const td = (e.target as HTMLElement).closest(
+				"[data-cell-idx]",
+			) as HTMLElement | null;
+			if (!td) {
+				clearSelection();
+				return;
+			}
+
+			const rowIdx = Number(td.getAttribute("data-row-idx"));
+			const colIdx = Number(td.getAttribute("data-col-idx"));
+
+			if (Number.isNaN(rowIdx) || Number.isNaN(colIdx)) {
+				clearSelection();
+				return;
+			}
+
+			// Lock to this row
+			dragRowRef.current = rowIdx;
+			dragAnchorColRef.current = colIdx;
+			setSelectedRowIdx(rowIdx);
+			setSelectedColRange([colIdx, colIdx]);
+			isDraggingRef.current = false;
+			pointerStartRef.current = { x: e.clientX, y: e.clientY };
+
+			el.setPointerCapture(e.pointerId);
+		};
+
+		const handlePointerMove = (e: PointerEvent) => {
+			if (dragRowRef.current === null) return;
+
+			if (!isDraggingRef.current) {
+				const start = pointerStartRef.current;
+				if (!start) return;
+				const dx = Math.abs(e.clientX - start.x);
+				const dy = Math.abs(e.clientY - start.y);
+				if (dx < DRAG_THRESHOLD && dy < DRAG_THRESHOLD) return;
+				isDraggingRef.current = true;
+			}
+
+			const elUnder = document.elementFromPoint(e.clientX, e.clientY);
+			const td = elUnder?.closest("[data-cell-idx]") as HTMLElement | null;
+			if (!td) return;
+
+			const rowIdx = Number(td.getAttribute("data-row-idx"));
+			const colIdx = Number(td.getAttribute("data-col-idx"));
+			if (Number.isNaN(rowIdx) || Number.isNaN(colIdx)) return;
+
+			// Ignore if moved to a different row
+			if (rowIdx !== dragRowRef.current) return;
+
+			const anchorCol = dragAnchorColRef.current ?? colIdx;
+			const minCol = Math.min(anchorCol, colIdx);
+			const maxCol = Math.max(anchorCol, colIdx);
+			setSelectedColRange([minCol, maxCol]);
+		};
+
+		const handlePointerUp = () => {
+			if (dragRowRef.current !== null && editable) {
+				setShowPopover(true);
+			}
+			isDraggingRef.current = false;
+		};
+
+		const handleKeyDown = (e: KeyboardEvent) => {
+			if (e.key === "Escape") {
+				clearSelection();
+			}
+		};
+
+		el.addEventListener("pointerdown", handlePointerDown);
+		el.addEventListener("pointermove", handlePointerMove);
+		el.addEventListener("pointerup", handlePointerUp);
+		window.addEventListener("keydown", handleKeyDown);
+
+		return () => {
+			el.removeEventListener("pointerdown", handlePointerDown);
+			el.removeEventListener("pointermove", handlePointerMove);
+			el.removeEventListener("pointerup", handlePointerUp);
+			window.removeEventListener("keydown", handleKeyDown);
+		};
+	}, [clearSelection, editable]);
+
+	// ── Popover data ──
+
+	const popoverInfo = useMemo(() => {
+		if (!showPopover || selectedRowIdx === null || selectedColRange === null)
+			return null;
+
+		const row = nurseRows[selectedRowIdx];
+		if (!row) return null;
+
+		const [minCol, maxCol] = selectedColRange;
+		const startDate = normalizedDates[minCol]?.dateStr ?? "";
+		const endDate = normalizedDates[maxCol]?.dateStr ?? "";
+
+		return {
+			nurseName: row.nurse.name,
+			startDate,
+			endDate,
+		};
+	}, [
+		showPopover,
+		selectedRowIdx,
+		selectedColRange,
+		nurseRows,
+		normalizedDates,
+	]);
+
+	// ── Render ──
 
 	if ((isLoading || isGenerating) && !schedules?.nurseRows?.length) {
 		return <RosterTableSkeleton />;
@@ -92,7 +301,10 @@ export function RosterTable({
 				>
 					<table
 						data-testid="roster-table"
-						className="w-full table-fixed border-separate border-spacing-0"
+						className={cn(
+							"w-full table-fixed border-separate border-spacing-0",
+							hasSelection && "select-none",
+						)}
 					>
 						<thead>
 							<tr>
@@ -190,30 +402,40 @@ export function RosterTable({
 											const date = normalizedDates[vc.index];
 											const dateKey = date.dateStr;
 											const shift = assignments[dateKey];
+											const cellKey = `${nurse.id}:${dateKey}`;
+											const isSelected = selectedDateKeys.has(cellKey);
 											return (
 												<td
 													key={dateKey}
-													className="border-gray-200"
+													data-cell-idx
+													data-row-idx={virtualRow.index}
+													data-col-idx={vc.index}
+													className={cn(
+														"border-gray-200",
+														isSelected && "bg-blue-100",
+													)}
 													style={{
 														width: LAYOUT.cellWidth,
 														height: LAYOUT.rowHeight,
 													}}
 												>
 													<div
-														className="flex h-full items-center justify-center border-r border-b bg-white"
+														className={cn(
+															"flex h-full items-center justify-center border-r border-b transition-colors",
+															editable && "cursor-pointer",
+															isSelected && "border-blue-200 bg-blue-100",
+														)}
 														style={{
 															width: LAYOUT.cellWidth,
 															height: LAYOUT.rowHeight,
 														}}
 													>
-														<ShiftBadge
+														<ShiftCellBadge
 															type={shift?.shiftType ?? "off"}
 															nurseName={nurse?.name ?? "Nurse"}
 															nurseId={nurse.id}
 															date={dateKey}
-															assignmentId={shift?.id}
-															shifts={shifts}
-															editable={editable}
+															isSelected={isSelected}
 														/>
 													</div>
 												</td>
@@ -249,6 +471,16 @@ export function RosterTable({
 					className="border-gray-200/60 border-t"
 				/>
 			</div>
+
+			{popoverInfo && (
+				<SelectionPopover
+					nurseName={popoverInfo.nurseName}
+					startDateStr={popoverInfo.startDate}
+					endDateStr={popoverInfo.endDate}
+					onSelect={handlePopoverSelect}
+					onDismiss={clearSelection}
+				/>
+			)}
 		</div>
 	);
 }

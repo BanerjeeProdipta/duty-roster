@@ -1,0 +1,1 @@
+ALTER TABLE "nurse" ADD COLUMN "sort_order" integer;

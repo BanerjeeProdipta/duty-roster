@@ -17,20 +17,23 @@ export function ActiveToggle({
 	onToggle,
 }: ActiveToggleProps) {
 	return (
-		<Switch
-			checked={active}
-			disabled={isPending}
-			onCheckedChange={onToggle}
-			className={cn("group", isPending && "opacity-70")}
-			style={
-				{
-					"--switch-width": "1.75rem",
-					"--switch-height": "1rem",
-					"--switch-thumb-size": "0.75rem",
-				} as CSSProperties
-			}
-		>
-			{isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
-		</Switch>
+		<div className="relative inline-flex items-center justify-center">
+			<Switch
+				checked={active}
+				disabled={isPending}
+				onCheckedChange={onToggle}
+				className={cn(isPending && "opacity-40")}
+				style={
+					{
+						"--switch-width": "2.5rem",
+						"--switch-height": "1.375rem",
+						"--switch-thumb-size": "1.125rem",
+					} as CSSProperties
+				}
+			/>
+			{isPending && (
+				<Loader2 className="absolute h-3.5 w-3.5 animate-spin text-accent-primary" />
+			)}
+		</div>
 	);
 }

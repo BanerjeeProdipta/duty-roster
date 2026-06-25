@@ -50,6 +50,8 @@ export const schedulesResponseSchema = z.object({
 				id: z.string(),
 				name: z.string(),
 				active: z.boolean().optional(),
+				designation: z.string().optional(),
+				sortOrder: z.number().optional(),
 			}),
 			assignments: z.record(
 				z.string(),
@@ -68,6 +70,11 @@ export const schedulesResponseSchema = z.object({
 	shiftRequirements: shiftCountsSchema,
 	assignedShiftCounts: shiftCountsSchema,
 	preferenceCapacity: shiftCountsSchema,
+	adjustedPreferenceCapacity: shiftCountsSchema,
+	coverageConfig: z.object({
+		weekday: shiftCountsSchema,
+		friday: shiftCountsSchema,
+	}),
 	nurseCounts: z
 		.object({
 			total: z.number(),

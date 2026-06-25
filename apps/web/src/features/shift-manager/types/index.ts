@@ -6,6 +6,8 @@ export interface NurseState {
 	night: number;
 	off: number;
 	active: boolean;
+	designation?: string | null;
+	sortOrder?: number | null;
 }
 
 export interface PreferenceUpdate {

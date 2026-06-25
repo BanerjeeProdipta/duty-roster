@@ -3,9 +3,12 @@ import type { SchedulesResponse } from "./schema";
 
 import {
 	buildCoverageForMonth,
+	computeAdjustedPrefMetrics,
+	computeShiftCoverage,
 	FRIDAY_OFF_NURSES,
 	getDaysCountFromStartAndEndDate,
 	getDaysInMonth,
+	getFridayAndWeekdayCounts,
 	getFridayIndicesForMonth,
 	getShiftRequirementsForRange,
 	normalizeDateKey,
@@ -52,15 +55,32 @@ export async function updateNurse({
 	nurseId,
 	name,
 	active,
+	designation,
+	sortOrder,
 }: {
 	nurseId: string;
 	name?: string;
 	active?: boolean;
+	designation?: string;
+	sortOrder?: number;
 }) {
-	console.log("📝 updateNurse called:", { nurseId, name, active });
-	const data: { name?: string; active?: boolean } = {};
+	console.log("📝 updateNurse called:", {
+		nurseId,
+		name,
+		active,
+		designation,
+		sortOrder,
+	});
+	const data: {
+		name?: string;
+		active?: boolean;
+		designation?: string;
+		sortOrder?: number;
+	} = {};
 	if (name !== undefined) data.name = name;
 	if (active !== undefined) data.active = active;
+	if (designation !== undefined) data.designation = designation;
+	if (sortOrder !== undefined) data.sortOrder = sortOrder;
 	if (Object.keys(data).length > 0) {
 		console.log("📝 Updating nurse in DB:", { nurseId, data });
 		await rosterDb.updateNurse(nurseId, data);
@@ -272,6 +292,12 @@ export async function prefillDefault(
 	await rosterDb.upsertNurseShiftPreferences(preferences, totalDays);
 	return { success: true, updated: activeNurses.length };
 }
+// ───────────── SEARCH ─────────────
+
+export async function searchNurseNames(query: string) {
+	return rosterDb.searchNurseNames(query);
+}
+
 // ───────────── SCHEDULES ─────────────
 
 export async function getShifts() {
@@ -323,8 +349,12 @@ export async function getSchedulesByDateRange(
 		rosterDb.countActiveNurses(searchQuery),
 	]);
 
-	const { dailyShiftCounts, assignedShiftCounts, preferenceCapacity } =
-		aggregateStats;
+	const {
+		dailyShiftCounts,
+		assignedShiftCounts,
+		preferenceCapacity,
+		rawNursePreferences,
+	} = aggregateStats;
 
 	// Debug: check what dates are in results
 	const allDates = new Set<string>();
@@ -371,11 +401,20 @@ export async function getSchedulesByDateRange(
 			((Number(row.prefNight) || 0) / 100) * totalDays,
 		);
 
+		const adjusted = computeAdjustedPrefMetrics(
+			preferenceMorning,
+			preferenceEvening,
+			preferenceNight,
+			totalDays,
+		);
+
 		return {
 			nurse: {
 				id: row.id as string,
 				name: row.name as string,
 				active: row.active as boolean,
+				designation: (row as any).designation ?? undefined,
+				sortOrder: (row as any).sortOrder ?? undefined,
 			},
 			assignedShiftMetrics: {
 				morning: Number(row.shiftMorning),
@@ -384,12 +423,7 @@ export async function getSchedulesByDateRange(
 				total: Number(row.totalAssigned),
 			},
 			assignments,
-			preferenceWiseShiftMetrics: {
-				morning: preferenceMorning,
-				evening: preferenceEvening,
-				night: preferenceNight,
-				total: preferenceMorning + preferenceEvening + preferenceNight,
-			},
+			preferenceWiseShiftMetrics: adjusted,
 		};
 	});
 
@@ -401,6 +435,40 @@ export async function getSchedulesByDateRange(
 		shiftRequirements.morning +
 		shiftRequirements.evening +
 		shiftRequirements.night;
+
+	// ─── Adjusted preference capacity (respects 5-off-day constraint) ───
+	const adjustedPreferenceCapacity = {
+		morning: 0,
+		evening: 0,
+		night: 0,
+		total: 0,
+	};
+	for (const raw of rawNursePreferences) {
+		const adj = computeAdjustedPrefMetrics(
+			raw.morning,
+			raw.evening,
+			raw.night,
+			totalDays,
+		);
+		adjustedPreferenceCapacity.morning += adj.morning;
+		adjustedPreferenceCapacity.evening += adj.evening;
+		adjustedPreferenceCapacity.night += adj.night;
+		adjustedPreferenceCapacity.total += adj.total;
+	}
+
+	// ─── Dynamic coverage config from adjusted preference totals ───
+	const { fridayCount, weekdayCount } = getFridayAndWeekdayCounts(
+		startDate,
+		endDate,
+	);
+	const coverageConfig = computeShiftCoverage(
+		adjustedPreferenceCapacity.morning,
+		adjustedPreferenceCapacity.evening,
+		adjustedPreferenceCapacity.night,
+		weekdayCount,
+		fridayCount,
+		0.15,
+	);
 
 	// ─────────────── PAGINATION ───────────────
 	const pagination =
@@ -419,6 +487,8 @@ export async function getSchedulesByDateRange(
 		shiftRequirements,
 		assignedShiftCounts,
 		preferenceCapacity,
+		adjustedPreferenceCapacity,
+		coverageConfig,
 		nurseCounts: {
 			total: totalNurses,
 			active: activeNurses,
@@ -467,6 +537,52 @@ export async function upsertSchedule(
 		oldShiftType,
 		newShiftType: resultShiftType,
 	};
+}
+
+export async function batchUpsertSchedules(
+	items: {
+		id: string;
+		shiftId: string | null;
+		nurseId: string;
+		dateKey: string;
+	}[],
+): Promise<ShiftUpdateResult[]> {
+	const existingIds = items.filter((i) => i.id !== "new").map((i) => i.id);
+	const existing =
+		existingIds.length > 0
+			? await rosterDb.findSchedulesByIds(existingIds)
+			: [];
+	const existingMap = new Map(existing.map((s) => [s.id, s]));
+
+	const results: ShiftUpdateResult[] = [];
+	const dbItems: {
+		id: string;
+		nurseId: string;
+		dateKey: string;
+		shiftId: string | null;
+	}[] = [];
+
+	for (const item of items) {
+		const existingSchedule = existingMap.get(item.id);
+		const oldShiftType = existingSchedule?.shiftId
+			? shiftIdToShiftType(existingSchedule.shiftId as string)
+			: null;
+
+		const id =
+			item.id === "new" ? `schedule_${item.nurseId}_${item.dateKey}` : item.id;
+
+		dbItems.push({ ...item, id });
+		results.push({
+			id,
+			dateKey: item.dateKey,
+			nurseId: item.nurseId,
+			oldShiftType,
+			newShiftType: shiftIdToShiftType(item.shiftId),
+		});
+	}
+
+	await rosterDb.batchUpsertSchedules(dbItems);
+	return results;
 }
 
 // ───────────── GENERATE ROSTER ─────────────
@@ -596,10 +712,16 @@ export async function generateRoster({ year, month }: GenerateRosterParams) {
 		{ morning: number; evening: number; night: number }
 	> = {};
 
-	const maxShiftsPerType: Record<
-		string,
-		{ morning: number; evening: number; night: number }
-	> = {};
+	// ── Preference target adjustment ──────────────────────────────
+	// Match the display-side adjustment in the /roster endpoint:
+	// force total target per nurse to totalDays - MAX_PREF_OFF (e.g. 25
+	// for 30 days).  Evening/night targets are kept as-is (or scaled
+	// down if they exceed the total), morning absorbs the remainder.
+	// This ensures `assigned == pref` in the roster table display.
+	const MAX_PREF_OFF = 5;
+	const desiredPrefTotal = Math.max(0, totalDays - MAX_PREF_OFF);
+
+	const maxShiftsPerType: Record<string, Record<string, number>> = {};
 
 	for (const [nurseId, prefs] of nurseShiftPreferenceMap.entries()) {
 		// Use preference weights directly
@@ -609,20 +731,37 @@ export async function generateRoster({ year, month }: GenerateRosterParams) {
 			night: prefs.shift_night ?? 0,
 		};
 
-		// HARD CAP: percentage / 100 * totalDays = max shifts of that type
-		// Use floor to be conservative - never exceed
-		// If weight is 0 or not set, nurse won't get that shift type (use -1 to block completely)
 		const morningWeight = prefs.shift_morning ?? 0;
 		const eveningWeight = prefs.shift_evening ?? 0;
 		const nightWeight = prefs.shift_night ?? 0;
 
-		maxShiftsPerType[nurseId] = {
-			morning:
-				morningWeight > 0 ? Math.round((morningWeight / 100) * totalDays) : -1,
-			evening:
-				eveningWeight > 0 ? Math.round((eveningWeight / 100) * totalDays) : -1,
-			night: nightWeight > 0 ? Math.round((nightWeight / 100) * totalDays) : -1,
-		};
+		// Compute raw round targets (same as display endpoint)
+		const rawMorning = Math.round((morningWeight / 100) * totalDays);
+		const rawEvening = Math.round((eveningWeight / 100) * totalDays);
+		const rawNight = Math.round((nightWeight / 100) * totalDays);
+
+		// Apply display-side adjustment: cap total to desiredPrefTotal
+		let adjEvening = rawEvening;
+		let adjNight = rawNight;
+
+		const sumEN = rawEvening + rawNight;
+		if (sumEN > desiredPrefTotal && sumEN > 0) {
+			const scale = desiredPrefTotal / sumEN;
+			adjEvening = Math.floor(rawEvening * scale);
+			adjNight = Math.floor(rawNight * scale);
+		}
+
+		const adjMorning = Math.max(0, desiredPrefTotal - (adjEvening + adjNight));
+
+		const caps: Record<string, number> = {};
+		if (adjMorning > 0) caps.morning = adjMorning;
+		if (adjEvening > 0) caps.evening = adjEvening;
+		if (adjNight > 0) caps.night = adjNight;
+		maxShiftsPerType[nurseId] = caps;
+
+		console.log(
+			`   📐 ${nurseId}: ${morningWeight}/${eveningWeight}/${nightWeight} → raw ${rawMorning}/${rawEvening}/${rawNight} → adj ${adjMorning}/${adjEvening}/${adjNight} (total=${adjMorning + adjEvening + adjNight})`,
+		);
 	}
 
 	// Log all nurses' preferences
@@ -640,9 +779,20 @@ export async function generateRoster({ year, month }: GenerateRosterParams) {
 	}
 
 	// ─────────────────────────────────────────────
-	// 2. Build per-day coverage (IMPORTANT FIX)
+	// 2. Find all Friday indices in the month
+	// ─────────────────────────────────────────────
+	const fridayIndices = getFridayIndicesForMonth(year, month);
+	console.log(
+		`📅 Found ${fridayIndices.length} Fridays at indices: ${fridayIndices}`,
+	);
+
+	// ─────────────────────────────────────────────
+	// 3. Build per-day coverage
 	// ─────────────────────────────────────────────
 	const coverage = buildCoverageForMonth(year, month);
+
+	console.log("📊 Day 0 coverage:", coverage[0]);
+	console.log("📊 Day 1 coverage:", coverage[1]);
 
 	const totalRequiredShifts = coverage.reduce(
 		(sum, day) => sum + day.morning + day.evening + day.night,
@@ -662,14 +812,6 @@ export async function generateRoster({ year, month }: GenerateRosterParams) {
 		};
 	}
 
-	// Find all Friday indices in the month
-	const fridayIndices = getFridayIndicesForMonth(year, month);
-	console.log(
-		`📅 Found ${fridayIndices.length} Fridays at indices: ${fridayIndices}`,
-	);
-	console.log("📊 Day 0 coverage:", coverage[0]);
-	console.log("📊 Day 1 coverage:", coverage[1]);
-
 	const solverPayload = {
 		nurses,
 		days: totalDays,
@@ -677,6 +819,7 @@ export async function generateRoster({ year, month }: GenerateRosterParams) {
 		preferences,
 		max_shifts_per_type: maxShiftsPerType,
 		coverage,
+		friday_indices: fridayIndices,
 		constraints: {
 			max_consecutive_nights: ROSTER_CONFIG.CONSTRAINTS.MAX_CONSECUTIVE_NIGHTS,
 			max_consecutive_days: ROSTER_CONFIG.CONSTRAINTS.MAX_CONSECUTIVE_DAYS,

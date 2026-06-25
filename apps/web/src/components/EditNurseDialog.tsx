@@ -18,19 +18,14 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { trpcClient } from "@/utils/trpc";
 
-const editNurseSchema = z
-	.object({
-		name: z.string().min(1, "Name is required"),
-		morning: z.number().int().min(0).max(100),
-		evening: z.number().int().min(0).max(100),
-		night: z.number().int().min(0).max(100),
-	})
-	.refine((d) => d.morning + d.evening + d.night <= 100, {
-		message: "Total must not exceed 100",
-		path: ["night"],
-	});
-
-type EditNurseForm = z.infer<typeof editNurseSchema>;
+// We'll build a schema inside the component so we can validate against `totalDays`
+type EditNurseForm = {
+	name: string;
+	designation?: string | undefined;
+	morning: number;
+	evening: number;
+	night: number;
+};
 
 interface EditNurseDialogProps {
 	nurse: {
@@ -39,6 +34,8 @@ interface EditNurseDialogProps {
 		morning: number;
 		evening: number;
 		night: number;
+		sortOrder?: number | null;
+		designation?: string | null;
 		active: boolean;
 	};
 	totalDays: number;
@@ -54,9 +51,19 @@ export function EditNurseDialog({
 }: EditNurseDialogProps) {
 	const queryClient = useQueryClient();
 
-	const initialMorning = Math.round((nurse.morning / totalDays) * 100);
-	const initialEvening = Math.round((nurse.evening / totalDays) * 100);
-	const initialNight = Math.round((nurse.night / totalDays) * 100);
+	// Build a zod schema that validates counts against `totalDays`.
+	const editNurseSchema = z
+		.object({
+			name: z.string().min(1, "Name is required"),
+			designation: z.string().optional(),
+			morning: z.number().int().min(0).max(totalDays),
+			evening: z.number().int().min(0).max(totalDays),
+			night: z.number().int().min(0).max(totalDays),
+		})
+		.refine((d) => d.morning + d.evening + d.night <= totalDays, {
+			message: `Total must not exceed ${totalDays}`,
+			path: ["night"],
+		});
 
 	const {
 		register,
@@ -68,9 +75,11 @@ export function EditNurseDialog({
 		mode: "onChange",
 		defaultValues: {
 			name: nurse.name,
-			morning: initialMorning,
-			evening: initialEvening,
-			night: initialNight,
+			designation: nurse.designation ?? "",
+			// show absolute counts (not weighted percentages)
+			morning: nurse.morning,
+			evening: nurse.evening,
+			night: nurse.night,
 		},
 	});
 
@@ -79,9 +88,10 @@ export function EditNurseDialog({
 		if (open) {
 			reset({
 				name: nurse.name,
-				morning: Math.round((nurse.morning / totalDays) * 100),
-				evening: Math.round((nurse.evening / totalDays) * 100),
-				night: Math.round((nurse.night / totalDays) * 100),
+				designation: nurse.designation ?? "",
+				morning: nurse.morning,
+				evening: nurse.evening,
+				night: nurse.night,
 			});
 		}
 	}, [open, nurse, totalDays, reset]);
@@ -89,29 +99,35 @@ export function EditNurseDialog({
 	const { mutate, isPending } = useMutation({
 		mutationKey: ["edit-nurse", nurse.nurseId],
 		mutationFn: async (data: EditNurseForm) => {
+			// Convert absolute counts back to percentage weights expected by backend
+			const morningWeight = Math.round((data.morning / totalDays) * 100);
+			const eveningWeight = Math.round((data.evening / totalDays) * 100);
+			const nightWeight = Math.round((data.night / totalDays) * 100);
+
 			await Promise.all([
 				trpcClient.roster.updateNurse.mutate({
 					nurseId: nurse.nurseId,
 					name: data.name,
+					designation: data.designation,
 				}),
 				trpcClient.roster.updateNurseShiftPreferences.mutate({
 					preferences: [
 						{
 							nurseId: nurse.nurseId,
 							shiftId: "shift_morning",
-							weight: data.morning,
+							weight: morningWeight,
 							active: nurse.active,
 						},
 						{
 							nurseId: nurse.nurseId,
 							shiftId: "shift_evening",
-							weight: data.evening,
+							weight: eveningWeight,
 							active: nurse.active,
 						},
 						{
 							nurseId: nurse.nurseId,
 							shiftId: "shift_night",
-							weight: data.night,
+							weight: nightWeight,
 							active: nurse.active,
 						},
 					],
@@ -156,16 +172,42 @@ export function EditNurseDialog({
 								</p>
 							)}
 						</div>
+						<div className="flex flex-row gap-4">
+							<div className="flex w-1/3 flex-col gap-1.5">
+								<Label htmlFor="edit-order">Order</Label>
+								<Input
+									id="edit-order"
+									placeholder="Order"
+									value={nurse.sortOrder ?? ""}
+									readOnly
+								/>
+							</div>
+							<div className="flex w-2/3 flex-col gap-1.5">
+								<Label htmlFor="edit-designation">Designation</Label>
+								<Input
+									id="edit-designation"
+									placeholder="Designation"
+									{...register("designation")}
+								/>
+								{errors.designation && (
+									<p className="text-destructive text-xs">
+										{errors.designation.message}
+									</p>
+								)}
+							</div>
+						</div>
 						<div className="flex flex-col gap-1.5">
 							<Label htmlFor="edit-morning">
 								Morning preference{" "}
-								<span className="font-normal text-gray-400">(0-100)</span>
+								<span className="font-normal text-gray-400">
+									(0-{totalDays})
+								</span>
 							</Label>
 							<Input
 								id="edit-morning"
 								type="number"
 								min={0}
-								max={100}
+								max={totalDays}
 								{...register("morning", { valueAsNumber: true })}
 							/>
 							{errors.morning && (
@@ -177,13 +219,15 @@ export function EditNurseDialog({
 						<div className="flex flex-col gap-1.5">
 							<Label htmlFor="edit-evening">
 								Evening preference{" "}
-								<span className="font-normal text-gray-400">(0-100)</span>
+								<span className="font-normal text-gray-400">
+									(0-{totalDays})
+								</span>
 							</Label>
 							<Input
 								id="edit-evening"
 								type="number"
 								min={0}
-								max={100}
+								max={totalDays}
 								{...register("evening", { valueAsNumber: true })}
 							/>
 							{errors.evening && (
@@ -195,13 +239,15 @@ export function EditNurseDialog({
 						<div className="flex flex-col gap-1.5">
 							<Label htmlFor="edit-night">
 								Night preference{" "}
-								<span className="font-normal text-gray-400">(0-100)</span>
+								<span className="font-normal text-gray-400">
+									(0-{totalDays})
+								</span>
 							</Label>
 							<Input
 								id="edit-night"
 								type="number"
 								min={0}
-								max={100}
+								max={totalDays}
 								{...register("night", { valueAsNumber: true })}
 							/>
 							{errors.night && (

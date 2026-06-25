@@ -23,6 +23,11 @@ export function useShiftAllocations(
 		return {
 			nurseId: row.nurse.id,
 			name: row.nurse.name,
+			designation: (row.nurse as any).designation ?? undefined,
+			sortOrder:
+				(row.nurse as any).sortOrder ??
+				(row.nurse as any).sort_order ??
+				undefined,
 			morning: pref.morning,
 			evening: pref.evening,
 			night: pref.night,

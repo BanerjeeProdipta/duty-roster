@@ -1,5 +1,5 @@
 import { db, schema } from "@Duty-Roster/db";
-import { and, asc, desc, eq, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 
 const { nurse, nurseSchedule, shift, nurseShiftPreference } = schema;
 
@@ -16,12 +16,17 @@ export async function findAllNurses() {
 			createdAt: nurse.createdAt,
 		})
 		.from(nurse)
-		.orderBy(desc(nurse.active), nurse.name);
+		.orderBy(desc(nurse.active), asc(nurse.sortOrder), nurse.name);
 }
 
 export async function updateNurse(
 	nurseId: string,
-	data: { name?: string; active?: boolean },
+	data: {
+		name?: string;
+		active?: boolean;
+		designation?: string;
+		sortOrder?: number;
+	},
 ) {
 	const [row] = await db
 		.update(nurse)
@@ -100,13 +105,15 @@ export async function findSchedulesAndPreferencesByDateRange(
         nurse.id,
         nurse.name,
         nurse.active                                                 AS active,
+        nurse.sort_order                                             AS sort_order,
+        nurse.designation                                            AS designation,
         COALESCE(SUM(CASE WHEN nsp.shift_id = 'shift_morning' THEN nsp.weight ELSE 0 END), 0) AS morning,
         COALESCE(SUM(CASE WHEN nsp.shift_id = 'shift_evening' THEN nsp.weight ELSE 0 END), 0) AS evening,
         COALESCE(SUM(CASE WHEN nsp.shift_id = 'shift_night'   THEN nsp.weight ELSE 0 END), 0) AS night
       FROM nurse
       LEFT JOIN nurse_shift_preference nsp ON nurse.id = nsp.nurse_id
       WHERE ${searchCondition}
-      GROUP BY nurse.id, nurse.name
+      GROUP BY nurse.id, nurse.name, nurse.sort_order, nurse.designation
     ),
 
     nurse_assignments AS (
@@ -131,9 +138,11 @@ export async function findSchedulesAndPreferencesByDateRange(
     )
 
     SELECT
-      np.id,
-      np.name,
-      np.active,
+			np.id,
+			np.name,
+			np.active,
+      np.designation,
+      np.sort_order                                               AS "sortOrder",
       np.morning                                                    AS "prefMorning",
       np.evening                                                    AS "prefEvening",
       np.night                                                      AS "prefNight",
@@ -146,6 +155,7 @@ export async function findSchedulesAndPreferencesByDateRange(
     LEFT JOIN nurse_assignments na ON np.id = na.nurse_id
     ORDER BY
       np.active DESC NULLS LAST,
+      np.sort_order ASC NULLS LAST,
       np.name ASC
     LIMIT ${limit} OFFSET ${offset}
   `);
@@ -191,6 +201,7 @@ export async function getRosterAggregateStats(
 		night: number;
 		total: number;
 	};
+	rawNursePreferences: { morning: number; evening: number; night: number }[];
 }> {
 	const searchCondition = searchQuery
 		? sql`nurse.name ILIKE ${`%${searchQuery}%`}`
@@ -242,13 +253,14 @@ export async function getRosterAggregateStats(
 		assignedShiftCounts.total += row.total;
 	}
 
-	// 2. Preference capacity across ALL active nurses
+	// 2. Preference capacity across ALL active nurses (per-nurse raw values)
 	const days = totalDays ?? 30;
 	const prefRows = await db.execute(sql`
     SELECT
-      COALESCE(SUM(ROUND((morning_weight::numeric / 100) * ${days})), 0)::int  AS pref_morning,
-      COALESCE(SUM(ROUND((evening_weight::numeric / 100) * ${days})), 0)::int  AS pref_evening,
-      COALESCE(SUM(ROUND((night_weight::numeric / 100) * ${days})), 0)::int    AS pref_night
+      sub.id,
+      COALESCE(ROUND((morning_weight::numeric / 100) * ${days}), 0)::int  AS pref_morning,
+      COALESCE(ROUND((evening_weight::numeric / 100) * ${days}), 0)::int  AS pref_evening,
+      COALESCE(ROUND((night_weight::numeric / 100) * ${days}), 0)::int    AS pref_night
     FROM (
       SELECT
         nurse.id,
@@ -263,20 +275,35 @@ export async function getRosterAggregateStats(
     ) sub
   `);
 
-	const prefRow = prefRows.rows[0] as
-		| { pref_morning: number; pref_evening: number; pref_night: number }
-		| undefined;
-	const preferenceCapacity = {
-		morning: prefRow?.pref_morning ?? 0,
-		evening: prefRow?.pref_evening ?? 0,
-		night: prefRow?.pref_night ?? 0,
-		total:
-			(prefRow?.pref_morning ?? 0) +
-			(prefRow?.pref_evening ?? 0) +
-			(prefRow?.pref_night ?? 0),
-	};
+	const rawNursePreferences = (
+		prefRows.rows as {
+			pref_morning: number;
+			pref_evening: number;
+			pref_night: number;
+		}[]
+	).map((row) => ({
+		morning: Number(row.pref_morning),
+		evening: Number(row.pref_evening),
+		night: Number(row.pref_night),
+	}));
 
-	return { dailyShiftCounts, assignedShiftCounts, preferenceCapacity };
+	const preferenceCapacity = {
+		morning: rawNursePreferences.reduce((s, r) => s + r.morning, 0),
+		evening: rawNursePreferences.reduce((s, r) => s + r.evening, 0),
+		night: rawNursePreferences.reduce((s, r) => s + r.night, 0),
+		total: 0,
+	};
+	preferenceCapacity.total =
+		preferenceCapacity.morning +
+		preferenceCapacity.evening +
+		preferenceCapacity.night;
+
+	return {
+		dailyShiftCounts,
+		assignedShiftCounts,
+		preferenceCapacity,
+		rawNursePreferences,
+	};
 }
 
 export async function createNurse(
@@ -386,6 +413,33 @@ export async function findScheduleById(id: string) {
 	return row;
 }
 
+export async function findSchedulesByIds(ids: string[]) {
+	if (ids.length === 0) return [];
+	return db.select().from(nurseSchedule).where(inArray(nurseSchedule.id, ids));
+}
+
+export async function batchUpsertSchedules(
+	items: {
+		id: string;
+		nurseId: string;
+		dateKey: string;
+		shiftId: string | null;
+	}[],
+) {
+	if (items.length === 0) return;
+
+	const values = items
+		.map((s) => {
+			const date = new Date(`${s.dateKey}T00:00:00.000Z`);
+			return `('${s.id}', '${s.nurseId}', '${date.toISOString()}', ${s.shiftId ? `'${s.shiftId}'` : "NULL"})`;
+		})
+		.join(", ");
+
+	await db.execute(
+		sql`INSERT INTO nurse_schedule (id, nurse_id, date, shift_id) VALUES ${sql.raw(values)} ON CONFLICT (id) DO UPDATE SET shift_id = EXCLUDED.shift_id`,
+	);
+}
+
 // ─────────────── PREFERENCES (combined query) ───────────────
 
 /** Get all nurse preferences with nurse info */
@@ -403,7 +457,21 @@ export async function findAllPreferredShiftsByNurse() {
 		})
 		.from(nurseShiftPreference)
 		.innerJoin(nurse, eq(nurse.id, nurseShiftPreference.nurseId))
-		.orderBy(desc(nurseShiftPreference.active), asc(nurse.name));
+		.orderBy(
+			desc(nurseShiftPreference.active),
+			asc(nurse.sortOrder),
+			asc(nurse.name),
+		);
+}
+
+export async function searchNurseNames(query: string) {
+	const result = await db
+		.select({ id: nurse.id, name: nurse.name })
+		.from(nurse)
+		.where(sql`nurse.name ILIKE ${`%${query}%`}`)
+		.orderBy(asc(nurse.sortOrder), asc(nurse.name))
+		.limit(10);
+	return result;
 }
 
 /** Delete preferences for a list of nurse IDs */

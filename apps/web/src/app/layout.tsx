@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Noto_Sans_Bengali, Poppins, Sacramento } from "next/font/google";
 
 import "../index.css";
+import { Suspense } from "react";
 import Header from "@/components/navbar/header";
 import Providers from "@/components/provider";
 import ServiceWorkerRegistration from "@/components/service-worker";
@@ -78,7 +79,9 @@ export default function RootLayout({
 				<Providers>
 					<ServiceWorkerRegistration />
 					<div className="flex min-h-svh flex-col bg-gray-50 dark:bg-gray-950">
-						<Header />
+						<Suspense fallback={null}>
+							<Header />
+						</Suspense>
 						<main className="flex-1 p-4 lg:px-20 lg:py-6">{children}</main>
 					</div>
 				</Providers>

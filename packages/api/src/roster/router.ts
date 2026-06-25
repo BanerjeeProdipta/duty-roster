@@ -13,6 +13,11 @@ export const rosterRouter = router({
 		.output(z.array(shiftSchema))
 		.query(() => rosterService.getShifts()),
 
+	searchNurseNames: publicProcedure
+		.input(z.object({ q: z.string().min(1) }))
+		.output(z.array(z.object({ id: z.string(), name: z.string() })))
+		.query(({ input }) => rosterService.searchNurseNames(input.q)),
+
 	getSchedules: publicProcedure
 		.input(
 			z
@@ -101,12 +106,29 @@ export const rosterRouter = router({
 			return result;
 		}),
 
+	batchUpdateShifts: adminProcedure
+		.input(
+			z.array(
+				z.object({
+					id: z.string(),
+					shiftId: z.string().nullable(),
+					nurseId: z.string(),
+					dateKey: z.string(),
+				}),
+			),
+		)
+		.mutation(async ({ input }) => {
+			return rosterService.batchUpsertSchedules(input);
+		}),
+
 	updateNurse: adminProcedure
 		.input(
 			z.object({
 				nurseId: z.string(),
 				name: z.string().optional(),
 				active: z.boolean().optional(),
+				designation: z.string().optional(),
+				sortOrder: z.number().int().optional(),
 			}),
 		)
 		.mutation(({ input }) => rosterService.updateNurse(input)),

@@ -1,3 +1,4 @@
+import { ROSTER_CONFIG } from "@Duty-Roster/config/rosterConfig";
 import { cn } from "@Duty-Roster/ui/lib/utils";
 import { LAYOUT } from "./Layout";
 import { ShiftBadge } from "./ShiftBadge";
@@ -34,20 +35,29 @@ export function DayHeaderCell({
 			<div className="mt-1 flex items-center justify-center gap-0.5 border-gray-100 border-t pt-1.5">
 				<ShiftBadge
 					count={counts?.morning || 0}
-					min={isFriday ? 3 : 20}
-					max={isFriday ? 3 : 20}
+					min={
+						isFriday
+							? ROSTER_CONFIG.COVERAGE.FRIDAY.morning
+							: ROSTER_CONFIG.COVERAGE.WEEKDAY.morning
+					}
 					shiftType="morning"
 				/>
 				<ShiftBadge
 					count={counts?.evening || 0}
-					min={3}
-					max={3}
+					min={
+						isFriday
+							? ROSTER_CONFIG.COVERAGE.FRIDAY.evening
+							: ROSTER_CONFIG.COVERAGE.WEEKDAY.evening
+					}
 					shiftType="evening"
 				/>
 				<ShiftBadge
 					count={counts?.night || 0}
-					min={2}
-					max={2}
+					min={
+						isFriday
+							? ROSTER_CONFIG.COVERAGE.FRIDAY.night
+							: ROSTER_CONFIG.COVERAGE.WEEKDAY.night
+					}
 					shiftType="night"
 				/>
 			</div>
