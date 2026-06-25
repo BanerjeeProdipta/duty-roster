@@ -93,14 +93,19 @@ export default function Header() {
 				{!hasMounted || isPending ? (
 					<div className="ml-1 hidden h-8 w-20 animate-pulse rounded-md bg-gray-100 md:block dark:bg-gray-800" />
 				) : session?.user ? (
-					<Button
-						variant="secondary"
-						className="ml-1 hidden rounded-full text-foreground text-sm md:inline-flex"
-						onClick={handleSignOut}
-					>
-						<LogOut className="h-4 w-4" />
-						<span>{userName}</span>
-					</Button>
+					<div className="ml-1 hidden items-center gap-2 md:flex">
+						<span className="rounded-full bg-gray-100 px-2.5 py-0.5 font-medium text-gray-600 text-xs dark:bg-gray-800 dark:text-gray-400">
+							{(session.user as { role?: string })?.role ?? "user"}
+						</span>
+						<Button
+							variant="secondary"
+							className="rounded-full text-foreground text-sm"
+							onClick={handleSignOut}
+						>
+							<LogOut className="h-4 w-4" />
+							<span>{userName}</span>
+						</Button>
+					</div>
 				) : (
 					<Button
 						variant="secondary"
@@ -159,14 +164,19 @@ export default function Header() {
 							{isPending ? (
 								<div className="h-8 w-full animate-pulse rounded-md bg-gray-100 dark:bg-gray-800" />
 							) : session?.user ? (
-								<Button
-									variant="ghost"
-									className="mt-2 w-full justify-start"
-									onClick={handleSignOut}
-								>
-									<LogOut className="h-4 w-4" />
-									<span>{userName}</span>
-								</Button>
+								<div className="mt-2 flex items-center gap-2">
+									<span className="rounded-full bg-gray-100 px-2.5 py-0.5 font-medium text-gray-600 text-xs dark:bg-gray-800 dark:text-gray-400">
+										{(session.user as { role?: string })?.role ?? "user"}
+									</span>
+									<Button
+										variant="ghost"
+										className="flex-1 justify-start"
+										onClick={handleSignOut}
+									>
+										<LogOut className="h-4 w-4" />
+										<span>{userName}</span>
+									</Button>
+								</div>
 							) : (
 								<Button
 									variant="ghost"

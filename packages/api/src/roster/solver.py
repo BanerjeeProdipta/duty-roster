@@ -157,6 +157,26 @@ def solve(data, soft_override: Optional[set] = None):
             model.Add(sum(X[(n, d, s)] for n in nurses) >= coverage[d][s])
     
     # ════════════════════════════════════════════════════════════════════
+    # Per-day overstaffing penalty — spread surplus evenly across days
+    # instead of concentrating on low-coverage days (e.g. Friday).
+    # Allows up to OVERSTAFF_SLACK extra nurses per day without penalty;
+    # beyond that, each extra nurse costs OVERSTAFF_PENALTY in the
+    # objective.  This prevents dumping 5+ extra nurses on Friday.
+    # ════════════════════════════════════════════════════════════════════
+    OVERSTAFF_SLACK = 1
+    OVERSTAFF_PENALTY = 2000
+    day_overstaff_penalties = []
+    for d in range(days):
+        day_total = model.NewIntVar(0, len(nurses), f"day_total_{d}")
+        model.Add(day_total == sum(X[(n, d, s)] for n in nurses for s in shifts))
+        required_day_total = sum(coverage[d][s] for s in shifts)
+        day_over = model.NewIntVar(0, len(nurses), f"day_over_{d}")
+        model.Add(day_over >= day_total - required_day_total)
+        day_excess = model.NewIntVar(0, len(nurses), f"day_excess_{d}")
+        model.Add(day_excess >= day_over - OVERSTAFF_SLACK)
+        day_overstaff_penalties.append(-OVERSTAFF_PENALTY * day_excess)
+
+    # ════════════════════════════════════════════════════════════════════
     # Friday overstaffing — discouraged but not forbidden.
     # The solver may assign extra nurses on Friday to meet preference
     # targets.  A soft penalty in the objective discourages overstaffing
@@ -413,12 +433,14 @@ def solve(data, soft_override: Optional[set] = None):
     
     # Objective: preference satisfaction + workload fairness + night patterns
     #             + target deviation + zero-preference penalties
+    #             + day-overstaffing penalties
     objective = (
         sum(preference_terms)
         + sum(workload_penalties)
         + sum(nno_rewards)
         + sum(deviation_penalties)
         + sum(zero_pref_penalties)
+        + sum(day_overstaff_penalties)
     )
     model.Maximize(objective)
     

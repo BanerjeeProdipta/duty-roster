@@ -480,7 +480,11 @@ export async function getSchedulesByDateRange(
 		adjustedPreferenceCapacity.night,
 		weekdayCount,
 		fridayCount,
-		0.15,
+		{
+			morning: { weekday: 1.0, friday: 0.15 },
+			evening: { weekday: 0.6, friday: 0.4 },
+			night: { weekday: 0.5, friday: 0.5 },
+		},
 	);
 
 	// ─────────────── PAGINATION ───────────────

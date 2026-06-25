@@ -1,6 +1,6 @@
 export const ROSTER_CONFIG = {
 	COVERAGE: {
-		WEEKDAY: { morning: 23, evening: 4, night: 2 },
+		WEEKDAY: { morning: 22, evening: 4, night: 2 },
 		FRIDAY: { morning: 3, evening: 3, night: 2 },
 	},
 	CONSTRAINTS: {

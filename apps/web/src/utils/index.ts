@@ -66,7 +66,7 @@ export function getMonthDateRange(year?: number, month?: number) {
 
 export function getWeekdayCounts(year: number, month: number) {
 	const counts = { sun: 0, mon: 0, tue: 0, wed: 0, thu: 0, fri: 0, sat: 0 };
-	const lastDay = new Date(year, month - 1, 0).getDate();
+	const lastDay = new Date(year, month, 0).getDate();
 	for (let day = 1; day <= lastDay; day++) {
 		const date = new Date(year, month - 1, day);
 		const dow = date.getDay();

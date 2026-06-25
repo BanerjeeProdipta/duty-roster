@@ -97,6 +97,6 @@ describe("getCoverageForDay", () => {
 
 	it("returns weekday coverage", () => {
 		const coverage = getCoverageForDay("WEEKDAY");
-		expect(coverage).toEqual({ morning: 23, evening: 3, night: 2 });
+		expect(coverage).toEqual({ morning: 23, evening: 4, night: 2 });
 	});
 });

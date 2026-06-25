@@ -310,14 +310,16 @@ export function getFridayAndWeekdayCounts(
 	let fridayCount = 0;
 	let weekdayCount = 0;
 	const d = new Date(startDate);
-	while (d <= endDate) {
-		const dateStr = d.toISOString().split("T")[0] ?? "";
-		if (isFriday(dateStr)) {
+	d.setUTCHours(0, 0, 0, 0);
+	const end = new Date(endDate);
+	end.setUTCHours(0, 0, 0, 0);
+	while (d <= end) {
+		if (d.getUTCDay() === 5) {
 			fridayCount++;
 		} else {
 			weekdayCount++;
 		}
-		d.setDate(d.getDate() + 1);
+		d.setUTCDate(d.getUTCDate() + 1);
 	}
 	return { fridayCount, weekdayCount };
 }
@@ -378,41 +380,51 @@ export function computeAdjustedPrefMetrics(
 	};
 }
 
+export type ShiftCoverageWeights = {
+	morning: { weekday: number; friday: number };
+	evening: { weekday: number; friday: number };
+	night: { weekday: number; friday: number };
+};
+
 export function computeShiftCoverage(
 	morningTotal: number,
 	eveningTotal: number,
 	nightTotal: number,
 	weekdayCount: number,
 	fridayCount: number,
-	fridayFactor: number,
+	weights: ShiftCoverageWeights,
 ): {
 	weekday: { morning: number; evening: number; night: number; total: number };
 	friday: { morning: number; evening: number; night: number; total: number };
 } {
-	const denominator = weekdayCount + fridayCount * fridayFactor;
-	if (denominator <= 0) {
+	const dist = (
+		total: number,
+		w: { weekday: number; friday: number },
+	): { weekday: number; friday: number } => {
+		const denom = weekdayCount * w.weekday + fridayCount * w.friday;
+		if (denom <= 0) return { weekday: 0, friday: 0 };
 		return {
-			weekday: { morning: 0, evening: 0, night: 0, total: 0 },
-			friday: { morning: 0, evening: 0, night: 0, total: 0 },
+			weekday: (total * w.weekday) / denom,
+			friday: (total * w.friday) / denom,
 		};
-	}
+	};
 
-	const wdMorning = morningTotal / denominator;
-	const wdEvening = eveningTotal / denominator;
-	const wdNight = nightTotal / denominator;
+	const m = dist(morningTotal, weights.morning);
+	const e = dist(eveningTotal, weights.evening);
+	const n = dist(nightTotal, weights.night);
 
 	return {
 		weekday: {
-			morning: Math.round(wdMorning),
-			evening: Math.round(wdEvening),
-			night: Math.round(wdNight),
-			total: Math.round(wdMorning + wdEvening + wdNight),
+			morning: Math.round(m.weekday),
+			evening: Math.round(e.weekday),
+			night: Math.round(n.weekday),
+			total: Math.round(m.weekday + e.weekday + n.weekday),
 		},
 		friday: {
-			morning: Math.round(wdMorning * fridayFactor),
-			evening: Math.round(wdEvening * fridayFactor),
-			night: Math.round(wdNight * fridayFactor),
-			total: Math.round((wdMorning + wdEvening + wdNight) * fridayFactor),
+			morning: Math.round(m.friday),
+			evening: Math.round(e.friday),
+			night: Math.round(n.friday),
+			total: Math.round(m.friday + e.friday + n.friday),
 		},
 	};
 }
