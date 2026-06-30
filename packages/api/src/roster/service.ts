@@ -240,14 +240,14 @@ function parseCsvPreferences(csv: string): CsvPreference[] {
 	const preferences: CsvPreference[] = [];
 
 	for (let i = 1; i < lines.length; i++) {
-		const match = lines[i].match(/"([^"]+)","([^"]+)","([^"]+)","([^"]+)"/);
+		const match = lines[i]!.match(/"([^"]+)","([^"]+)","([^"]+)","([^"]+)"/);
 		if (!match) continue;
 
 		preferences.push({
-			nurse_id: match[1],
-			shift_id: match[2],
-			weight: Number.parseInt(match[3], 10),
-			active: match[4] === "true",
+			nurse_id: match[1]!,
+			shift_id: match[2]!,
+			weight: Number.parseInt(match[3]!, 10),
+			active: match[4]! === "true",
 		});
 	}
 
@@ -626,8 +626,8 @@ export async function generateRoster({ year, month }: GenerateRosterParams) {
 	const prevDateMinus1 = new Date(
 		Date.UTC(prevYear, prevMonth - 1, prevMonthTotalDays),
 	);
-	const dateMinus2Str = prevDateMinus2.toISOString().split("T")[0];
-	const dateMinus1Str = prevDateMinus1.toISOString().split("T")[0];
+	const dateMinus2Str = prevDateMinus2.toISOString().split("T")[0]!;
+	const dateMinus1Str = prevDateMinus1.toISOString().split("T")[0]!;
 
 	const prevSchedules = await rosterDb.findSchedulesAndPreferencesByDateRange(
 		prevDateMinus2,
