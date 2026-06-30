@@ -14,43 +14,52 @@ import { cn } from "@Duty-Roster/ui/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Coffee, Moon, Pencil, Sun, Sunset } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import type { NurseState } from "@/features/shift-manager/types";
 import { trpcClient } from "@/utils/trpc";
 
-type BulkUpdateForm = {
+type NurseEditForm = {
+	name?: string;
+	designation?: string;
 	morning: number;
 	evening: number;
 	night: number;
 	off: number;
 };
 
-type BulkMutationInput = {
-	morning: number | null;
-	evening: number | null;
-	night: number | null;
-};
-
-interface BulkUpdateDialogProps {
-	selectedNurses: NurseState[];
+interface NurseEditDialogProps {
+	nurses: NurseState[];
 	totalDays: number;
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
+	onSave?: (
+		nurseId: string,
+		morning: number,
+		evening: number,
+		night: number,
+	) => void;
 }
 
-export function BulkUpdateDialog({
-	selectedNurses,
+export function NurseEditDialog({
+	nurses,
 	totalDays,
 	open,
 	onOpenChange,
-}: BulkUpdateDialogProps) {
+	onSave,
+}: NurseEditDialogProps) {
+	const isBulk = nurses.length > 1;
+	const first = nurses[0];
 	const queryClient = useQueryClient();
 	const [editingFields, setEditingFields] = useState<Set<string>>(
 		() => new Set(),
 	);
+
+	useEffect(() => {
+		if (!open) setEditingFields(new Set());
+	}, [open]);
 
 	function toggleEdit(field: string) {
 		setEditingFields((prev) => {
@@ -61,35 +70,36 @@ export function BulkUpdateDialog({
 		});
 	}
 
-	useEffect(() => {
-		if (!open) setEditingFields(new Set());
-	}, [open]);
-
-	const bulkUpdateSchema = z
-		.object({
-			morning: z.number().int().min(0).max(totalDays),
-			evening: z.number().int().min(0).max(totalDays),
-			night: z.number().int().min(0).max(totalDays),
-			off: z.number().int().min(0).max(totalDays),
-		})
-		.refine((d) => d.morning + d.evening + d.night <= totalDays, {
-			message: `Total must not exceed ${totalDays}`,
-			path: ["night"],
-		});
-
-	const first = selectedNurses[0];
+	const editSchema = useMemo(
+		() =>
+			z
+				.object({
+					name: z.string().optional(),
+					designation: z.string().optional(),
+					morning: z.number().int().min(0).max(totalDays),
+					evening: z.number().int().min(0).max(totalDays),
+					night: z.number().int().min(0).max(totalDays),
+					off: z.number().int().min(0).max(totalDays),
+				})
+				.refine((d) => d.morning + d.evening + d.night <= totalDays, {
+					message: `Total must not exceed ${totalDays}`,
+					path: ["night"],
+				}),
+		[totalDays],
+	);
 
 	const {
 		register,
 		handleSubmit,
-		formState: { errors, isValid, dirtyFields },
+		formState: { errors, isValid },
 		reset,
 		control,
-		setValue,
-	} = useForm<BulkUpdateForm>({
-		resolver: zodResolver(bulkUpdateSchema),
+	} = useForm<NurseEditForm>({
+		resolver: zodResolver(editSchema),
 		mode: "onChange",
 		defaultValues: {
+			name: first?.name ?? "",
+			designation: first?.designation ?? "",
 			morning: first?.morning ?? 0,
 			evening: first?.evening ?? 0,
 			night: first?.night ?? 0,
@@ -99,10 +109,12 @@ export function BulkUpdateDialog({
 		},
 	});
 
+	const prevOpenRef = useMemo(() => ({ current: false }), []);
 	useEffect(() => {
-		if (open && first) {
-			lastTouched.current = null;
+		if (open && !prevOpenRef.current && first) {
 			reset({
+				name: first.name,
+				designation: first.designation ?? "",
 				morning: first.morning,
 				evening: first.evening,
 				night: first.night,
@@ -112,20 +124,35 @@ export function BulkUpdateDialog({
 				),
 			});
 		}
-	}, [open, first, totalDays, reset]);
+		prevOpenRef.current = open;
+	}, [open, totalDays, reset]); // eslint-disable-line react-hooks/exhaustive-deps
 
 	const { mutate, isPending } = useMutation({
-		mutationKey: ["bulk-update-nurses"],
-		mutationFn: async (changes: BulkMutationInput) => {
-			await Promise.all(
-				selectedNurses.map((nurse) => {
-					const morningVal =
-						changes.morning !== null ? changes.morning : nurse.morning;
-					const eveningVal =
-						changes.evening !== null ? changes.evening : nurse.evening;
-					const nightVal = changes.night !== null ? changes.night : nurse.night;
+		mutationKey: ["nurse-edit", isBulk ? "bulk" : first?.nurseId],
+		mutationFn: async (data: NurseEditForm) => {
+			const saves: Promise<unknown>[] = [];
 
-					return trpcClient.roster.updateNurseShiftPreferences.mutate({
+			if (!isBulk && first) {
+				saves.push(
+					trpcClient.roster.updateNurse.mutate({
+						nurseId: first.nurseId,
+						name: data.name ?? first.name,
+						designation: data.designation,
+					}),
+				);
+			}
+
+			for (const nurse of nurses) {
+				const morningVal = editingFields.has("morning")
+					? data.morning
+					: nurse.morning;
+				const eveningVal = editingFields.has("evening")
+					? data.evening
+					: nurse.evening;
+				const nightVal = editingFields.has("night") ? data.night : nurse.night;
+
+				saves.push(
+					trpcClient.roster.updateNurseShiftPreferences.mutate({
 						preferences: [
 							{
 								nurseId: nurse.nurseId,
@@ -147,59 +174,45 @@ export function BulkUpdateDialog({
 							},
 						],
 						daysInMonth: totalDays,
-					});
-				}),
-			);
+					}),
+				);
+			}
+
+			await Promise.all(saves);
 		},
-		onSuccess: () => {
+		onSuccess: (_data, variables) => {
 			setEditingFields(new Set());
 			toast.success(
-				`Updated ${selectedNurses.length} nurse${selectedNurses.length > 1 ? "s" : ""} successfully`,
+				isBulk
+					? `Updated ${nurses.length} nurses successfully`
+					: "Nurse updated successfully",
 			);
+			if (!isBulk && first) {
+				onSave?.(
+					first.nurseId,
+					variables.morning,
+					variables.evening,
+					variables.night,
+				);
+			}
 			onOpenChange(false);
 			queryClient.invalidateQueries({ queryKey: ["schedules"] });
 		},
 		onError: (error) => {
-			toast.error("Failed to update nurses", {
-				description: error instanceof Error ? error.message : "Unknown error",
-			});
+			toast.error(
+				isBulk ? "Failed to update nurses" : "Failed to update nurse",
+				{
+					description: error instanceof Error ? error.message : "Unknown error",
+				},
+			);
 		},
 	});
 
-	// ── Sync off ↔ morning ─────────────────────────────────
-
-	const lastTouched = useRef<"m" | "e" | "n" | "o" | null>(null);
-
-	const morningW = useWatch({ control, name: "morning" });
-	const eveningW = useWatch({ control, name: "evening" });
-	const nightW = useWatch({ control, name: "night" });
-	const offW = useWatch({ control, name: "off" });
-
-	const isFirstRender = useRef(true);
-
-	useEffect(() => {
-		if (isFirstRender.current) {
-			isFirstRender.current = false;
-			return;
-		}
-		if (lastTouched.current === "o") {
-			setValue("morning", Math.max(0, totalDays - eveningW - nightW - offW));
-		} else {
-			setValue("off", Math.max(0, totalDays - morningW - eveningW - nightW));
-		}
-	}, [morningW, eveningW, nightW, offW, totalDays, setValue]);
-
-	// ── Submit ──────────────────────────────────────────────
-
-	const onSubmit = (data: BulkUpdateForm) => {
-		mutate({
-			morning: dirtyFields.morning ? data.morning : null,
-			evening: dirtyFields.evening ? data.evening : null,
-			night: dirtyFields.night ? data.night : null,
-		});
+	const onSubmit = (data: NurseEditForm) => {
+		mutate(data);
 	};
 
-	// ── Register helpers ────────────────────────────────────
+	const nightW = useWatch({ control, name: "night" });
 
 	const fieldProps = {
 		morning: register("morning", { valueAsNumber: true }),
@@ -208,29 +221,72 @@ export function BulkUpdateDialog({
 		off: register("off", { valueAsNumber: true }),
 	};
 
-	const nurseNames = selectedNurses.map((n) => n.name).join(", ");
+	const hasEdits = editingFields.size > 0;
+	const title = isBulk ? `Bulk Update (${nurses.length} nurses)` : "Edit Nurse";
+	const nurseNames = nurses.map((n) => n.name).join(", ");
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent className="max-w-lg">
 				<form onSubmit={handleSubmit(onSubmit)}>
 					<DialogHeader>
-						<DialogTitle>
-							Bulk Update ({selectedNurses.length} nurse
-							{selectedNurses.length > 1 ? "s" : ""})
-						</DialogTitle>
+						<DialogTitle>{title}</DialogTitle>
 					</DialogHeader>
 					<div className="flex flex-col gap-4 py-4">
-						<div className="flex flex-col gap-1.5">
-							<Label>Selected Nurses</Label>
-							<div className="max-h-24 overflow-y-auto rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-gray-700 text-sm">
-								{nurseNames}
+						{isBulk && (
+							<div className="flex flex-col gap-1.5">
+								<Label>Selected Nurses</Label>
+								<div className="max-h-24 overflow-y-auto rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-gray-700 text-sm">
+									{nurseNames}
+								</div>
 							</div>
+						)}
+
+						{!isBulk && first && (
+							<>
+								<div className="flex flex-col gap-1.5">
+									<Label htmlFor="edit-name">Name</Label>
+									<Input
+										id="edit-name"
+										placeholder="Nurse name"
+										{...register("name")}
+									/>
+									{errors.name && (
+										<p className="text-destructive text-xs">
+											{errors.name.message as string}
+										</p>
+									)}
+								</div>
+
+								<div className="flex flex-row gap-4">
+									<div className="flex w-1/3 flex-col gap-1.5">
+										<Label htmlFor="edit-order">Order</Label>
+										<Input
+											id="edit-order"
+											placeholder="Order"
+											value={first.sortOrder ?? ""}
+											readOnly
+										/>
+									</div>
+									<div className="flex w-2/3 flex-col gap-1.5">
+										<Label htmlFor="edit-designation">Designation</Label>
+										<Input
+											id="edit-designation"
+											placeholder="Designation"
+											{...register("designation")}
+										/>
+									</div>
+								</div>
+							</>
+						)}
+
+						<div className="flex items-center justify-between">
+							<p className="font-medium text-sm">Shift Counts</p>
 						</div>
 						<div className="grid grid-cols-4 gap-3">
 							<div className="flex flex-col gap-1.5">
 								<div className="flex items-center justify-between">
-									<Label htmlFor="bulk-morning">
+									<Label htmlFor="edit-morning">
 										<div className="inline-flex items-center gap-1.5">
 											<div className="rounded bg-amber-200 p-1 text-amber-900">
 												<Sun className="h-4 w-4" />
@@ -252,7 +308,7 @@ export function BulkUpdateDialog({
 									</button>
 								</div>
 								<Input
-									id="bulk-morning"
+									id="edit-morning"
 									type="number"
 									min={0}
 									max={totalDays}
@@ -263,10 +319,7 @@ export function BulkUpdateDialog({
 											: undefined
 									}
 									{...fieldProps.morning}
-									onChange={(e) => {
-										fieldProps.morning.onChange(e);
-										lastTouched.current = "m";
-									}}
+									onChange={fieldProps.morning.onChange}
 								/>
 								{errors.morning && (
 									<p className="text-destructive text-xs">
@@ -276,7 +329,7 @@ export function BulkUpdateDialog({
 							</div>
 							<div className="flex flex-col gap-1.5">
 								<div className="flex items-center justify-between">
-									<Label htmlFor="bulk-evening">
+									<Label htmlFor="edit-evening">
 										<div className="inline-flex items-center gap-1.5">
 											<div className="rounded bg-blue-200 p-1 text-blue-900">
 												<Sunset className="h-4 w-4" />
@@ -298,7 +351,7 @@ export function BulkUpdateDialog({
 									</button>
 								</div>
 								<Input
-									id="bulk-evening"
+									id="edit-evening"
 									type="number"
 									min={0}
 									max={totalDays}
@@ -309,10 +362,7 @@ export function BulkUpdateDialog({
 											: undefined
 									}
 									{...fieldProps.evening}
-									onChange={(e) => {
-										fieldProps.evening.onChange(e);
-										lastTouched.current = "e";
-									}}
+									onChange={fieldProps.evening.onChange}
 								/>
 								{errors.evening && (
 									<p className="text-destructive text-xs">
@@ -322,7 +372,7 @@ export function BulkUpdateDialog({
 							</div>
 							<div className="flex flex-col gap-1.5">
 								<div className="flex items-center justify-between">
-									<Label htmlFor="bulk-night">
+									<Label htmlFor="edit-night">
 										<div className="inline-flex items-center gap-1.5">
 											<div className="rounded bg-violet-200 p-1 text-violet-900">
 												<Moon className="h-4 w-4" />
@@ -344,7 +394,7 @@ export function BulkUpdateDialog({
 									</button>
 								</div>
 								<Input
-									id="bulk-night"
+									id="edit-night"
 									type="number"
 									min={0}
 									max={totalDays}
@@ -355,10 +405,7 @@ export function BulkUpdateDialog({
 											: undefined
 									}
 									{...fieldProps.night}
-									onChange={(e) => {
-										fieldProps.night.onChange(e);
-										lastTouched.current = "n";
-									}}
+									onChange={fieldProps.night.onChange}
 								/>
 								{errors.night && (
 									<p className="text-destructive text-xs">
@@ -368,7 +415,7 @@ export function BulkUpdateDialog({
 							</div>
 							<div className="flex flex-col gap-1.5">
 								<div className="flex items-center justify-between">
-									<Label htmlFor="bulk-off">
+									<Label htmlFor="edit-off">
 										<div className="inline-flex items-center gap-1.5">
 											<div className="rounded bg-gray-200 p-1 text-gray-500">
 												<Coffee className="h-4 w-4" />
@@ -390,7 +437,7 @@ export function BulkUpdateDialog({
 									</button>
 								</div>
 								<Input
-									id="bulk-off"
+									id="edit-off"
 									type="number"
 									min={0}
 									max={totalDays}
@@ -401,10 +448,7 @@ export function BulkUpdateDialog({
 											: undefined
 									}
 									{...fieldProps.off}
-									onChange={(e) => {
-										fieldProps.off.onChange(e);
-										lastTouched.current = "o";
-									}}
+									onChange={fieldProps.off.onChange}
 								/>
 								{nightW >= 2 && (
 									<span className="inline-flex items-center gap-0.5 self-start rounded bg-violet-100 px-1.5 py-0.5 font-semibold text-[10px] text-violet-700">
@@ -429,9 +473,16 @@ export function BulkUpdateDialog({
 						</Button>
 						<Button
 							type="submit"
-							disabled={editingFields.size === 0 || !isValid || isPending}
+							disabled={
+								(!isBulk && (!hasEdits || !isValid || isPending)) ||
+								(isBulk && (editingFields.size === 0 || !isValid || isPending))
+							}
 						>
-							{isPending ? "Updating..." : "Update All"}
+							{isPending
+								? "Saving..."
+								: isBulk
+									? `Update All (${editingFields.size})`
+									: "Save Changes"}
 						</Button>
 					</DialogFooter>
 				</form>

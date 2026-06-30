@@ -13,9 +13,8 @@ import {
 import { cn } from "@Duty-Roster/ui/lib/utils";
 import { Coffee, Moon, Pencil, Sun, Sunset, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { BulkUpdateDialog } from "@/components/BulkUpdateDialog";
 import { DeleteNurseDialog } from "@/components/DeleteNurseDialog";
-import { EditNurseDialog } from "@/components/EditNurseDialog";
+import { NurseEditDialog } from "@/components/NurseEditDialog";
 import { useNurseCard } from "@/features/shift-manager/hooks/useNurseCard";
 import type { NurseState } from "@/features/shift-manager/types";
 import { ActiveToggle } from "../NurseCard/ActiveToggle";
@@ -221,8 +220,8 @@ export function NurseTable({
 					</TableBody>
 				</Table>
 			</div>
-			<BulkUpdateDialog
-				selectedNurses={selectedNurses}
+			<NurseEditDialog
+				nurses={selectedNurses}
 				totalDays={totalDays}
 				open={bulkDialogOpen}
 				onOpenChange={handleBulkDialogChange}
@@ -396,8 +395,8 @@ function NurseTableRow({
 					</div>
 				</TableCell>
 			</TableRow>
-			<EditNurseDialog
-				nurse={draft}
+			<NurseEditDialog
+				nurses={[draft]}
 				totalDays={totalDays}
 				open={editDialogOpen}
 				onOpenChange={setEditDialogOpen}
