@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@Duty-Roster/ui/components/button";
+import { Checkbox } from "@Duty-Roster/ui/components/checkbox";
 import {
 	Table,
 	TableBody,
@@ -11,7 +12,8 @@ import {
 } from "@Duty-Roster/ui/components/table";
 import { cn } from "@Duty-Roster/ui/lib/utils";
 import { Coffee, Moon, Pencil, Sun, Sunset, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { BulkUpdateDialog } from "@/components/BulkUpdateDialog";
 import { DeleteNurseDialog } from "@/components/DeleteNurseDialog";
 import { EditNurseDialog } from "@/components/EditNurseDialog";
 import { useNurseCard } from "@/features/shift-manager/hooks/useNurseCard";
@@ -36,62 +38,196 @@ export function NurseTable({
 	onShiftChange,
 	onActiveChange,
 }: NurseTableProps) {
+	const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+	const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
+
+	const allSelected = nurses.length > 0 && selectedIds.size === nurses.length;
+	const someSelected = selectedIds.size > 0 && !allSelected;
+
+	const pointerDownRef = useRef(false);
+	const pointerStartIdRef = useRef<string | null>(null);
+	const pointerBaseRef = useRef<Set<string> | null>(null);
+
+	useEffect(() => {
+		const up = () => {
+			pointerDownRef.current = false;
+			pointerStartIdRef.current = null;
+			pointerBaseRef.current = null;
+		};
+		window.addEventListener("pointerup", up);
+		return () => window.removeEventListener("pointerup", up);
+	}, []);
+
+	function selectRange(fromId: string, toId: string, base: Set<string>) {
+		const ids = nurses.map((n) => n.nurseId);
+		const fromIdx = ids.indexOf(fromId);
+		const toIdx = ids.indexOf(toId);
+		if (fromIdx === -1 || toIdx === -1) return base;
+		const [start, end] = fromIdx < toIdx ? [fromIdx, toIdx] : [toIdx, fromIdx];
+		const next = new Set(base);
+		for (let i = start; i <= end; i++) {
+			next.add(ids[i]);
+		}
+		return next;
+	}
+
+	const handleSelectAll = useCallback(
+		(checked: boolean) => {
+			if (checked) {
+				setSelectedIds(new Set(nurses.map((n) => n.nurseId)));
+			} else {
+				setSelectedIds(new Set());
+			}
+		},
+		[nurses],
+	);
+
+	const handlePointerDown = useCallback(
+		(nurseId: string, _shiftKey: boolean) => {
+			pointerDownRef.current = true;
+			pointerStartIdRef.current = nurseId;
+			pointerBaseRef.current = new Set(selectedIds);
+
+			setSelectedIds((prev) => {
+				const next = new Set(prev);
+				if (prev.has(nurseId)) {
+					next.delete(nurseId);
+				} else {
+					next.add(nurseId);
+				}
+				return next;
+			});
+		},
+		[nurses, selectedIds],
+	);
+
+	const handlePointerEnter = useCallback(
+		(nurseId: string) => {
+			if (
+				!pointerDownRef.current ||
+				!pointerStartIdRef.current ||
+				nurseId === pointerStartIdRef.current
+			)
+				return;
+			const base = pointerBaseRef.current ?? new Set();
+			setSelectedIds(selectRange(pointerStartIdRef.current, nurseId, base));
+		},
+		[nurses],
+	);
+
+	const handleCheckboxChange = useCallback(
+		(nurseId: string, checked: boolean) => {
+			setSelectedIds((prev) => {
+				const next = new Set(prev);
+				if (checked) {
+					next.add(nurseId);
+				} else {
+					next.delete(nurseId);
+				}
+				return next;
+			});
+		},
+		[],
+	);
+
+	const selectedNurses = nurses.filter((n) => selectedIds.has(n.nurseId));
+
+	const handleBulkDialogChange = useCallback((open: boolean) => {
+		setBulkDialogOpen(open);
+		if (!open) setSelectedIds(new Set());
+	}, []);
+
 	return (
-		<div className="overflow-hidden rounded-xl border bg-white">
-			<Table>
-				<TableHeader>
-					<TableRow className="bg-gray-50/50">
-						<TableHead className="w-70 text-center">Nurse</TableHead>
-						<TableHead className="text-center">Active</TableHead>
-						<TableHead className="text-center">
-							<div className="inline-flex items-center gap-1.5">
-								<div className="rounded bg-amber-200 p-1 text-amber-900">
-									<Sun className="h-4 w-4" />
+		<>
+			<div className="select-none overflow-hidden rounded-xl border bg-white">
+				<Table>
+					<TableHeader>
+						<TableRow className="bg-gray-50/50">
+							<TableHead className="w-10 text-center">
+								<Checkbox
+									checked={allSelected}
+									indeterminate={someSelected}
+									onCheckedChange={(checked: boolean) =>
+										handleSelectAll(checked)
+									}
+								/>
+							</TableHead>
+							<TableHead className="text-left">
+								<div className="flex items-center gap-2">
+									<span>Nurse</span>
+									{selectedIds.size > 0 && (
+										<Button
+											variant="ghost"
+											size="sm"
+											className="h-5 rounded-full px-2 font-normal text-[10px] leading-none hover:bg-transparent hover:text-blue-600"
+											onClick={() => setBulkDialogOpen(true)}
+										>
+											Update ({selectedIds.size})
+										</Button>
+									)}
 								</div>
-								M
-							</div>
-						</TableHead>
-						<TableHead className="text-center">
-							<div className="inline-flex items-center gap-1.5">
-								<div className="rounded bg-blue-200 p-1 text-blue-900">
-									<Sunset className="h-4 w-4" />
+							</TableHead>
+							<TableHead className="text-center">Active</TableHead>
+							<TableHead className="text-center">
+								<div className="inline-flex items-center gap-1.5">
+									<div className="rounded bg-amber-200 p-1 text-amber-900">
+										<Sun className="h-4 w-4" />
+									</div>
+									M
 								</div>
-								E
-							</div>
-						</TableHead>
-						<TableHead className="text-center">
-							<div className="inline-flex items-center gap-1.5">
-								<div className="rounded bg-violet-200 p-1 text-violet-900">
-									<Moon className="h-4 w-4" />
+							</TableHead>
+							<TableHead className="text-center">
+								<div className="inline-flex items-center gap-1.5">
+									<div className="rounded bg-blue-200 p-1 text-blue-900">
+										<Sunset className="h-4 w-4" />
+									</div>
+									E
 								</div>
-								N
-							</div>
-						</TableHead>
-						<TableHead className="text-center">
-							<div className="inline-flex items-center gap-1.5">
-								<div className="rounded bg-gray-200 p-1 text-gray-500">
-									<Coffee className="h-4 w-4" />
+							</TableHead>
+							<TableHead className="text-center">
+								<div className="inline-flex items-center gap-1.5">
+									<div className="rounded bg-violet-200 p-1 text-violet-900">
+										<Moon className="h-4 w-4" />
+									</div>
+									N
 								</div>
-								O
-							</div>
-						</TableHead>
-						<TableHead className="text-center">Total</TableHead>
-						<TableHead className="text-center">Action</TableHead>
-					</TableRow>
-				</TableHeader>
-				<TableBody>
-					{nurses.map((nurse) => (
-						<NurseTableRow
-							key={nurse.nurseId}
-							nurse={nurse}
-							totalDays={totalDays}
-							onShiftChange={onShiftChange}
-							onActiveChange={onActiveChange}
-						/>
-					))}
-				</TableBody>
-			</Table>
-		</div>
+							</TableHead>
+							<TableHead className="text-center">
+								<div className="inline-flex items-center gap-1.5">
+									<div className="rounded bg-gray-200 p-1 text-gray-500">
+										<Coffee className="h-4 w-4" />
+									</div>
+									O
+								</div>
+							</TableHead>
+							<TableHead className="text-center">Total</TableHead>
+							<TableHead className="text-center">Action</TableHead>
+						</TableRow>
+					</TableHeader>
+					<TableBody>
+						{nurses.map((nurse) => (
+							<NurseTableRow
+								key={nurse.nurseId}
+								nurse={nurse}
+								totalDays={totalDays}
+								onShiftChange={onShiftChange}
+								onActiveChange={onActiveChange}
+								selected={selectedIds.has(nurse.nurseId)}
+								onCheckboxChange={handleCheckboxChange}
+								onPointerDown={handlePointerDown}
+								onPointerEnter={handlePointerEnter}
+							/>
+						))}
+					</TableBody>
+				</Table>
+			</div>
+			<BulkUpdateDialog
+				selectedNurses={selectedNurses}
+				totalDays={totalDays}
+				open={bulkDialogOpen}
+				onOpenChange={handleBulkDialogChange}
+			/>
+		</>
 	);
 }
 
@@ -105,6 +241,10 @@ interface NurseTableRowProps {
 		night: number,
 	) => void;
 	onActiveChange?: (nurseId: string, active: boolean) => void;
+	selected: boolean;
+	onCheckboxChange: (nurseId: string, checked: boolean) => void;
+	onPointerDown: (nurseId: string, shiftKey: boolean) => void;
+	onPointerEnter: (nurseId: string) => void;
 }
 
 function NurseTableRow({
@@ -112,6 +252,10 @@ function NurseTableRow({
 	totalDays,
 	onShiftChange,
 	onActiveChange,
+	selected,
+	onCheckboxChange,
+	onPointerDown,
+	onPointerEnter,
 }: NurseTableRowProps) {
 	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 	const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -129,10 +273,24 @@ function NurseTableRow({
 		<>
 			<TableRow
 				className={cn(
+					"cursor-pointer",
 					isInvalid && "bg-red-50/30",
 					draft.active ? "bg-white" : "bg-gray-100",
 				)}
+				onPointerDown={(e) => onPointerDown(nurse.nurseId, e.shiftKey)}
+				onPointerEnter={() => onPointerEnter(nurse.nurseId)}
 			>
+				<TableCell
+					className="text-right"
+					onPointerDown={(e) => e.stopPropagation()}
+				>
+					<Checkbox
+						checked={selected}
+						onCheckedChange={(checked: boolean) =>
+							onCheckboxChange(nurse.nurseId, checked)
+						}
+					/>
+				</TableCell>
 				<TableCell>
 					<div className="flex items-center gap-2 pl-4">
 						<div className="relative h-4 w-4">
@@ -163,7 +321,10 @@ function NurseTableRow({
 						</div>
 					</div>
 				</TableCell>
-				<TableCell className="text-center">
+				<TableCell
+					className="text-center"
+					onPointerDown={(e) => e.stopPropagation()}
+				>
 					<ActiveToggle
 						active={draft.active}
 						isPending={isToggleActivePending}
@@ -212,7 +373,10 @@ function NurseTableRow({
 							variant="outline"
 							size="sm"
 							className="flex items-center gap-1 border-gray-200 font-medium text-gray-700 text-xs transition-all hover:bg-gray-50 hover:text-gray-900"
-							onClick={() => setEditDialogOpen(true)}
+							onPointerDown={(e) => {
+								e.stopPropagation();
+								setEditDialogOpen(true);
+							}}
 						>
 							<Pencil className="h-3.5 w-3.5" />
 							Edit
@@ -221,7 +385,10 @@ function NurseTableRow({
 							variant="outline"
 							size="sm"
 							className="flex items-center gap-1 border-red-100 font-medium text-red-500 text-xs transition-all hover:border-red-200 hover:bg-red-50 hover:text-red-600"
-							onClick={() => setDeleteDialogOpen(true)}
+							onPointerDown={(e) => {
+								e.stopPropagation();
+								setDeleteDialogOpen(true);
+							}}
 						>
 							<Trash2 className="h-3.5 w-3.5" />
 							Delete
@@ -234,6 +401,7 @@ function NurseTableRow({
 				totalDays={totalDays}
 				open={editDialogOpen}
 				onOpenChange={setEditDialogOpen}
+				onSave={onShiftChange}
 			/>
 			<DeleteNurseDialog
 				nurseId={nurse.nurseId}

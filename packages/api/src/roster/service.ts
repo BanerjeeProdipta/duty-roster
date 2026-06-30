@@ -1,6 +1,5 @@
 import * as rosterDb from "./db";
 import type { SchedulesResponse } from "./schema";
-
 import {
 	buildCoverageForMonth,
 	computeAdjustedPrefMetrics,
@@ -408,19 +407,6 @@ export async function getSchedulesByDateRange(
 			totalDays,
 		);
 
-		// If evening+night already exceed desired total, scale them down proportionally
-		// and set morning to whatever remains (may be zero).
-		const sumEN = preferenceEvening + preferenceNight;
-		if (sumEN > desiredPrefTotal && sumEN > 0) {
-			const scale = desiredPrefTotal / sumEN;
-			// Use Math.floor to avoid exceeding desired total, then assign leftover to morning
-			adjPrefEvening = Math.floor(preferenceEvening * scale);
-			adjPrefNight = Math.floor(preferenceNight * scale);
-			adjPrefMorning = Math.max(
-				0,
-				desiredPrefTotal - (adjPrefEvening + adjPrefNight),
-			);
-		}
 		return {
 			nurse: {
 				id: row.id as string,
