@@ -12,19 +12,20 @@ import { Input } from "@Duty-Roster/ui/components/input";
 import { Label } from "@Duty-Roster/ui/components/label";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useEffect } from "react";
-import { useForm } from "react-hook-form";
+import { Coffee, Moon, Pencil, PencilOff, Sun, Sunset } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { trpcClient } from "@/utils/trpc";
 
-// We'll build a schema inside the component so we can validate against `totalDays`
 type EditNurseForm = {
 	name: string;
 	designation?: string | undefined;
 	morning: number;
 	evening: number;
 	night: number;
+	off: number;
 };
 
 interface EditNurseDialogProps {
@@ -41,6 +42,12 @@ interface EditNurseDialogProps {
 	totalDays: number;
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
+	onSave?: (
+		nurseId: string,
+		morning: number,
+		evening: number,
+		night: number,
+	) => void;
 }
 
 export function EditNurseDialog({
@@ -48,10 +55,15 @@ export function EditNurseDialog({
 	totalDays,
 	open,
 	onOpenChange,
+	onSave,
 }: EditNurseDialogProps) {
 	const queryClient = useQueryClient();
+	const [isEditing, setIsEditing] = useState(false);
 
-	// Build a zod schema that validates counts against `totalDays`.
+	useEffect(() => {
+		if (!open) setIsEditing(false);
+	}, [open]);
+
 	const editNurseSchema = z
 		.object({
 			name: z.string().min(1, "Name is required"),
@@ -59,6 +71,7 @@ export function EditNurseDialog({
 			morning: z.number().int().min(0).max(totalDays),
 			evening: z.number().int().min(0).max(totalDays),
 			night: z.number().int().min(0).max(totalDays),
+			off: z.number().int().min(0).max(totalDays),
 		})
 		.refine((d) => d.morning + d.evening + d.night <= totalDays, {
 			message: `Total must not exceed ${totalDays}`,
@@ -70,28 +83,34 @@ export function EditNurseDialog({
 		handleSubmit,
 		formState: { errors, isValid },
 		reset,
+		control,
+		setValue,
 	} = useForm<EditNurseForm>({
 		resolver: zodResolver(editNurseSchema),
 		mode: "onChange",
 		defaultValues: {
 			name: nurse.name,
 			designation: nurse.designation ?? "",
-			// show absolute counts (not weighted percentages)
 			morning: nurse.morning,
 			evening: nurse.evening,
 			night: nurse.night,
+			off: Math.max(0, totalDays - nurse.morning - nurse.evening - nurse.night),
 		},
 	});
 
-	// Reset form values when nurse prop changes or dialog opens
 	useEffect(() => {
 		if (open) {
+			lastTouched.current = null;
 			reset({
 				name: nurse.name,
 				designation: nurse.designation ?? "",
 				morning: nurse.morning,
 				evening: nurse.evening,
 				night: nurse.night,
+				off: Math.max(
+					0,
+					totalDays - nurse.morning - nurse.evening - nurse.night,
+				),
 			});
 		}
 	}, [open, nurse, totalDays, reset]);
@@ -99,7 +118,6 @@ export function EditNurseDialog({
 	const { mutate, isPending } = useMutation({
 		mutationKey: ["edit-nurse", nurse.nurseId],
 		mutationFn: async (data: EditNurseForm) => {
-			// Convert absolute counts back to percentage weights expected by backend
 			const morningWeight = Math.round((data.morning / totalDays) * 100);
 			const eveningWeight = Math.round((data.evening / totalDays) * 100);
 			const nightWeight = Math.round((data.night / totalDays) * 100);
@@ -135,8 +153,15 @@ export function EditNurseDialog({
 				}),
 			]);
 		},
-		onSuccess: () => {
+		onSuccess: (_data, variables) => {
+			setIsEditing(false);
 			toast.success("Nurse updated successfully");
+			onSave?.(
+				nurse.nurseId,
+				variables.morning,
+				variables.evening,
+				variables.night,
+			);
 			onOpenChange(false);
 			queryClient.invalidateQueries({ queryKey: ["schedules"] });
 		},
@@ -147,8 +172,42 @@ export function EditNurseDialog({
 		},
 	});
 
+	// ── Sync off ↔ morning ─────────────────────────────────
+
+	const lastTouched = useRef<"m" | "e" | "n" | "o" | null>(null);
+
+	const morningW = useWatch({ control, name: "morning" });
+	const eveningW = useWatch({ control, name: "evening" });
+	const nightW = useWatch({ control, name: "night" });
+	const offW = useWatch({ control, name: "off" });
+
+	const isFirstRender = useRef(true);
+
+	useEffect(() => {
+		if (isFirstRender.current) {
+			isFirstRender.current = false;
+			return;
+		}
+		if (lastTouched.current === "o") {
+			setValue("morning", Math.max(0, totalDays - eveningW - nightW - offW));
+		} else {
+			setValue("off", Math.max(0, totalDays - morningW - eveningW - nightW));
+		}
+	}, [morningW, eveningW, nightW, offW, totalDays, setValue]);
+
+	// ── Submit ──────────────────────────────────────────────
+
 	const onSubmit = (data: EditNurseForm) => {
 		mutate(data);
+	};
+
+	// ── Register helpers ────────────────────────────────────
+
+	const fieldProps = {
+		morning: register("morning", { valueAsNumber: true }),
+		evening: register("evening", { valueAsNumber: true }),
+		night: register("night", { valueAsNumber: true }),
+		off: register("off", { valueAsNumber: true }),
 	};
 
 	return (
@@ -196,65 +255,157 @@ export function EditNurseDialog({
 								)}
 							</div>
 						</div>
-						<div className="flex flex-col gap-1.5">
-							<Label htmlFor="edit-morning">
-								Morning preference{" "}
-								<span className="font-normal text-gray-400">
-									(0-{totalDays})
-								</span>
-							</Label>
-							<Input
-								id="edit-morning"
-								type="number"
-								min={0}
-								max={totalDays}
-								{...register("morning", { valueAsNumber: true })}
-							/>
-							{errors.morning && (
-								<p className="text-destructive text-xs">
-									{errors.morning.message}
-								</p>
-							)}
+						<div className="flex items-center justify-between">
+							<p className="font-medium text-sm">Shift Counts</p>
+							<Button
+								type="button"
+								variant="ghost"
+								size="sm"
+								className="h-8 gap-1.5 text-xs"
+								onClick={() => setIsEditing(!isEditing)}
+							>
+								{isEditing ? (
+									<PencilOff className="h-3.5 w-3.5" />
+								) : (
+									<Pencil className="h-3.5 w-3.5" />
+								)}
+								{isEditing ? "Lock" : "Edit"}
+							</Button>
 						</div>
-						<div className="flex flex-col gap-1.5">
-							<Label htmlFor="edit-evening">
-								Evening preference{" "}
-								<span className="font-normal text-gray-400">
-									(0-{totalDays})
-								</span>
-							</Label>
-							<Input
-								id="edit-evening"
-								type="number"
-								min={0}
-								max={totalDays}
-								{...register("evening", { valueAsNumber: true })}
-							/>
-							{errors.evening && (
-								<p className="text-destructive text-xs">
-									{errors.evening.message}
-								</p>
-							)}
-						</div>
-						<div className="flex flex-col gap-1.5">
-							<Label htmlFor="edit-night">
-								Night preference{" "}
-								<span className="font-normal text-gray-400">
-									(0-{totalDays})
-								</span>
-							</Label>
-							<Input
-								id="edit-night"
-								type="number"
-								min={0}
-								max={totalDays}
-								{...register("night", { valueAsNumber: true })}
-							/>
-							{errors.night && (
-								<p className="text-destructive text-xs">
-									{errors.night.message}
-								</p>
-							)}
+						<div className="grid grid-cols-4 gap-3">
+							<div className="flex flex-col gap-1.5">
+								<Label htmlFor="edit-morning">
+									<div className="inline-flex items-center gap-1.5">
+										<div className="rounded bg-amber-200 p-1 text-amber-900">
+											<Sun className="h-4 w-4" />
+										</div>
+										M
+									</div>
+								</Label>
+								<Input
+									id="edit-morning"
+									type="number"
+									min={0}
+									max={totalDays}
+									readOnly={!isEditing}
+									className={
+										!isEditing
+											? "opacity-60 [&::-webkit-inner-spin-button]:appearance-none"
+											: undefined
+									}
+									{...fieldProps.morning}
+									onChange={(e) => {
+										fieldProps.morning.onChange(e);
+										lastTouched.current = "m";
+									}}
+								/>
+								{errors.morning && (
+									<p className="text-destructive text-xs">
+										{errors.morning.message}
+									</p>
+								)}
+							</div>
+							<div className="flex flex-col gap-1.5">
+								<Label htmlFor="edit-evening">
+									<div className="inline-flex items-center gap-1.5">
+										<div className="rounded bg-blue-200 p-1 text-blue-900">
+											<Sunset className="h-4 w-4" />
+										</div>
+										E
+									</div>
+								</Label>
+								<Input
+									id="edit-evening"
+									type="number"
+									min={0}
+									max={totalDays}
+									readOnly={!isEditing}
+									className={
+										!isEditing
+											? "opacity-60 [&::-webkit-inner-spin-button]:appearance-none"
+											: undefined
+									}
+									{...fieldProps.evening}
+									onChange={(e) => {
+										fieldProps.evening.onChange(e);
+										lastTouched.current = "e";
+									}}
+								/>
+								{errors.evening && (
+									<p className="text-destructive text-xs">
+										{errors.evening.message}
+									</p>
+								)}
+							</div>
+							<div className="flex flex-col gap-1.5">
+								<Label htmlFor="edit-night">
+									<div className="inline-flex items-center gap-1.5">
+										<div className="rounded bg-violet-200 p-1 text-violet-900">
+											<Moon className="h-4 w-4" />
+										</div>
+										N
+									</div>
+								</Label>
+								<Input
+									id="edit-night"
+									type="number"
+									min={0}
+									max={totalDays}
+									readOnly={!isEditing}
+									className={
+										!isEditing
+											? "opacity-60 [&::-webkit-inner-spin-button]:appearance-none"
+											: undefined
+									}
+									{...fieldProps.night}
+									onChange={(e) => {
+										fieldProps.night.onChange(e);
+										lastTouched.current = "n";
+									}}
+								/>
+								{errors.night && (
+									<p className="text-destructive text-xs">
+										{errors.night.message}
+									</p>
+								)}
+							</div>
+							<div className="flex flex-col gap-1.5">
+								<Label htmlFor="edit-off">
+									<div className="inline-flex items-center gap-1.5">
+										<div className="rounded bg-gray-200 p-1 text-gray-500">
+											<Coffee className="h-4 w-4" />
+										</div>
+										O
+									</div>
+								</Label>
+								<Input
+									id="edit-off"
+									type="number"
+									min={0}
+									max={totalDays}
+									readOnly={!isEditing}
+									className={
+										!isEditing
+											? "opacity-60 [&::-webkit-inner-spin-button]:appearance-none"
+											: undefined
+									}
+									{...fieldProps.off}
+									onChange={(e) => {
+										fieldProps.off.onChange(e);
+										lastTouched.current = "o";
+									}}
+								/>
+								{nightW >= 2 && (
+									<span className="inline-flex items-center gap-0.5 self-start rounded bg-violet-100 px-1.5 py-0.5 font-semibold text-[10px] text-violet-700">
+										+ {Math.floor(nightW / 2)} night off
+									</span>
+								)}
+								{errors.off && (
+									<p className="text-destructive text-xs">
+										{errors.off.message}
+									</p>
+								)}
+							</div>
 						</div>
 					</div>
 					<DialogFooter>

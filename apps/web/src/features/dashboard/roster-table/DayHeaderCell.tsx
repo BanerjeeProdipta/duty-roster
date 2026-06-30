@@ -40,7 +40,6 @@ export function DayHeaderCell({
 							? ROSTER_CONFIG.COVERAGE.FRIDAY.morning
 							: ROSTER_CONFIG.COVERAGE.WEEKDAY.morning
 					}
-
 					shiftType="morning"
 				/>
 				<ShiftBadge

@@ -1,6 +1,5 @@
 import * as rosterDb from "./db";
 import type { SchedulesResponse } from "./schema";
-
 import {
 	buildCoverageForMonth,
 	computeAdjustedPrefMetrics,
@@ -241,14 +240,14 @@ function parseCsvPreferences(csv: string): CsvPreference[] {
 	const preferences: CsvPreference[] = [];
 
 	for (let i = 1; i < lines.length; i++) {
-		const match = lines[i].match(/"([^"]+)","([^"]+)","([^"]+)","([^"]+)"/);
+		const match = lines[i]!.match(/"([^"]+)","([^"]+)","([^"]+)","([^"]+)"/);
 		if (!match) continue;
 
 		preferences.push({
-			nurse_id: match[1],
-			shift_id: match[2],
-			weight: Number.parseInt(match[3], 10),
-			active: match[4] === "true",
+			nurse_id: match[1]!,
+			shift_id: match[2]!,
+			weight: Number.parseInt(match[3]!, 10),
+			active: match[4]! === "true",
 		});
 	}
 
@@ -408,19 +407,6 @@ export async function getSchedulesByDateRange(
 			totalDays,
 		);
 
-		// If evening+night already exceed desired total, scale them down proportionally
-		// and set morning to whatever remains (may be zero).
-		const sumEN = preferenceEvening + preferenceNight;
-		if (sumEN > desiredPrefTotal && sumEN > 0) {
-			const scale = desiredPrefTotal / sumEN;
-			// Use Math.floor to avoid exceeding desired total, then assign leftover to morning
-			adjPrefEvening = Math.floor(preferenceEvening * scale);
-			adjPrefNight = Math.floor(preferenceNight * scale);
-			adjPrefMorning = Math.max(
-				0,
-				desiredPrefTotal - (adjPrefEvening + adjPrefNight),
-			);
-		}
 		return {
 			nurse: {
 				id: row.id as string,
@@ -640,8 +626,8 @@ export async function generateRoster({ year, month }: GenerateRosterParams) {
 	const prevDateMinus1 = new Date(
 		Date.UTC(prevYear, prevMonth - 1, prevMonthTotalDays),
 	);
-	const dateMinus2Str = prevDateMinus2.toISOString().split("T")[0];
-	const dateMinus1Str = prevDateMinus1.toISOString().split("T")[0];
+	const dateMinus2Str = prevDateMinus2.toISOString().split("T")[0]!;
+	const dateMinus1Str = prevDateMinus1.toISOString().split("T")[0]!;
 
 	const prevSchedules = await rosterDb.findSchedulesAndPreferencesByDateRange(
 		prevDateMinus2,

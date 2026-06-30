@@ -100,7 +100,7 @@ export async function findSchedulesAndPreferencesByDateRange(
 		: sql`TRUE`;
 
 	const result = await db.execute(sql`
-    WITH nurse_prefs AS (
+    WITH     nurse_prefs AS (
       SELECT
         nurse.id,
         nurse.name,

@@ -13,7 +13,6 @@ import {
 	useFlexibilityMetrics,
 	useSolverValidation,
 } from "@/hooks/useSolverValidation";
-import { trpcClient } from "@/utils/trpc";
 import { NurseTable } from "./components/NurseTable/NurseTable";
 import { useShiftCounts } from "./hooks/useShiftCounts";
 
@@ -53,8 +52,10 @@ export default function ShiftAllocationsClient({
 	const [nurseRows, setNurseRows] =
 		useState<SchedulesResponse["nurseRows"]>(initialNurseRows);
 	const [searchTerm, setSearchTerm] = useState(searchParams.get("q") ?? "");
-	const [suggestions, setSuggestions] = useState<string[]>([]);
-	const [language, setLanguage] = useState<"en-US" | "bn-BD">("bn-BD");
+
+	useEffect(() => {
+		setSearchTerm(searchParams.get("q") ?? "");
+	}, [searchParams]);
 
 	const handleSearch = useCallback(
 		(value: string) => {
@@ -69,24 +70,6 @@ export default function ShiftAllocationsClient({
 		},
 		[router, searchParams],
 	);
-
-	useEffect(() => {
-		if (searchTerm.length === 0) {
-			setSuggestions([]);
-			return;
-		}
-		const timer = setTimeout(async () => {
-			try {
-				const result = await trpcClient.roster.searchNurseNames.query({
-					q: searchTerm,
-				});
-				setSuggestions(result.map((n) => n.name));
-			} catch {
-				// ignore fetch errors
-			}
-		}, 200);
-		return () => clearTimeout(timer);
-	}, [searchTerm]);
 
 	// Sync nurseRows when query refetches (e.g. after prefill)
 	useEffect(() => {
@@ -221,10 +204,8 @@ export default function ShiftAllocationsClient({
 					value={searchTerm}
 					onChange={setSearchTerm}
 					onSearch={handleSearch}
-					suggestions={suggestions}
-					language={language}
-					onLanguageChange={(lang) => setLanguage(lang)}
-					className="w-full"
+					suggestions={nurses.map((n) => n.name)}
+					suggestionCount={nurses.length}
 				/>
 				<div className="flex items-center justify-center gap-4 rounded-lg bg-gray-50 px-4 py-3">
 					<div className="inline-flex items-center gap-1 font-medium text-emerald-600 text-sm">

@@ -355,28 +355,13 @@ export function computeAdjustedPrefMetrics(
 	rawMorning: number,
 	rawEvening: number,
 	rawNight: number,
-	totalDays: number,
-): { morning: number; evening: number; night: number; total: number } {
-	const MAX_PREF_OFF = 5;
-	const desiredPrefTotal = Math.max(0, totalDays - MAX_PREF_OFF);
-
-	let adjEvening = rawEvening;
-	let adjNight = rawNight;
-	let adjMorning = Math.max(0, desiredPrefTotal - (adjEvening + adjNight));
-
-	const sumEN = rawEvening + rawNight;
-	if (sumEN > desiredPrefTotal && sumEN > 0) {
-		const scale = desiredPrefTotal / sumEN;
-		adjEvening = Math.floor(rawEvening * scale);
-		adjNight = Math.floor(rawNight * scale);
-		adjMorning = Math.max(0, desiredPrefTotal - (adjEvening + adjNight));
-	}
-
+	_totalDays: number,
+) {
 	return {
-		morning: adjMorning,
-		evening: adjEvening,
-		night: adjNight,
-		total: adjMorning + adjEvening + adjNight,
+		morning: rawMorning,
+		evening: rawEvening,
+		night: rawNight,
+		total: rawMorning + rawEvening + rawNight,
 	};
 }
 
