@@ -19,6 +19,8 @@ export function useIntersectionObserver(
 	const [visibleIds, setVisibleIds] = useState<Set<string>>(new Set());
 	const observerRef = useRef<IntersectionObserver | null>(null);
 	const elementsRef = useRef<Map<string, Element>>(new Map());
+	const restRef = useRef(rest);
+	restRef.current = rest;
 
 	const callback = useCallback((entries: IntersectionObserverEntry[]) => {
 		setVisibleIds((prev) => {
@@ -42,11 +44,11 @@ export function useIntersectionObserver(
 			observerRef.current = new IntersectionObserver(callback, {
 				threshold,
 				rootMargin,
-				...rest,
+				...restRef.current,
 			});
 		}
 		return observerRef.current;
-	}, [callback, threshold, rootMargin, rest]);
+	}, [callback, threshold, rootMargin]);
 
 	const registerElement = useCallback(
 		(id: string, element: Element | null) => {

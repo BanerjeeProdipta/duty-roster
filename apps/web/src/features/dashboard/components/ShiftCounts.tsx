@@ -25,8 +25,7 @@ export function ShiftCounts({ initialSchedules }: ShiftCountsProps) {
 	}
 
 	const schedulesData = schedules ?? initialSchedules;
-	const { shiftRequirements, assignedShiftCounts, preferenceCapacity } =
-		schedulesData ?? {};
+	const { shiftRequirements, assignedShiftCounts } = schedulesData ?? {};
 
 	return (
 		<div className="flex flex-col gap-3 rounded-xl border bg-white p-3 sm:p-4">

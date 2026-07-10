@@ -25,6 +25,18 @@ const UserIcon = () => (
 	</div>
 );
 
+export function ProcessingIndicator() {
+	return (
+		<div className="flex items-center gap-1.5">
+			<div className="flex items-center gap-1">
+				<span className="size-1.5 animate-bounce rounded-full bg-accent-primary [animation-delay:0ms]" />
+				<span className="size-1.5 animate-bounce rounded-full bg-accent-primary [animation-delay:150ms]" />
+				<span className="size-1.5 animate-bounce rounded-full bg-accent-primary [animation-delay:300ms]" />
+			</div>
+		</div>
+	);
+}
+
 export function WaveAnimation({ levels }: { levels: number[] }) {
 	return (
 		<div
@@ -33,6 +45,7 @@ export function WaveAnimation({ levels }: { levels: number[] }) {
 		>
 			{levels.map((level, i) => (
 				<div
+					// biome-ignore lint/suspicious/noArrayIndexKey: audio bar levels array is static and never reordered
 					key={i}
 					className="w-[3px] bg-accent-primary transition-all"
 					style={{

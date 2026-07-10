@@ -13,6 +13,10 @@ export const rosterRouter = router({
 		.output(z.array(shiftSchema))
 		.query(() => rosterService.getShifts()),
 
+	getNurses: publicProcedure
+		.output(z.array(z.object({ id: z.string(), name: z.string() })))
+		.query(() => rosterService.getAllNurses()),
+
 	searchNurseNames: publicProcedure
 		.input(z.object({ q: z.string().min(1) }))
 		.output(z.array(z.object({ id: z.string(), name: z.string() })))

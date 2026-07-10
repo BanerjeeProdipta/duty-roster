@@ -5,6 +5,7 @@ import type { ParsedMessage } from "../components/MessageItem";
 
 interface PendingConfirmation {
 	nurseName: string;
+	nurseId: string | null;
 	englishName: string | null;
 	shift: string;
 	date: string;
@@ -26,6 +27,8 @@ interface UseAIAssistantStateReturn {
 	setAwaitingResponse: (awaiting: boolean) => void;
 	lastAction: "confirmed" | "cancelled" | null;
 	setLastAction: (action: "confirmed" | "cancelled" | null) => void;
+	isProcessing: boolean;
+	setIsProcessing: (processing: boolean) => void;
 }
 
 export function useAIAssistantState(): UseAIAssistantStateReturn {
@@ -38,6 +41,7 @@ export function useAIAssistantState(): UseAIAssistantStateReturn {
 	const [lastAction, setLastAction] = useState<
 		"confirmed" | "cancelled" | null
 	>(null);
+	const [isProcessing, setIsProcessing] = useState(false);
 
 	const toggleOpen = useCallback(() => {
 		setOpen((prev) => !prev);
@@ -57,5 +61,7 @@ export function useAIAssistantState(): UseAIAssistantStateReturn {
 		setAwaitingResponse,
 		lastAction,
 		setLastAction,
+		isProcessing,
+		setIsProcessing,
 	};
 }

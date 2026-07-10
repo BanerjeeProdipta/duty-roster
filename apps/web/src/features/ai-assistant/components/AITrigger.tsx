@@ -33,6 +33,8 @@ export function AITrigger() {
 		setAwaitingResponse,
 		lastAction,
 		setLastAction,
+		isProcessing,
+		setIsProcessing,
 	} = useAIAssistantState();
 
 	const { processMessage, speak, isSpeakingRef, lastSpeechEndedRef } =
@@ -44,6 +46,7 @@ export function AITrigger() {
 			setAwaitingResponse,
 			setLastAction,
 			setMessages,
+			setIsProcessing,
 		});
 
 	const lastProcessedTranscriptRef = useRef("");
@@ -213,6 +216,7 @@ export function AITrigger() {
 						onToggleMic={toggleMic}
 						onToggleRaw={handleToggleRaw}
 						onClose={handleClose}
+						isProcessing={isProcessing}
 					/>
 				)}
 			</AnimatePresence>

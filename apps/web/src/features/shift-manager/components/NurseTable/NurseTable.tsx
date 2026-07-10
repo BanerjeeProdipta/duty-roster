@@ -57,6 +57,9 @@ export function NurseTable({
 		return () => window.removeEventListener("pointerup", up);
 	}, []);
 
+	const selectRangeRef =
+		useRef<(fromId: string, toId: string, base: Set<string>) => Set<string>>();
+
 	function selectRange(fromId: string, toId: string, base: Set<string>) {
 		const ids = nurses.map((n) => n.nurseId);
 		const fromIdx = ids.indexOf(fromId);
@@ -69,6 +72,7 @@ export function NurseTable({
 		}
 		return next;
 	}
+	selectRangeRef.current = selectRange;
 
 	const handleSelectAll = useCallback(
 		(checked: boolean) => {
@@ -97,22 +101,21 @@ export function NurseTable({
 				return next;
 			});
 		},
-		[nurses, selectedIds],
+		[selectedIds],
 	);
 
-	const handlePointerEnter = useCallback(
-		(nurseId: string) => {
-			if (
-				!pointerDownRef.current ||
-				!pointerStartIdRef.current ||
-				nurseId === pointerStartIdRef.current
-			)
-				return;
-			const base = pointerBaseRef.current ?? new Set();
-			setSelectedIds(selectRange(pointerStartIdRef.current, nurseId, base));
-		},
-		[nurses],
-	);
+	const handlePointerEnter = useCallback((nurseId: string) => {
+		if (
+			!pointerDownRef.current ||
+			!pointerStartIdRef.current ||
+			nurseId === pointerStartIdRef.current
+		)
+			return;
+		const base = pointerBaseRef.current ?? new Set();
+		setSelectedIds(
+			selectRangeRef.current(pointerStartIdRef.current, nurseId, base),
+		);
+	}, []);
 
 	const handleCheckboxChange = useCallback(
 		(nurseId: string, checked: boolean) => {

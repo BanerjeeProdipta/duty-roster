@@ -13,10 +13,40 @@ interface UseAISearchReturn {
 	stopListening: () => void;
 }
 
+interface SpeechRecognitionInstance extends EventTarget {
+	lang: string;
+	continuous: boolean;
+	interimResults: boolean;
+	onresult: ((event: SpeechRecognitionEvent) => void) | null;
+	onend: (() => void) | null;
+	onerror: (() => void) | null;
+	start(): void;
+	abort(): void;
+}
+
+interface SpeechRecognitionConstructor {
+	new (): SpeechRecognitionInstance;
+}
+
+function getSpeechRecognitionCtor(): SpeechRecognitionConstructor | null {
+	return (
+		(window as unknown as { SpeechRecognition?: SpeechRecognitionConstructor })
+			.SpeechRecognition ||
+		(
+			window as unknown as {
+				webkitSpeechRecognition?: SpeechRecognitionConstructor;
+			}
+		).webkitSpeechRecognition
+	);
+}
+
 const playSound = (type: "start" | "stop") => {
 	if (typeof window === "undefined") return;
 
-	const AC = window.AudioContext || (window as any).webkitAudioContext;
+	const AC =
+		window.AudioContext ||
+		(window as unknown as { webkitAudioContext: typeof AudioContext })
+			.webkitAudioContext;
 	const audioContext = new AC();
 	const oscillator = audioContext.createOscillator();
 	const gainNode = audioContext.createGain();
@@ -48,7 +78,7 @@ export function useAISearch({
 	const [isListening, setIsListening] = useState(false);
 	const [isBrowserSupported, setIsBrowserSupported] = useState(false);
 
-	const recognitionRef = useRef<any>(null);
+	const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
 
 	const cleanup = useCallback(() => {
 		if (recognitionRef.current) {
@@ -66,21 +96,19 @@ export function useAISearch({
 	const startListening = useCallback(() => {
 		if (isListening) return;
 
-		const SpeechRecognition =
-			(window as any).SpeechRecognition ||
-			(window as any).webkitSpeechRecognition;
+		const SpeechRecognitionCtor = getSpeechRecognitionCtor();
 
-		if (!SpeechRecognition) {
+		if (!SpeechRecognitionCtor) {
 			setIsBrowserSupported(false);
 			return;
 		}
 
-		const recognition = new SpeechRecognition();
+		const recognition = new SpeechRecognitionCtor();
 		recognition.lang = "bn-BD";
 		recognition.continuous = true;
 		recognition.interimResults = true;
 
-		recognition.onresult = (event: any) => {
+		recognition.onresult = (event: SpeechRecognitionEvent) => {
 			for (let i = event.resultIndex; i < event.results.length; i++) {
 				const transcript = event.results[i][0].transcript.trim();
 				if (event.results[i].isFinal) {
@@ -104,10 +132,7 @@ export function useAISearch({
 	}, [isListening, onTranscript]);
 
 	useEffect(() => {
-		const SpeechRecognition =
-			(window as any).SpeechRecognition ||
-			(window as any).webkitSpeechRecognition;
-		setIsBrowserSupported(!!SpeechRecognition);
+		setIsBrowserSupported(!!getSpeechRecognitionCtor());
 	}, []);
 
 	useEffect(() => {

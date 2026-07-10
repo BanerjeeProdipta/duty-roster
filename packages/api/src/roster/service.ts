@@ -293,6 +293,10 @@ export async function prefillDefault(
 }
 // ───────────── SEARCH ─────────────
 
+export async function getAllNurses() {
+	return rosterDb.findAllNurses();
+}
+
 export async function searchNurseNames(query: string) {
 	return rosterDb.searchNurseNames(query);
 }

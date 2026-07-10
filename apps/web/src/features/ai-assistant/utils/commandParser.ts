@@ -1,6 +1,8 @@
+import type { NameRecord } from "@Duty-Roster/ai-parser";
 import {
 	bengaliToEnglish,
 	bestNameMatch,
+	matchName,
 	parseDateFromText,
 } from "@Duty-Roster/ai-parser";
 
@@ -48,20 +50,41 @@ export interface ParsedCommand {
 	shift: string | null;
 	date: string | null;
 	nurseName: string | null;
+	nurseId: string | null;
 	englishName: string | null;
 	action: string | null;
 	missingFields: string[];
 }
 
-export function parseCommand(text: string): ParsedCommand {
+export function parseCommand(
+	text: string,
+	nurses?: NameRecord[],
+): ParsedCommand {
 	const lower = text.toLowerCase().replace(/[.,!?;:]/g, "");
 	const words = lower.split(/\s+/).filter(Boolean);
 
 	const shift = SHIFT_WORDS.find((s) => words.includes(s)) ?? null;
 	const date = parseDateFromText(words);
 	const nameWords = words.filter((w) => !SKIP_WORDS.has(w));
-	const nurseName = bestNameMatch(nameWords);
-	const englishName = nurseName ? bengaliToEnglish(nurseName) : null;
+
+	let nurseName: string | null = null;
+	let nurseId: string | null = null;
+	let englishName: string | null = null;
+
+	if (nurses && nurses.length > 0) {
+		const match = matchName(nameWords.join(" "), nurses);
+		if (match && match.confidence > 0.5) {
+			nurseName = match.bengaliName;
+			nurseId = match.nurseId;
+			englishName = bengaliToEnglish(match.bengaliName);
+		}
+	} else {
+		const staticMatch = bestNameMatch(nameWords);
+		if (staticMatch) {
+			nurseName = staticMatch;
+			englishName = bengaliToEnglish(staticMatch);
+		}
+	}
 
 	console.log(
 		"[commandParser] input:",
@@ -74,6 +97,8 @@ export function parseCommand(text: string): ParsedCommand {
 		nameWords,
 		"| nurseName:",
 		nurseName,
+		"| nurseId:",
+		nurseId,
 	);
 
 	const missingFields: string[] = [];
@@ -83,5 +108,13 @@ export function parseCommand(text: string): ParsedCommand {
 
 	const action = missingFields.length === 0 ? "update" : null;
 
-	return { shift, date, nurseName, englishName, action, missingFields };
+	return {
+		shift,
+		date,
+		nurseName,
+		nurseId,
+		englishName,
+		action,
+		missingFields,
+	};
 }

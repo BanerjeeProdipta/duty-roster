@@ -3,7 +3,7 @@
 import { Bot } from "lucide-react";
 import { useEffect, useRef } from "react";
 import type { ParsedMessage } from "./MessageItem";
-import { MessageItem, WaveAnimation } from "./MessageItem";
+import { MessageItem, ProcessingIndicator, WaveAnimation } from "./MessageItem";
 
 interface MessageListProps {
 	messages: ParsedMessage[];
@@ -13,6 +13,7 @@ interface MessageListProps {
 	error?: string;
 	ready: boolean;
 	onToggleRaw?: (index: number) => void;
+	isProcessing: boolean;
 }
 
 export function MessageList({
@@ -22,6 +23,7 @@ export function MessageList({
 	error,
 	ready,
 	onToggleRaw,
+	isProcessing,
 }: MessageListProps) {
 	const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -61,6 +63,13 @@ export function MessageList({
 					<p className="rounded-lg bg-red-50 px-3 py-2 text-center text-red-600 text-xs">
 						{error}
 					</p>
+				</div>
+			)}
+
+			{isProcessing && !isListening && (
+				<div className="flex flex-col items-center gap-3 py-4">
+					<ProcessingIndicator />
+					<p className="text-gray-400 text-xs">Thinking...</p>
 				</div>
 			)}
 
