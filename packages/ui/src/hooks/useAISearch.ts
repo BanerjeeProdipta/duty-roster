@@ -13,11 +13,21 @@ interface UseAISearchReturn {
 	stopListening: () => void;
 }
 
+interface SpeechRecognitionResultLike {
+	isFinal: boolean;
+	[index: number]: { transcript: string };
+}
+
+interface SpeechRecognitionEventLike {
+	resultIndex: number;
+	results: { length: number; [index: number]: SpeechRecognitionResultLike };
+}
+
 interface SpeechRecognitionInstance extends EventTarget {
 	lang: string;
 	continuous: boolean;
 	interimResults: boolean;
-	onresult: ((event: SpeechRecognitionEvent) => void) | null;
+	onresult: ((event: SpeechRecognitionEventLike) => void) | null;
 	onend: (() => void) | null;
 	onerror: (() => void) | null;
 	start(): void;
@@ -36,7 +46,8 @@ function getSpeechRecognitionCtor(): SpeechRecognitionConstructor | null {
 			window as unknown as {
 				webkitSpeechRecognition?: SpeechRecognitionConstructor;
 			}
-		).webkitSpeechRecognition
+		).webkitSpeechRecognition ||
+		null
 	);
 }
 
@@ -108,7 +119,7 @@ export function useAISearch({
 		recognition.continuous = true;
 		recognition.interimResults = true;
 
-		recognition.onresult = (event: SpeechRecognitionEvent) => {
+		recognition.onresult = (event: SpeechRecognitionEventLike) => {
 			for (let i = event.resultIndex; i < event.results.length; i++) {
 				const transcript = event.results[i][0].transcript.trim();
 				if (event.results[i].isFinal) {

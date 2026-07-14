@@ -57,8 +57,10 @@ export function NurseTable({
 		return () => window.removeEventListener("pointerup", up);
 	}, []);
 
-	const selectRangeRef =
-		useRef<(fromId: string, toId: string, base: Set<string>) => Set<string>>();
+	const selectRangeRef = useRef<
+		| ((fromId: string, toId: string, base: Set<string>) => Set<string>)
+		| undefined
+	>(undefined);
 
 	function selectRange(fromId: string, toId: string, base: Set<string>) {
 		const ids = nurses.map((n) => n.nurseId);
@@ -113,7 +115,8 @@ export function NurseTable({
 			return;
 		const base = pointerBaseRef.current ?? new Set();
 		setSelectedIds(
-			selectRangeRef.current(pointerStartIdRef.current, nurseId, base),
+			selectRangeRef.current?.(pointerStartIdRef.current, nurseId, base) ??
+				base,
 		);
 	}, []);
 
