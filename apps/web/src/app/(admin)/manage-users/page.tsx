@@ -1,3 +1,4 @@
+import { ROSTER_CONFIG } from "@Duty-Roster/config/rosterConfig";
 import { Skeleton } from "@Duty-Roster/ui/components/skeleton";
 import { lazy, Suspense } from "react";
 import { AddNurseDialog } from "@/components/AddNurseDialog";
@@ -68,8 +69,8 @@ export default async function ShiftAllocationsPage(props: {
 								<WeekDayCounts month={month} year={year} />
 							</Suspense>
 							<CoverageConfig
-								weekday={initialSchedules.coverageConfig.weekday}
-								friday={initialSchedules.coverageConfig.friday}
+								weekday={ROSTER_CONFIG.COVERAGE.WEEKDAY}
+								friday={ROSTER_CONFIG.COVERAGE.FRIDAY}
 							/>
 						</div>
 						<div className="flex items-center gap-2">
