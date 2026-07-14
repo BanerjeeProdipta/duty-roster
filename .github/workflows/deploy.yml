@@ -10,6 +10,7 @@ env:
   CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
   DATABASE_URL: ${{ secrets.DATABASE_URL }}
   BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
+  SOLVER_TOKEN: ${{ secrets.SOLVER_TOKEN }}
   NEXT_PUBLIC_SERVER_URL: ${{ vars.NEXT_PUBLIC_SERVER_URL }}
   BETTER_AUTH_URL: ${{ vars.BETTER_AUTH_URL }}
 
@@ -42,7 +43,8 @@ jobs:
           jq -n \
             --arg database_url "$DATABASE_URL" \
             --arg better_auth_secret "$BETTER_AUTH_SECRET" \
-            '{DATABASE_URL: $database_url, BETTER_AUTH_SECRET: $better_auth_secret}' \
+            --arg solver_token "$SOLVER_TOKEN" \
+            '{DATABASE_URL: $database_url, BETTER_AUTH_SECRET: $better_auth_secret, SOLVER_TOKEN: $solver_token}' \
             | npx wrangler secret bulk
 
       - name: Deploy server

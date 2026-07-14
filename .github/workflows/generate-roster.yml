@@ -31,5 +31,9 @@ jobs:
       - name: Install JS dependencies
         run: bun install
 
+      # SOLVER_URL is intentionally unset here: this job calls generateRoster()
+      # in-process with the ortools install above, bypassing solver_service
+      # entirely (that HTTP path only exists for the Cloudflare Worker, which
+      # can't spawn python3 itself).
       - name: Generate next month's roster
         run: bun run roster:generate-next-month

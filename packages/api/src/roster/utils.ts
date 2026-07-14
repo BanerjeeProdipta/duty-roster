@@ -514,22 +514,82 @@ export function calculateFairShares(
 	return fairShares;
 }
 
-export async function runSolver(payload: {
-	nurses: string[];
-	days: number;
-	shifts: readonly ["morning", "evening", "night"];
-	preferences: Record<
-		string,
-		{ morning: number; evening: number; night: number }
-	>;
-	coverage: { morning: number; evening: number; night: number }[];
-	constraints: {
-		max_consecutive_nights: number;
-		max_consecutive_days: number;
-		min_days_off_per_week: number;
-	};
-	previous_shifts?: Record<string, string[]>;
-}): Promise<{ success: boolean; roster?: Record<string, string[]> }> {
+export type SolverResult = {
+	success: boolean;
+	roster?: Record<string, string[]>;
+	reason?: string;
+	softened_shifts?: string[];
+	[key: string]: unknown;
+};
+
+const SOLVER_FETCH_TIMEOUT_MS = 5 * 60 * 1000;
+
+async function runSolverViaHttp(
+	solverUrl: string,
+	payload: Record<string, unknown>,
+): Promise<SolverResult> {
+	const controller = new AbortController();
+	const timeout = setTimeout(() => controller.abort(), SOLVER_FETCH_TIMEOUT_MS);
+	try {
+		const solverToken =
+			(typeof process !== "undefined" && process.env?.SOLVER_TOKEN) ||
+			undefined;
+		const response = await fetch(`${solverUrl}/solve`, {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				...(solverToken ? { "X-Solver-Token": solverToken } : {}),
+			},
+			body: JSON.stringify(payload),
+			signal: controller.signal,
+		});
+		if (!response.ok) {
+			console.error("Solver service returned non-OK status:", response.status);
+			return {
+				success: false,
+				reason: `Solver service returned status ${response.status}`,
+			};
+		}
+		const result = (await response.json()) as SolverResult;
+		return result;
+	} catch (e) {
+		console.error("Solver service request failed:", e);
+		return {
+			success: false,
+			reason:
+				(e as Error)?.name === "AbortError"
+					? "Solver service timed out"
+					: "Solver service unreachable",
+		};
+	} finally {
+		clearTimeout(timeout);
+	}
+}
+
+export async function runSolver(
+	payload: {
+		nurses: string[];
+		days: number;
+		shifts: readonly ["morning", "evening", "night"];
+		preferences: Record<
+			string,
+			{ morning: number; evening: number; night: number }
+		>;
+		coverage: { morning: number; evening: number; night: number }[];
+		constraints: {
+			max_consecutive_nights: number;
+			max_consecutive_days: number;
+			min_days_off_per_week: number;
+		};
+		previous_shifts?: Record<string, string[]>;
+	} & Record<string, unknown>,
+): Promise<SolverResult> {
+	const solverUrl =
+		typeof process !== "undefined" ? process.env?.SOLVER_URL : undefined;
+	if (solverUrl) {
+		return runSolverViaHttp(solverUrl, payload);
+	}
+
 	return new Promise((resolve) => {
 		(async () => {
 			const { spawn } = await import("node:child_process");

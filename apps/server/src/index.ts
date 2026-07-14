@@ -23,6 +23,8 @@ type Bindings = {
 	CORS_ORIGIN: string;
 	GROQ_API_KEY?: string;
 	NODE_ENV?: string;
+	SOLVER_URL?: string;
+	SOLVER_TOKEN?: string;
 };
 
 const app = new Hono<{ Bindings: Bindings }>();
