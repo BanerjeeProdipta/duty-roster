@@ -163,26 +163,35 @@ def solve(data, soft_override: Optional[set] = None):
     # beyond that, each extra nurse costs OVERSTAFF_PENALTY in the
     # objective.  This prevents dumping 5+ extra nurses on Friday.
     # ════════════════════════════════════════════════════════════════════
+    # ════════════════════════════════════════════════════════════════════
+    # Friday overstaffing — discouraged much more heavily than other days.
+    # Fridays are intentionally light-coverage days; a flat per-day slack
+    # let the solver dump surplus nurses on Friday since its low coverage
+    # minimum made the excess "cheap" under a uniform penalty. Fridays get
+    # zero slack and a higher penalty weight so surplus gets pushed onto
+    # weekdays instead.
+    # ════════════════════════════════════════════════════════════════════
+    friday_indices: list[int] = data.get("friday_indices", [])
+    friday_set = set(friday_indices)
+
     OVERSTAFF_SLACK = 1
     OVERSTAFF_PENALTY = 2000
+    FRIDAY_OVERSTAFF_SLACK = 0
+    FRIDAY_OVERSTAFF_PENALTY = 8000
     day_overstaff_penalties = []
     for d in range(days):
+        is_friday = d in friday_set
+        slack = FRIDAY_OVERSTAFF_SLACK if is_friday else OVERSTAFF_SLACK
+        penalty = FRIDAY_OVERSTAFF_PENALTY if is_friday else OVERSTAFF_PENALTY
+
         day_total = model.NewIntVar(0, len(nurses), f"day_total_{d}")
         model.Add(day_total == sum(X[(n, d, s)] for n in nurses for s in shifts))
         required_day_total = sum(coverage[d][s] for s in shifts)
         day_over = model.NewIntVar(0, len(nurses), f"day_over_{d}")
         model.Add(day_over >= day_total - required_day_total)
         day_excess = model.NewIntVar(0, len(nurses), f"day_excess_{d}")
-        model.Add(day_excess >= day_over - OVERSTAFF_SLACK)
-        day_overstaff_penalties.append(-OVERSTAFF_PENALTY * day_excess)
-
-    # ════════════════════════════════════════════════════════════════════
-    # Friday overstaffing — discouraged but not forbidden.
-    # The solver may assign extra nurses on Friday to meet preference
-    # targets.  A soft penalty in the objective discourages overstaffing
-    # while allowing it when necessary for preference fulfillment.
-    # ════════════════════════════════════════════════════════════════════
-    friday_indices: list[int] = data.get("friday_indices", [])
+        model.Add(day_excess >= day_over - slack)
+        day_overstaff_penalties.append(-penalty * day_excess)
 
     # ════════════════════════════════════════════════════════════════════
     # FIX #2: Friday nurse blocklist — explicit per-nurse Friday block.

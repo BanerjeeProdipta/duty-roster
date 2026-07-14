@@ -771,7 +771,8 @@ export async function generateRoster({ year, month }: GenerateRosterParams) {
 			adjNight = Math.floor(rawNight * scale);
 		}
 
-		const adjMorning = Math.max(0, desiredPrefTotal - (adjEvening + adjNight));
+		const remainder = Math.max(0, desiredPrefTotal - (adjEvening + adjNight));
+		const adjMorning = Math.min(rawMorning, remainder);
 
 		const caps: Record<string, number> = {};
 		if (adjMorning > 0) caps.morning = adjMorning;
