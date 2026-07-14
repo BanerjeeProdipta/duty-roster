@@ -19,6 +19,8 @@ export default function Header() {
 	const router = useRouter();
 	const searchParams = useSearchParams();
 	const currentQ = searchParams.get("q");
+	const currentYear = searchParams.get("year");
+	const currentMonth = searchParams.get("month");
 	const [isMenuOpen, setIsMenuOpen] = useState(false);
 	const [hasMounted, setHasMounted] = useState(false);
 	const { data: session, isPending } = authClient.useSession();
@@ -42,6 +44,15 @@ export default function Header() {
 		...(hasMounted && !isPending && isAdmin ? ADMIN_NAV_ITEMS : []),
 	];
 
+	const buildHref = (to: string) => {
+		const params = new URLSearchParams();
+		if (currentQ) params.set("q", currentQ);
+		if (currentYear) params.set("year", currentYear);
+		if (currentMonth) params.set("month", currentMonth);
+		const query = params.toString();
+		return query ? `${to}?${query}` : to;
+	};
+
 	return (
 		<header className="sticky top-0 z-[100] w-full border-border/50 border-b bg-white dark:bg-gray-950">
 			<div className="relative mx-auto flex h-18 items-center justify-between px-4 sm:px-12 lg:px-20">
@@ -56,9 +67,7 @@ export default function Header() {
 				<nav className="absolute left-1/2 my-2 hidden -translate-x-1/2 items-center gap-1 rounded-full bg-gray-50 px-1 py-1 md:flex">
 					{navItems.map(({ to, label, icon: Icon }) => {
 						const isActive = pathname === to;
-						const href = currentQ
-							? `${to}?q=${encodeURIComponent(currentQ)}`
-							: to;
+						const href = buildHref(to);
 						return (
 							<Link
 								key={to}
@@ -142,9 +151,7 @@ export default function Header() {
 					>
 						<div className="flex flex-col gap-1 p-4">
 							{navItems.map(({ to, label, icon: Icon }) => {
-								const href = currentQ
-									? `${to}?q=${encodeURIComponent(currentQ)}`
-									: to;
+								const href = buildHref(to);
 								return (
 									<Link
 										key={to}
