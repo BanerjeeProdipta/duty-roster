@@ -17,7 +17,9 @@
 		"db:seed": "bun run src/seed.ts",
 		"db:seed:local": "NODE_ENV=development bun run src/seed.ts",
 		"db:seed:prods": "NODE_ENV=development bun run src/seed.ts --prods",
-		"db:setup-local": "NODE_ENV=development bun run db:push -- --force && bun run db:seed:local"
+		"db:setup-local": "NODE_ENV=development bun run db:push -- --force && bun run db:seed:local",
+		"db:migrate-to-prod": "bun run src/migrate-local-to-prod.ts",
+		"db:migrate-to-prod:live": "bun run src/migrate-local-to-prod.ts --yes"
 	},
 	"dependencies": {
 		"@Duty-Roster/env": "workspace:*",

@@ -142,7 +142,7 @@ export function NurseTable({
 	return (
 		<>
 			<div className="select-none overflow-hidden rounded-xl border bg-white">
-				<Table>
+				<Table className="min-w-210 table-fixed">
 					<TableHeader>
 						<TableRow className="bg-gray-50/50">
 							<TableHead className="w-10 text-center">
@@ -154,14 +154,14 @@ export function NurseTable({
 									}
 								/>
 							</TableHead>
-							<TableHead className="text-left">
-								<div className="flex items-center gap-2">
-									<span>Nurse</span>
+							<TableHead className="sticky left-0 z-20 w-48 bg-gray-50 text-left">
+								<div className="flex items-center gap-2 overflow-hidden">
+									<span className="truncate">Nurse</span>
 									{selectedIds.size > 0 && (
 										<Button
 											variant="ghost"
 											size="sm"
-											className="h-5 rounded-full px-2 font-normal text-[10px] leading-none hover:bg-transparent hover:text-blue-600"
+											className="h-5 shrink-0 rounded-full px-2 font-normal text-[10px] leading-none hover:bg-transparent hover:text-blue-600"
 											onClick={() => setBulkDialogOpen(true)}
 										>
 											Update ({selectedIds.size})
@@ -169,8 +169,8 @@ export function NurseTable({
 									)}
 								</div>
 							</TableHead>
-							<TableHead className="text-center">Active</TableHead>
-							<TableHead className="text-center">
+							<TableHead className="w-20 text-center">Active</TableHead>
+							<TableHead className="w-16 text-center">
 								<div className="inline-flex items-center gap-1.5">
 									<div className="rounded bg-amber-200 p-1 text-amber-900">
 										<Sun className="h-4 w-4" />
@@ -178,7 +178,7 @@ export function NurseTable({
 									M
 								</div>
 							</TableHead>
-							<TableHead className="text-center">
+							<TableHead className="w-16 text-center">
 								<div className="inline-flex items-center gap-1.5">
 									<div className="rounded bg-blue-200 p-1 text-blue-900">
 										<Sunset className="h-4 w-4" />
@@ -186,7 +186,7 @@ export function NurseTable({
 									E
 								</div>
 							</TableHead>
-							<TableHead className="text-center">
+							<TableHead className="w-16 text-center">
 								<div className="inline-flex items-center gap-1.5">
 									<div className="rounded bg-violet-200 p-1 text-violet-900">
 										<Moon className="h-4 w-4" />
@@ -194,7 +194,7 @@ export function NurseTable({
 									N
 								</div>
 							</TableHead>
-							<TableHead className="text-center">
+							<TableHead className="w-16 text-center">
 								<div className="inline-flex items-center gap-1.5">
 									<div className="rounded bg-gray-200 p-1 text-gray-500">
 										<Coffee className="h-4 w-4" />
@@ -202,8 +202,8 @@ export function NurseTable({
 									O
 								</div>
 							</TableHead>
-							<TableHead className="text-center">Total</TableHead>
-							<TableHead className="text-center">Action</TableHead>
+							<TableHead className="w-20 text-center">Total</TableHead>
+							<TableHead className="w-40 text-center">Action</TableHead>
 						</TableRow>
 					</TableHeader>
 					<TableBody>
@@ -283,7 +283,7 @@ function NurseTableRow({
 				onPointerEnter={() => onPointerEnter(nurse.nurseId)}
 			>
 				<TableCell
-					className="text-right"
+					className="w-10 text-right"
 					onPointerDown={(e) => e.stopPropagation()}
 				>
 					<Checkbox
@@ -293,9 +293,15 @@ function NurseTableRow({
 						}
 					/>
 				</TableCell>
-				<TableCell>
-					<div className="flex items-center gap-2 pl-4">
-						<div className="relative h-4 w-4">
+				<TableCell
+					className={cn(
+						"sticky left-0 z-10 w-48",
+						draft.active ? "bg-white" : "bg-gray-100",
+						isInvalid && "bg-red-50/30",
+					)}
+				>
+					<div className="flex items-center gap-2 overflow-hidden">
+						<div className="relative h-4 w-4 shrink-0">
 							<div
 								className={cn(
 									"absolute inset-0 rounded-full",
@@ -311,12 +317,13 @@ function NurseTableRow({
 							/>
 						</div>
 
-						<div className="flex flex-col gap-1">
+						<div className="flex min-w-0 flex-col gap-1">
 							<span
 								className={cn(
-									"pl-2 font-medium text-base text-gray-900",
+									"truncate font-medium text-base text-gray-900",
 									!draft.active && "text-gray-400 line-through",
 								)}
+								title={draft.name}
 							>
 								{draft.name}
 							</span>
@@ -324,7 +331,7 @@ function NurseTableRow({
 					</div>
 				</TableCell>
 				<TableCell
-					className="text-center"
+					className="w-20 text-center"
 					onPointerDown={(e) => e.stopPropagation()}
 				>
 					<ActiveToggle
@@ -333,43 +340,43 @@ function NurseTableRow({
 						onToggle={handleToggleActive}
 					/>
 				</TableCell>
-				<TableCell className="text-center">
+				<TableCell className="w-16 text-center">
 					<span className="inline-flex min-w-[2.5rem] items-center justify-center rounded-md border border-amber-200/50 bg-amber-50 px-2.5 py-1 font-semibold text-amber-700">
 						{draft.morning}
 					</span>
 				</TableCell>
-				<TableCell className="text-center">
+				<TableCell className="w-16 text-center">
 					<span className="inline-flex min-w-[2.5rem] items-center justify-center rounded-md border border-blue-200/50 bg-blue-50 px-2.5 py-1 font-semibold text-blue-700">
 						{draft.evening}
 					</span>
 				</TableCell>
-				<TableCell className="text-center">
+				<TableCell className="w-16 text-center">
 					<span className="inline-flex min-w-[2.5rem] items-center justify-center rounded-md border border-violet-200/50 bg-violet-50 px-2.5 py-1 font-semibold text-violet-700">
 						{draft.night}
 					</span>
 				</TableCell>
 
-				<TableCell className="text-center">
-					<div className="relative flex items-center justify-center gap-2">
+				<TableCell className="w-24 text-center">
+					<div className="flex items-center justify-center gap-1">
 						<span className="inline-flex min-w-[2.5rem] items-center justify-center rounded-md border border-gray-200/60 bg-gray-50 px-2.5 py-1 font-semibold text-gray-600">
 							{draft.off}
 						</span>
 
 						{draft.night >= 2 && (
-							<span className="absolute top-1/2 -right-6 inline-flex -translate-y-1/2 items-center justify-center whitespace-nowrap rounded bg-violet-100 px-1 py-0.5 font-bold text-[10px] text-violet-700">
-								+ {Math.floor(draft.night / 2)}
+							<span className="inline-flex shrink-0 items-center justify-center whitespace-nowrap rounded bg-violet-100 px-1 py-0.5 font-bold text-[10px] text-violet-700">
+								+{Math.floor(draft.night / 2)}
 							</span>
 						)}
 					</div>
 				</TableCell>
-				<TableCell className="text-center">
+				<TableCell className="w-20 text-center">
 					<span
 						className={cn("font-medium text-sm", isInvalid && "text-red-600")}
 					>
 						{sum}/{totalDays}
 					</span>
 				</TableCell>
-				<TableCell>
+				<TableCell className="w-40">
 					<div className="flex items-center justify-center gap-2">
 						<Button
 							variant="outline"
