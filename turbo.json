@@ -60,6 +60,9 @@
 		"db:setup-local": {
 			"cache": false
 		},
+		"generate-next-month": {
+			"cache": false
+		},
 		"deploy": {
 			"dependsOn": ["build"]
 		}

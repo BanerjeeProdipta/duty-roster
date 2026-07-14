@@ -345,6 +345,23 @@ export async function countActiveNurses(searchQuery?: string) {
 	return row?.count ?? 0;
 }
 
+export async function countSchedulesInMonth(
+	year: number,
+	month: number,
+): Promise<number> {
+	const { startDate, endDate } = getMonthDateRange(year, month);
+	const [row] = await db
+		.select({ count: sql<number>`COUNT(*)::int` })
+		.from(nurseSchedule)
+		.where(
+			and(
+				sql`${nurseSchedule.date} >= ${startDate}`,
+				sql`${nurseSchedule.date} <= ${endDate}`,
+			),
+		);
+	return row?.count ?? 0;
+}
+
 export async function createSchedules(
 	schedules: {
 		nurseId: string;
