@@ -187,6 +187,14 @@ export function AITrigger() {
 		}
 	}, [inputValue, processMessage, setInputValue]);
 
+	const handleSelectPrompt = useCallback(
+		(prompt: string) => {
+			processMessage(prompt, { skipTTS: true });
+			setInputValue("");
+		},
+		[processMessage, setInputValue],
+	);
+
 	const handleToggleRaw = useCallback(
 		(index: number) => {
 			setMessages((prev) =>
@@ -217,6 +225,7 @@ export function AITrigger() {
 						onToggleRaw={handleToggleRaw}
 						onClose={handleClose}
 						isProcessing={isProcessing}
+						onSelectPrompt={handleSelectPrompt}
 					/>
 				)}
 			</AnimatePresence>

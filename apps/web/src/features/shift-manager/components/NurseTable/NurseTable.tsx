@@ -326,6 +326,9 @@ function NurseTableRow({
 								title={draft.name}
 							>
 								{draft.name}
+								{draft.night === 0 && (
+									<span className="pl-2 text-red-600">*</span>
+								)}
 							</span>
 						</div>
 					</div>

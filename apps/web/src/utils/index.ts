@@ -29,6 +29,12 @@ export function getMonthName(year: number, month: number): string {
 	});
 }
 
+export function getMonthOnlyName(year: number, month: number): string {
+	return new Date(year, month - 1, 1).toLocaleDateString("en-US", {
+		month: "long",
+	});
+}
+
 export function getMonthDates(year?: number, month?: number): string[] {
 	const now = new Date();
 	const y = year ?? now.getFullYear();

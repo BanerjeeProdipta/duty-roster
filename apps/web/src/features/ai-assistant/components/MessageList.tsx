@@ -4,6 +4,7 @@ import { Bot } from "lucide-react";
 import { useEffect, useRef } from "react";
 import type { ParsedMessage } from "./MessageItem";
 import { MessageItem, ProcessingIndicator, WaveAnimation } from "./MessageItem";
+import { PromptSuggestions } from "./PromptSuggestions";
 
 interface MessageListProps {
 	messages: ParsedMessage[];
@@ -14,6 +15,7 @@ interface MessageListProps {
 	ready: boolean;
 	onToggleRaw?: (index: number) => void;
 	isProcessing: boolean;
+	onSelectPrompt?: (prompt: string) => void;
 }
 
 export function MessageList({
@@ -24,6 +26,7 @@ export function MessageList({
 	ready,
 	onToggleRaw,
 	isProcessing,
+	onSelectPrompt,
 }: MessageListProps) {
 	const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -36,16 +39,23 @@ export function MessageList({
 	return (
 		<div ref={scrollRef} className="flex-1 overflow-y-auto px-4 pb-3">
 			{messages.length === 0 && !isListening && (
-				<div className="flex h-full flex-col items-center justify-center text-center">
-					<div className="mb-3 flex size-12 items-center justify-center rounded-full bg-accent-primary-light">
-						<Bot className="size-6 text-accent-primary" />
+				<div className="flex h-full flex-col items-center text-center">
+					<div className="m-auto flex flex-col items-center">
+						<div className="mb-3 flex size-12 items-center justify-center rounded-full bg-accent-primary-light">
+							<Bot className="size-6 text-accent-primary" />
+						</div>
+						<p className="font-medium text-gray-700 text-sm">
+							Hey, how can I help?
+						</p>
+						<p className="mt-1 text-gray-400 text-xs">
+							Tap the mic or type to assign shifts
+						</p>
 					</div>
-					<p className="font-medium text-gray-700 text-sm">
-						Hey, how can I help?
-					</p>
-					<p className="mt-1 text-gray-400 text-xs">
-						Tap the mic or type to assign shifts
-					</p>
+					{onSelectPrompt && (
+						<div className="mt-auto w-full">
+							<PromptSuggestions onSelect={onSelectPrompt} />
+						</div>
+					)}
 				</div>
 			)}
 

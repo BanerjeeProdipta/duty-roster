@@ -112,6 +112,7 @@
       "version": "0.0.1",
       "dependencies": {
         "@Duty-Roster/ai-parser": "workspace:*",
+        "@Duty-Roster/api": "workspace:*",
         "@Duty-Roster/db": "workspace:*",
         "@langchain/core": "*",
         "@langchain/groq": "*",

@@ -21,6 +21,7 @@ interface AIPopoverProps {
 	onToggleRaw?: (index: number) => void;
 	onClose: () => void;
 	isProcessing: boolean;
+	onSelectPrompt?: (prompt: string) => void;
 }
 
 export function AIPopover({
@@ -38,6 +39,7 @@ export function AIPopover({
 	onToggleRaw,
 	onClose,
 	isProcessing,
+	onSelectPrompt,
 }: AIPopoverProps) {
 	return (
 		<motion.div
@@ -58,6 +60,7 @@ export function AIPopover({
 				ready={ready}
 				onToggleRaw={onToggleRaw}
 				isProcessing={isProcessing}
+				onSelectPrompt={onSelectPrompt}
 			/>
 
 			<AIInput

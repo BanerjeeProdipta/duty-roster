@@ -3,6 +3,7 @@ import { Noto_Sans_Bengali, Poppins, Sacramento } from "next/font/google";
 
 import "../index.css";
 import { Suspense } from "react";
+import { MonthScheduleHeading } from "@/components/MonthScheduleHeading";
 import Header from "@/components/navbar/header";
 import Providers from "@/components/provider";
 import ServiceWorkerRegistration from "@/components/service-worker";
@@ -82,7 +83,12 @@ export default function RootLayout({
 						<Suspense fallback={null}>
 							<Header />
 						</Suspense>
-						<main className="flex-1 p-4 lg:px-20 lg:py-6">{children}</main>
+						<main className="flex-1 p-4 lg:px-20 lg:py-6">
+							<Suspense fallback={null}>
+								<MonthScheduleHeading />
+							</Suspense>
+							{children}
+						</main>
 					</div>
 				</Providers>
 				<ToasterWrapper />
