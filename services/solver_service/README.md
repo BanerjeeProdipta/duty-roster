@@ -30,24 +30,53 @@ console log, or build one matching the shape built in `service.ts`'s
 If `SOLVER_TOKEN` is unset in the environment, the `/solve` endpoint skips auth
 (useful for local testing without setting a token).
 
-## Deploying to Back4app Containers (free tier)
+## Running as the production solver (this machine + Cloudflare Tunnel)
 
-A `Dockerfile` is provided at the **repo root** (Back4app's simple deploy flow requires
-it there, no path override available). It builds with the repo root as context so it
-can `COPY` both `services/solver_service/` and `packages/api/src/roster/solver.py`
-into the image — this preserves the same relative layout `app.py`'s `sys.path` import
-expects, so no code changes are needed for containerized deploys.
+Currently in use: `run-local.sh` runs this service on whichever machine starts it,
+exposes it via a Cloudflare quick tunnel, and points the deployed Worker's
+`SOLVER_URL` at the resulting URL by editing `apps/server/wrangler.toml` and running
+`wrangler deploy`. There's no free cloud host in the mix — trade-off is that the
+solver is only reachable while someone has this running.
 
-1. New app on Back4app → Containers as a Service → connect this GitHub repo.
-2. Add environment variable `SOLVER_TOKEN` (any random secret string) — the container
-   also honors a platform-injected `PORT` (the `Dockerfile`'s `CMD` falls back to
-   `8000` if `PORT` isn't set).
-3. Deploy. Back4app gives you a public HTTPS URL for the container — that's your
-   `SOLVER_URL`.
-4. Set `SOLVER_URL` (the Back4app URL) and `SOLVER_TOKEN` (same value) as Worker
-   secrets — see `.github/workflows/deploy.yml` and `apps/server/wrangler.toml`.
+One-time setup:
 
-Test the built image locally first if you have Docker:
+```sh
+brew install cloudflared
+cd apps/server && bunx wrangler login   # opens a browser for Cloudflare OAuth
+```
+
+Create `services/solver_service/.env.local` (gitignored) with:
+
+```
+SOLVER_TOKEN=<same value as the SOLVER_TOKEN GitHub secret>
+```
+
+Then, whenever you need to generate a roster from the deployed web app:
+
+```sh
+services/solver_service/run-local.sh
+```
+
+This starts the local solver, opens the tunnel, rewrites `SOLVER_URL` in
+`apps/server/wrangler.toml`, and redeploys the Worker — leave it running, then
+click **Generate Roster** in the web app. Press Ctrl+C to stop; the Worker will
+keep pointing at the now-dead tunnel URL until you run the script again. The
+tunnel URL is random per run, so `wrangler.toml`'s `SOLVER_URL` is expected to
+show as locally modified after each run — that's normal, not a bug.
+
+## Alternative: containerized deploy (Dockerfile provided, untested against a
+## permanent free host)
+
+A `Dockerfile` is provided at the **repo root** for platforms that deploy from a
+Dockerfile (e.g. Back4app Containers). It builds with the repo root as context so
+it can `COPY` both `services/solver_service/` and `packages/api/src/roster/solver.py`
+into the image, preserving the relative layout `app.py`'s `sys.path` import expects.
+
+Note: Back4app's free container tier was tried and works functionally, but only
+issues a **temporary URL that expires after 60 minutes** unless you upgrade to a
+paid plan — not practical for this project's needs, hence the local-machine
+approach above instead. Kept here in case a genuinely free, permanent-URL
+container host is found later.
 
 ```sh
 docker build -t solver-service -f Dockerfile .
