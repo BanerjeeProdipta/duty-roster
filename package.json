@@ -53,6 +53,7 @@
 		"deploy:server": "cd apps/server && bun run build:cf && bun run deploy",
 		"deploy:web": "cd apps/web && bun run build:cf && bun run deploy",
 		"deploy": "bun install && bun run deploy:server && bun run deploy:web",
+		"roster:generate-next-month": "turbo -F @Duty-Roster/api generate-next-month",
 		"check": "biome check --write .",
 		"prepare": "husky"
 	},

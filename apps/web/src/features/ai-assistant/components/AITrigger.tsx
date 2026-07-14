@@ -33,6 +33,8 @@ export function AITrigger() {
 		setAwaitingResponse,
 		lastAction,
 		setLastAction,
+		isProcessing,
+		setIsProcessing,
 	} = useAIAssistantState();
 
 	const { processMessage, speak, isSpeakingRef, lastSpeechEndedRef } =
@@ -44,6 +46,7 @@ export function AITrigger() {
 			setAwaitingResponse,
 			setLastAction,
 			setMessages,
+			setIsProcessing,
 		});
 
 	const lastProcessedTranscriptRef = useRef("");
@@ -184,6 +187,14 @@ export function AITrigger() {
 		}
 	}, [inputValue, processMessage, setInputValue]);
 
+	const handleSelectPrompt = useCallback(
+		(prompt: string) => {
+			processMessage(prompt, { skipTTS: true });
+			setInputValue("");
+		},
+		[processMessage, setInputValue],
+	);
+
 	const handleToggleRaw = useCallback(
 		(index: number) => {
 			setMessages((prev) =>
@@ -213,6 +224,8 @@ export function AITrigger() {
 						onToggleMic={toggleMic}
 						onToggleRaw={handleToggleRaw}
 						onClose={handleClose}
+						isProcessing={isProcessing}
+						onSelectPrompt={handleSelectPrompt}
 					/>
 				)}
 			</AnimatePresence>
@@ -220,8 +233,6 @@ export function AITrigger() {
 			<motion.button
 				initial={{ opacity: 0, scale: 0.8 }}
 				animate={{ opacity: 1, scale: 1 }}
-				whileHover={{ scale: 1.1 }}
-				whileTap={{ scale: 0.9 }}
 				transition={{ duration: 0.3 }}
 				type="button"
 				onClick={open ? handleClose : handleOpen}
@@ -246,6 +257,7 @@ export function AITrigger() {
 							animate={{ scale: 1, rotate: 0, opacity: 1 }}
 							exit={{ scale: 0, rotate: -90, opacity: 0 }}
 							transition={{ duration: 0.15 }}
+							className="transition-transform duration-300 group-hover:scale-125"
 						>
 							<Bot className="h-6 w-6" />
 						</motion.div>

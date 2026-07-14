@@ -15,7 +15,8 @@
 	},
 	"scripts": {
 		"check-types": "tsc --noEmit",
-		"test": "NODE_OPTIONS=--experimental-vm-modules jest"
+		"test": "NODE_OPTIONS=--experimental-vm-modules jest",
+		"generate-next-month": "bun run src/scripts/generate-next-month.ts"
 	},
 	"dependencies": {
 		"@Duty-Roster/auth": "workspace:*",

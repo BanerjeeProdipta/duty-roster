@@ -36,7 +36,7 @@ async function DashboardContent(props: {
 			startDate,
 			endDate,
 			page: 1,
-			pageSize: 10,
+			pageSize: 50,
 		});
 
 		return (

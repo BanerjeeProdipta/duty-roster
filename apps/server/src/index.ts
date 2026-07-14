@@ -1,6 +1,10 @@
 // Polyfill process for Cloudflare Workers
 if (typeof process === "undefined") {
-	(globalThis as any).process = { env: {} };
+	(
+		globalThis as unknown as { process: { env: Record<string, string> } }
+	).process = {
+		env: {},
+	};
 }
 
 import "@Duty-Roster/env/server";
@@ -27,7 +31,8 @@ app.use(logger());
 
 // Middleware to shim environment variables for packages that use process.env
 app.use("*", async (c, next) => {
-	(globalThis as any)._CF_ENV = c.env;
+	(globalThis as unknown as { _CF_ENV: Record<string, string> })._CF_ENV =
+		c.env as Record<string, string>;
 	// Also sync to process.env for extra compatibility
 	if (globalThis.process) {
 		globalThis.process.env = { ...globalThis.process.env, ...c.env };
@@ -93,6 +98,9 @@ app.post("/api/agent", async (c) => {
 			return c.json({ error: "Missing or invalid 'text' field" }, 400);
 		}
 
+		const { resolveBengaliToEnglish } = await import("@Duty-Roster/ai-parser");
+		const resolvedText = resolveBengaliToEnglish(text);
+
 		const { buildAgent } = await import("@Duty-Roster/agent");
 
 		const agent = buildAgent();
@@ -100,10 +108,10 @@ app.post("/api/agent", async (c) => {
 		const messages = [
 			...(history || []).map((m) =>
 				m.role === "user"
-					? { role: "human", content: m.content }
+					? { role: "human", content: resolveBengaliToEnglish(m.content) }
 					: { role: "assistant", content: m.content },
 			),
-			{ role: "human", content: text },
+			{ role: "human", content: resolvedText },
 		];
 
 		const result = await Promise.race([

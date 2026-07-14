@@ -1,4 +1,4 @@
-import { bestNameMatch } from "@Duty-Roster/ai-parser";
+import { bestNameMatch, matchName } from "@Duty-Roster/ai-parser";
 import { db, schema } from "@Duty-Roster/db";
 import { tool } from "@langchain/core/tools";
 import { eq } from "drizzle-orm";
@@ -17,7 +17,8 @@ export const setShiftTool = tool(
 			return `Invalid shift "${shiftName}". Valid shifts: morning, evening, night, off.`;
 		}
 
-		let resolvedName = nurseName;
+		const input = nurseName.normalize("NFC");
+		let resolvedName = input;
 		let nurseRow = await db
 			.select({ id: nurse.id, name: nurse.name })
 			.from(nurse)
@@ -25,19 +26,30 @@ export const setShiftTool = tool(
 			.limit(1);
 
 		if (!nurseRow[0]) {
-			const words = nurseName
+			const allNurses = await db
+				.select({ id: nurse.id, name: nurse.name })
+				.from(nurse)
+				.where(eq(nurse.active, true));
+			const nameRecords = allNurses.map((n) => ({ id: n.id, name: n.name }));
+
+			const words = input
 				.toLowerCase()
 				.replace(/[.,!?;:]/g, "")
 				.split(/\s+/)
 				.filter(Boolean);
+
 			const bn = bestNameMatch(words);
 			if (bn) {
 				resolvedName = bn;
-				nurseRow = await db
-					.select({ id: nurse.id, name: nurse.name })
-					.from(nurse)
-					.where(eq(nurse.name, resolvedName))
-					.limit(1);
+				nurseRow = allNurses.filter((n) => n.name === resolvedName);
+			}
+
+			if (!nurseRow[0]) {
+				const matched = matchName(input, nameRecords);
+				if (matched && matched.confidence > 0.4) {
+					resolvedName = matched.bengaliName;
+					nurseRow = allNurses.filter((n) => n.name === resolvedName);
+				}
 			}
 		}
 

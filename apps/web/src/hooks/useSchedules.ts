@@ -8,7 +8,7 @@ import { QUERY_KEYS } from "@/utils/query-keys";
 import { trpcClient } from "@/utils/trpc";
 import { useYearMonth } from "./useYearMonth";
 
-const DEFAULT_PAGE_SIZE = 10;
+const DEFAULT_PAGE_SIZE = 50;
 
 interface UseSchedulesOptions {
 	disablePagination?: boolean;

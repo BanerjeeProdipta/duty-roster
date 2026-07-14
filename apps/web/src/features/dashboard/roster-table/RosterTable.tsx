@@ -170,6 +170,7 @@ export function RosterTable({
 	// ── Pointer event delegation ──
 
 	useEffect(() => {
+		if (!editable) return;
 		const el = parentRef.current;
 		if (!el) return;
 
@@ -231,7 +232,7 @@ export function RosterTable({
 		};
 
 		const handlePointerUp = () => {
-			if (dragRowRef.current !== null && editable) {
+			if (dragRowRef.current !== null) {
 				setShowPopover(true);
 			}
 			isDraggingRef.current = false;

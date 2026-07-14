@@ -39,7 +39,9 @@ function cleanupResources(
 		audioCtx.close();
 	}
 	if (stream) {
-		stream.getTracks().forEach((t) => t.stop());
+		stream.getTracks().forEach((t) => {
+			t.stop();
+		});
 	}
 	if (
 		ws &&
@@ -58,7 +60,7 @@ export function useAI(): UseAIReturn & { error: string } {
 	const [levels, setLevels] = useState<number[]>(() => Array(25).fill(0));
 	const [error, setError] = useState("");
 
-	const { speak } = useSpeechSynthesis();
+	useSpeechSynthesis();
 
 	const wsRef = useRef<WebSocket | null>(null);
 	const audioCtxRef = useRef<AudioContext | null>(null);
@@ -111,7 +113,10 @@ export function useAI(): UseAIReturn & { error: string } {
 
 	stopRef.current = stop;
 
-	async function setupMic(ws: WebSocket) {
+	const setupMicRef = useRef<(ws: WebSocket) => void>(() => {});
+	const setupWsHandlersRef = useRef<(ws: WebSocket) => void>(() => {});
+
+	async function setupMicFn(ws: WebSocket) {
 		log("ws open");
 		try {
 			const stream = await navigator.mediaDevices.getUserMedia({
@@ -161,7 +166,7 @@ export function useAI(): UseAIReturn & { error: string } {
 					const endBin = Math.floor(((i + 1) / BAR_COUNT) * bufferLength);
 					let sum = 0;
 					for (let j = startBin; j < endBin; j++) {
-						sum += dataArray[j]! / 255;
+						sum += (dataArray[j] ?? 0) / 255;
 					}
 					return Math.min(1, sum / (endBin - startBin));
 				});
@@ -193,6 +198,8 @@ export function useAI(): UseAIReturn & { error: string } {
 		}
 	}
 
+	setupMicRef.current = setupMicFn;
+
 	function resetSilenceTimer(delay = 3000) {
 		if (silenceRef.current) clearTimeout(silenceRef.current);
 		silenceRef.current = setTimeout(() => {
@@ -201,7 +208,7 @@ export function useAI(): UseAIReturn & { error: string } {
 		}, delay);
 	}
 
-	function setupWsHandlers(ws: WebSocket) {
+	function setupWsHandlersFn(ws: WebSocket) {
 		ws.onmessage = (event) => {
 			try {
 				const raw = event.data as string;
@@ -271,6 +278,8 @@ export function useAI(): UseAIReturn & { error: string } {
 		};
 	}
 
+	setupWsHandlersRef.current = setupWsHandlersFn;
+
 	const start = useCallback(() => {
 		if (wsRef.current || startingRef.current) {
 			log("start skipped — already starting/started");
@@ -289,13 +298,13 @@ export function useAI(): UseAIReturn & { error: string } {
 		ws.binaryType = "arraybuffer";
 		wsRef.current = ws;
 
-		setupWsHandlers(ws);
+		setupWsHandlersRef.current(ws);
 
 		ws.onopen = () => {
 			log("ws open");
-			setupMic(ws);
+			setupMicRef.current(ws);
 		};
-	}, [setupWsHandlers, setupMic]);
+	}, []);
 
 	useEffect(() => {
 		return () => {

@@ -37,7 +37,7 @@ async function lookupSchedule(nurseName: string, dateKey: string) {
 
 export const queryScheduleTool = tool(
 	async ({ nurseName, dateKey }) => {
-		let resolvedName = nurseName;
+		let resolvedName = nurseName.normalize("NFC");
 		let sched = await lookupSchedule(resolvedName, dateKey);
 
 		if (!sched) {

@@ -14,9 +14,9 @@ bun run build           # turbo build
 
 - **Turborepo** (`turbo.json`), workspaces: `apps/*`, `packages/*`
 - **Bun** 1.3.5, **Node** 22.18.0
-- Root `tsconfig.json` extends `@Duty-Roster/config/tsconfig.base.json`
 - Module: ESNext, `verbatimModuleSyntax: true` — use `import type`
 - All packages scope `@Duty-Roster/*`
+- `tsconfig.base.json` sets `noUncheckedIndexedAccess: true`, `noUnusedLocals: true`, `noUnusedParameters: true` — always guard array/object indexing against `undefined`
 
 ## Apps & ports
 
@@ -36,47 +36,66 @@ bun run build           # turbo build
 | `packages/auth` | Better-Auth config |
 | `packages/agent` | LangChain agent |
 | `packages/ai-parser` | AI intent parser |
-| `packages/env` | Environment validation (Zod) |
-| `packages/ui` | Shared shadcn/ui components |
-| `packages/config` | Shared tsconfig base |
+| `packages/env` | Environment validation (Zod, `@t3-oss/env-*`) |
+| `packages/ui` | Shared shadcn/ui components, globals.css |
+| `packages/config` | Shared tsconfig base, **`rosterConfig.ts`** (coverage targets, solver constraints) |
 
-## DB commands (all via turbo)
-
-```sh
-bun run db:push          # drizzle-kit push
-bun run db:generate      # drizzle-kit generate
-bun run db:migrate       # drizzle-kit migrate
-bun run db:studio        # drizzle-kit studio (persistent)
-bun run db:seed          # seed data
-bun run db:seed:prods    # seed with production data
-bun run db:setup-local   # push + seed (local dev)
-```
-
-`DATABASE_URL` (or `DATABASE_URL_DIRECT`) required in `.env`. The DB module auto-detects Neon HTTP driver for Cloudflare/Prod, pg Pool for Node.
-
-## Testing
+## Commands
 
 ```sh
-cd packages/api && bun run test    # Jest (ts-jest, ESM, NODE_OPTIONS=--experimental-vm-modules)
+# Dev (single services)
+bun run dev:web         # turbo -F web dev
+bun run dev:server      # turbo -F server dev
+bun run dev:ai          # turbo -F stt-server dev (voice relay)
+bun run dev:stt         # Python STT server (auto-installs deps, downloads model)
+
+# DB (all via turbo -F @Duty-Roster/db)
+bun run db:push         # drizzle-kit push
+bun run db:generate     # drizzle-kit generate
+bun run db:migrate      # drizzle-kit migrate
+bun run db:studio       # drizzle-kit studio (persistent)
+bun run db:seed         # seed data
+bun run db:seed:prods   # seed with production data
+bun run db:setup-local  # push + seed (local dev)
+
+# Build & deploy
+bun run build:cf        # install + turbo build:cf (Cloudflare bundle)
+bun run deploy:server   # cd apps/server && bun run build:cf && wrangler deploy
+bun run deploy:web      # cd apps/web && bun run build:cf && wrangler pages deploy
+bun run deploy          # install → deploy:server → deploy:web
+
+# Testing
+cd packages/api && bun run test    # Jest (ts-jest, ESM)
+# e2e: apps/web/e2e/ (Playwright, no root script)
 ```
 
-e2e: `apps/web/e2e/` (Playwright, no root script).
+## Linting & types
+
+- **Biome only** — no ESLint/Prettier. `bun run check` runs `biome check --write .`.
+- Biome auto-organizes imports on format (`assist.actions.source.organizeImports: "on"`). Combined with `verbatimModuleSyntax`, always use `import type` for type-only imports.
+- **CSS classes** in `clsx`/`cva`/`cn` calls are auto-sorted by Biome (`useSortedClasses` nursery rule).
+- Husky pre-commit runs `lint-staged` (biome check on staged files), not full `bun run check`.
+
+## Database
+
+- `packages/db/src/index.ts` exports a lazy singleton `db`. Auto-selects **Neon HTTP** (Cloudflare/prod) vs **node-postgres Pool** (local Node). Detection uses `globalThis._CF_ENV` and `process.release.name`.
+- Schema tables: `nurse`, `nurse_shift_preference`, `nurse_schedule`, `shift`, `agent_document`, plus Better-Auth auth tables.
+- `drizzle.config.ts` loads `.env`, `.env.local`, `.env.{mode}`, `.env.{mode}.local`.
 
 ## Deploy (Cloudflare)
 
-```sh
-bun run deploy:server   # cd apps/server && wrangler deploy
-bun run deploy:web      # @cloudflare/next-on-pages -> wrangler pages deploy
-```
-
-CI (`.github/workflows/deploy.yml`) deploys server + web on push to `main`.
+- Server: `apps/server` → `wrangler deploy`. Env bindings available via `globalThis._CF_ENV` (shimmed in middleware).
+- Web: `apps/web` → `@cloudflare/next-on-pages` outputs to `.cloudflare/` → `wrangler pages deploy`.
+- Web proxies `/trpc/*` to server via edge route (`apps/web/src/app/trpc/[[...path]]/route.ts`). Auth proxied similarly at `/api/auth/*`.
+- CI (`.github/workflows/deploy.yml`) deploys both on push to `main`.
 
 ## Conventions & quirks
 
-- **Linting**: Biome only (`biome check --write .`). Husky runs `lint-staged` on pre-commit.
-- **React Compiler**: enabled (`reactCompiler: true` in next.config.ts) — do not add manual `useMemo`/`useCallback` where the compiler can handle it.
-- **Server bundling**: uses `tsdown` (not tsc). Run `bun run build` for the `dist/` output.
-- **CF env shim**: server writes `c.env` → `globalThis._CF_ENV` so packages can read via `process.env`. Web middleware does the same.
+- **React Compiler**: enabled — do not add `useMemo`/`useCallback` where the compiler handles it.
+- **Server bundling**: uses `tsdown` (not tsc). Output: `dist/index.mjs`. Run `bun run build` in `apps/server`.
+- **ROSTER_CONFIG** lives at `packages/config/rosterConfig.ts`. Current coverage targets: weekdays `morning=22, evening=4, night=2`; Fridays `morning=3, evening=3, night=2`. Solver constraints include `MAX_CONSECUTIVE_NIGHTS: 2`, `MAX_CONSECUTIVE_DAYS: 6`.
+- **CP-SAT solver**: `packages/api/src/roster/solver.py` is spawned as a subprocess by `utils.ts:runSolver()`. Requires `python3` with `ortools` installed.
+- **STT setup**: Python venv at `.venv/`, Vosk model at `stt/models/` (download via `scripts/setup-stt.sh`).
 - **Package catalog**: shared deps versioned via `package.json` `workspaces.catalog`.
 - **Next.js config**: `optimizePackageImports` for `lucide-react`, `sonner`, `@Duty-Roster/ui`; webpack split chunks configured.
-- **STT setup**: Python venv at `.venv/`, Vosk model at `stt/models/` (download via `scripts/setup-stt.sh`).
+- **tRPC tiers**: `publicProcedure` (no auth), `protectedProcedure` (session), `adminProcedure` (session + admin role). All roster mutations use `adminProcedure`.

@@ -1,10 +1,14 @@
 "use client";
 
+import type { NameRecord } from "@Duty-Roster/ai-parser";
 import {
 	resolveBengaliToEnglish,
 	resolveNamesInText,
 } from "@Duty-Roster/ai-parser";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useRef } from "react";
+import { QUERY_KEYS } from "@/utils/query-keys";
+import { trpcClient } from "@/utils/trpc";
 import type { ParsedMessage } from "../components/MessageItem";
 import { parseCommand } from "../utils/commandParser";
 import { useConfirmShiftUpdate } from "./useConfirmShiftUpdate";
@@ -17,6 +21,7 @@ const STT_CORRECTIONS: Record<string, string> = {
 	sheap: "shift",
 	sheep: "shift",
 	chift: "shift",
+	firday: "friday",
 	fourth: "who's",
 	kinnear: "can you",
 	"can u s": "can you set",
@@ -42,6 +47,7 @@ const AGENT_URL =
 
 interface PendingConfirmation {
 	nurseName: string;
+	nurseId: string | null;
 	englishName: string | null;
 	shift: string;
 	date: string;
@@ -57,6 +63,7 @@ interface UseAIAssistantLogicProps {
 	setMessages: (
 		messages: ParsedMessage[] | ((prev: ParsedMessage[]) => ParsedMessage[]),
 	) => void;
+	setIsProcessing: (processing: boolean) => void;
 }
 
 export function useAIAssistantLogic({
@@ -67,6 +74,7 @@ export function useAIAssistantLogic({
 	setAwaitingResponse,
 	setLastAction,
 	setMessages,
+	setIsProcessing,
 }: UseAIAssistantLogicProps) {
 	const { confirmShiftUpdate } = useConfirmShiftUpdate();
 	const { speak: speakWithTTS, isSpeakingRef } = useSpeechSynthesis();
@@ -76,8 +84,23 @@ export function useAIAssistantLogic({
 		shift: string | null;
 		date: string | null;
 		nurseName: string | null;
+		nurseId: string | null;
 		englishName: string | null;
-	}>({ shift: null, date: null, nurseName: null, englishName: null });
+	}>({
+		shift: null,
+		date: null,
+		nurseName: null,
+		nurseId: null,
+		englishName: null,
+	});
+
+	const queryClient = useQueryClient();
+
+	const { data: nurses = [] } = useQuery({
+		queryKey: ["nurses"],
+		queryFn: () => trpcClient.roster.getNurses.query(),
+		staleTime: 5 * 60 * 1000,
+	});
 
 	const speakSafely = useCallback(
 		async (text: string) => {
@@ -109,6 +132,7 @@ export function useAIAssistantLogic({
 	const askForConfirmation = useCallback(
 		(
 			nurseName: string,
+			nurseId: string | null,
 			englishName: string | null,
 			shift: string,
 			date: string,
@@ -116,7 +140,7 @@ export function useAIAssistantLogic({
 		) => {
 			const displayName = englishName ?? nurseName;
 			const msg = `Do you want to update ${displayName}'s shift to ${shift} on ${date}? To confirm say yes, to cancel say no.`;
-			setPendingConfirmation({ nurseName, englishName, shift, date });
+			setPendingConfirmation({ nurseName, nurseId, englishName, shift, date });
 			setMessages((prev) => [
 				...prev,
 				{
@@ -154,6 +178,9 @@ export function useAIAssistantLogic({
 	const processMessage = useCallback(
 		(text: string, options?: { skipTTS?: boolean }) => {
 			const skipTTS = options?.skipTTS ?? false;
+			setMessages(
+				(prev) => [...prev, { raw: text, isUser: true }] as ParsedMessage[],
+			);
 			console.log("[AILogic] processMessage:", text, { skipTTS });
 			const lowerText = text.toLowerCase();
 
@@ -208,32 +235,36 @@ export function useAIAssistantLogic({
 				content: m.raw,
 			}));
 
+			setIsProcessing(true);
+
 			// Try agent API first
 			queryAgent(agentText, history).then((agentResponse) => {
+				setIsProcessing(false);
 				if (agentResponse) {
 					setMessages((prev) => [
 						...prev,
-						{ raw: text, isUser: true } as ParsedMessage,
 						{ raw: agentResponse, isSystem: true } as ParsedMessage,
 					]);
 					setAwaitingResponse(false);
 					if (!skipTTS) speakSafely(agentResponse);
+					const dateMatch = agentResponse.match(/\d{4}-\d{2}-\d{2}/);
+					if (dateMatch) {
+						const [yearStr, monthStr] = dateMatch[0].split("-");
+						const year = Number.parseInt(yearStr, 10);
+						const month = Number.parseInt(monthStr, 10);
+						queryClient.invalidateQueries({
+							queryKey: QUERY_KEYS.schedules(year, month),
+						});
+					}
 					return;
 				}
 
 				// Fall back to rule-based parser
-				const parsed = parseCommand(text);
+				const parsed = parseCommand(text, nurses);
 				console.log(
 					"[AILogic] parsed command (fallback):",
 					JSON.stringify(parsed),
 				);
-
-				setMessages((prev) => [
-					...prev,
-					parsed.shift || parsed.date || parsed.nurseName
-						? { raw: text, command: parsed }
-						: { raw: text },
-				]);
 
 				let finalParsed = parsed;
 				if (awaitingResponse) {
@@ -241,6 +272,7 @@ export function useAIAssistantLogic({
 						shift: parsed.shift ?? accumulatedDataRef.current.shift,
 						date: parsed.date ?? accumulatedDataRef.current.date,
 						nurseName: parsed.nurseName ?? accumulatedDataRef.current.nurseName,
+						nurseId: parsed.nurseId ?? accumulatedDataRef.current.nurseId,
 						englishName:
 							parsed.englishName ?? accumulatedDataRef.current.englishName,
 					};
@@ -248,6 +280,7 @@ export function useAIAssistantLogic({
 						shift: accumulatedDataRef.current.shift,
 						date: accumulatedDataRef.current.date,
 						nurseName: accumulatedDataRef.current.nurseName,
+						nurseId: accumulatedDataRef.current.nurseId,
 						englishName: accumulatedDataRef.current.englishName,
 						action:
 							accumulatedDataRef.current.shift &&
@@ -266,6 +299,7 @@ export function useAIAssistantLogic({
 						shift: parsed.shift,
 						date: parsed.date,
 						nurseName: parsed.nurseName,
+						nurseId: parsed.nurseId,
 						englishName: parsed.englishName,
 					};
 				}
@@ -281,10 +315,12 @@ export function useAIAssistantLogic({
 						shift: null,
 						date: null,
 						nurseName: null,
+						nurseId: null,
 						englishName: null,
 					};
 					askForConfirmation(
 						finalParsed.nurseName,
+						finalParsed.nurseId,
 						finalParsed.englishName,
 						finalParsed.shift,
 						finalParsed.date,
@@ -326,11 +362,14 @@ export function useAIAssistantLogic({
 			setAwaitingResponse,
 			setLastAction,
 			setMessages,
+			setIsProcessing,
 			askForConfirmation,
 			askForMissingFields,
 			awaitingResponse,
 			speakSafely,
 			queryAgent,
+			queryClient,
+			nurses,
 		],
 	);
 

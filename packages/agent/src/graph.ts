@@ -7,17 +7,24 @@ import {
 } from "@langchain/langgraph";
 import { ToolNode } from "@langchain/langgraph/prebuilt";
 import { createLLM } from "./llm";
+import { generateRosterTool } from "./tools/generate-roster";
 import { listNursesTool } from "./tools/list-nurses";
 import { queryScheduleTool } from "./tools/query-schedule";
 import { queryShiftTool } from "./tools/query-shift";
 import { setShiftTool } from "./tools/set-shift";
 
-const tools = [queryScheduleTool, queryShiftTool, listNursesTool, setShiftTool];
+const tools = [
+	queryScheduleTool,
+	queryShiftTool,
+	listNursesTool,
+	setShiftTool,
+	generateRosterTool,
+];
 
 const today = new Date();
 const currentDate = today.toISOString().slice(0, 10);
-const _currentMonth = today.toLocaleString("default", { month: "long" });
-const _currentYear = today.getFullYear();
+const currentMonth = today.toLocaleString("default", { month: "long" });
+const currentYear = today.getFullYear();
 
 const SYSTEM_PROMPT = `You are a duty roster assistant. Current date: ${currentDate}.
 
@@ -25,7 +32,8 @@ CRITICAL: Be extremely concise. Use 1 sentence max. No filler like "To confirm" 
 
 Rules:
 - If the user asks "who", "what", "which", or "list", use queryShift, querySchedule, or listNurses.
-- If the user wants to set/update a shift, use setShift.
+- If the user wants to set/update a single nurse's shift on a specific date, use setShift.
+- If the user wants to generate/create/build the roster for a month (e.g. "generate roster for August"), use generateRoster with that month's year/month — do NOT ask for a specific date. Assume the current year (${currentYear}) if the user doesn't say one. If no month is given at all, ask "Which month?".
 - If info is missing for setShift, ask for JUST the missing field: "Which nurse?" or "Which date?".
 - Use conversation history to resolve "it", "her", "him", or previously mentioned names/dates.
 - Respond with ONLY the result or the briefest possible question.
@@ -34,7 +42,10 @@ Tools:
 - querySchedule(nurseName, dateKey)
 - queryShift(shiftName, dateKey)
 - listNurses()
-- setShift(nurseName, shiftName, dateKey)`;
+- setShift(nurseName, shiftName, dateKey)
+- generateRoster(year, month)
+
+Current month: ${currentMonth} ${currentYear}.`;
 
 const llm = createLLM().bindTools(tools);
 const toolNode = new ToolNode(tools);

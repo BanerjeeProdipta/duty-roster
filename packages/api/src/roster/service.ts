@@ -122,11 +122,11 @@ export async function updateNurseShiftPreferenceWeights(
 }
 
 const DEFAULT_PREFERENCES_CSV = `"nurse_id","shift_id","weight","active"
-"nurse_1","shift_evening","0","true"
-"nurse_1","shift_morning","81","true"
+"nurse_1","shift_evening","10","true"
+"nurse_1","shift_morning","71","true"
 "nurse_1","shift_night","0","true"
-"nurse_10","shift_evening","0","true"
-"nurse_10","shift_morning","68","true"
+"nurse_10","shift_evening","10","true"
+"nurse_10","shift_morning","71","true"
 "nurse_10","shift_night","10","true"
 "nurse_11","shift_evening","0","true"
 "nurse_11","shift_morning","68","true"
@@ -155,8 +155,8 @@ const DEFAULT_PREFERENCES_CSV = `"nurse_id","shift_id","weight","active"
 "nurse_19","shift_evening","10","true"
 "nurse_19","shift_morning","65","true"
 "nurse_19","shift_night","6","true"
-"nurse_2","shift_evening","0","true"
-"nurse_2","shift_morning","81","true"
+"nurse_2","shift_evening","10","true"
+"nurse_2","shift_morning","71","true"
 "nurse_2","shift_night","0","true"
 "nurse_20","shift_evening","68","true"
 "nurse_20","shift_morning","0","true"
@@ -188,8 +188,8 @@ const DEFAULT_PREFERENCES_CSV = `"nurse_id","shift_id","weight","active"
 "nurse_29","shift_evening","13","true"
 "nurse_29","shift_morning","55","true"
 "nurse_29","shift_night","10","true"
-"nurse_3","shift_evening","0","true"
-"nurse_3","shift_morning","68","true"
+"nurse_3","shift_evening","10","true"
+"nurse_3","shift_morning","71","true"
 "nurse_3","shift_night","10","true"
 "nurse_30","shift_evening","0","true"
 "nurse_30","shift_morning","68","true"
@@ -200,23 +200,35 @@ const DEFAULT_PREFERENCES_CSV = `"nurse_id","shift_id","weight","active"
 "nurse_32","shift_evening","0","true"
 "nurse_32","shift_morning","81","true"
 "nurse_32","shift_night","0","true"
-"nurse_4","shift_evening","0","true"
-"nurse_4","shift_morning","68","true"
+"nurse_33","shift_evening","0","true"
+"nurse_33","shift_morning","68","true"
+"nurse_33","shift_night","10","true"
+"nurse_34","shift_evening","0","true"
+"nurse_34","shift_morning","68","true"
+"nurse_34","shift_night","10","true"
+"nurse_35","shift_evening","0","true"
+"nurse_35","shift_morning","68","true"
+"nurse_35","shift_night","10","true"
+"nurse_36","shift_evening","0","true"
+"nurse_36","shift_morning","68","true"
+"nurse_36","shift_night","10","true"
+"nurse_4","shift_evening","10","true"
+"nurse_4","shift_morning","71","true"
 "nurse_4","shift_night","10","true"
-"nurse_5","shift_evening","0","true"
-"nurse_5","shift_morning","81","true"
+"nurse_5","shift_evening","10","true"
+"nurse_5","shift_morning","71","true"
 "nurse_5","shift_night","0","true"
-"nurse_6","shift_evening","13","true"
-"nurse_6","shift_morning","68","true"
+"nurse_6","shift_evening","10","true"
+"nurse_6","shift_morning","71","true"
 "nurse_6","shift_night","0","true"
-"nurse_7","shift_evening","0","true"
+"nurse_7","shift_evening","10","true"
 "nurse_7","shift_morning","71","true"
 "nurse_7","shift_night","6","true"
-"nurse_8","shift_evening","0","true"
-"nurse_8","shift_morning","81","true"
+"nurse_8","shift_evening","10","true"
+"nurse_8","shift_morning","71","true"
 "nurse_8","shift_night","0","true"
-"nurse_9","shift_evening","13","true"
-"nurse_9","shift_morning","55","true"
+"nurse_9","shift_evening","10","true"
+"nurse_9","shift_morning","71","true"
 "nurse_9","shift_night","10","true"`;
 
 type CsvPreference = {
@@ -291,7 +303,12 @@ export async function prefillDefault(
 	await rosterDb.upsertNurseShiftPreferences(preferences, totalDays);
 	return { success: true, updated: activeNurses.length };
 }
+
 // ───────────── SEARCH ─────────────
+
+export async function getAllNurses() {
+	return rosterDb.findAllNurses();
+}
 
 export async function searchNurseNames(query: string) {
 	return rosterDb.searchNurseNames(query);

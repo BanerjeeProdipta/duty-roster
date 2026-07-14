@@ -71,9 +71,8 @@ export function useNurseCard({
 			evening: nurseEvening,
 			night: nurseNight,
 			active: nurseActive,
-			designation: (nurse as any).designation ?? undefined,
-			sortOrder:
-				(nurse as any).sortOrder ?? (nurse as any).sort_order ?? undefined,
+			designation: nurse.designation ?? undefined,
+			sortOrder: nurse.sortOrder ?? undefined,
 			off: Math.max(0, totalDays - nurseMorning - nurseEvening - nurseNight),
 		});
 	}, [
@@ -84,6 +83,8 @@ export function useNurseCard({
 		nurseNight,
 		nurseActive,
 		totalDays,
+		nurse.designation,
+		nurse.sortOrder,
 	]);
 
 	// Computed values
@@ -156,9 +157,8 @@ export function useNurseCard({
 			evening: nurseEvening,
 			night: nurseNight,
 			active: nurseActive,
-			designation: (nurse as any).designation ?? undefined,
-			sortOrder:
-				(nurse as any).sortOrder ?? (nurse as any).sort_order ?? undefined,
+			designation: nurse.designation ?? undefined,
+			sortOrder: nurse.sortOrder ?? undefined,
 			off: Math.max(0, totalDays - nurseMorning - nurseEvening - nurseNight),
 		});
 	}, [
@@ -169,6 +169,8 @@ export function useNurseCard({
 		nurseNight,
 		nurseActive,
 		totalDays,
+		nurse.designation,
+		nurse.sortOrder,
 	]);
 
 	// Toggle active handler with optimistic update
