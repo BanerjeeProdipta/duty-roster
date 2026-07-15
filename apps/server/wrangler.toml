@@ -11,4 +11,4 @@ CORS_ORIGIN = "https://duty-roster-8cw.pages.dev"
 # Set to the deployed solver_service URL (see services/solver_service/README.md).
 # Leaving this unset makes runSolver() fall back to a local python3 spawn, which
 # does not work on Cloudflare Workers.
-SOLVER_URL = "https://REPLACE-WITH-SOLVER-SERVICE-URL"
+SOLVER_URL = "https://chance-needs-singing-kilometers.trycloudflare.com"

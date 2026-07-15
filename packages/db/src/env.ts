@@ -1,4 +1,3 @@
-// import "dotenv/config";
 import { initDbEnv } from "@Duty-Roster/env/loader";
 import { z } from "zod";
 

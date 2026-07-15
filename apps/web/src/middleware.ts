@@ -19,8 +19,6 @@ export async function middleware(request: NextRequest) {
 
 	const session = await getSession(request);
 	const isLoggedIn = !!session?.session;
-	const user = session?.user as { role?: string } | null;
-	const _role = user?.role;
 
 	// Redirect logged-in users away from auth pages
 	if (isLoggedIn && pathname.startsWith("/auth")) {
@@ -38,14 +36,6 @@ export async function middleware(request: NextRequest) {
 		redirectUrl.searchParams.set("callbackUrl", pathname);
 		return NextResponse.redirect(redirectUrl);
 	}
-
-	// Admin-only routes
-	// const adminPaths = ["/dashboard", "/manage-users"];
-	// if (adminPaths.some((path) => pathname.startsWith(path))) {
-	// 	if (role !== "admin") {
-	// 		return NextResponse.redirect(new URL("/", request.url));
-	// 	}
-	// }
 
 	return NextResponse.next();
 }

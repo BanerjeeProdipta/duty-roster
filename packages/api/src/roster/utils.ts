@@ -78,18 +78,6 @@ export function getDaysInMonth(year: number, month: number): number {
 	return new Date(Date.UTC(year, month, 0)).getUTCDate();
 }
 
-export function getWeekNumber(
-	year: number,
-	month: number,
-	day: number,
-): number {
-	const date = new Date(year, month - 1, day);
-	const startOfYear = new Date(year, 0, 1);
-	const diff = date.getTime() - startOfYear.getTime();
-	const oneWeek = 604800000;
-	return Math.ceil((diff + startOfYear.getDay() * 86400000) / oneWeek);
-}
-
 export function getDaysCountFromStartAndEndDate(
 	startDate: Date,
 	endDate: Date,
@@ -247,22 +235,6 @@ export function recordShift(
 	} else {
 		profile.consecutiveNights = 0;
 		profile.needsSecondNight = false;
-	}
-}
-
-export function resetDailyState(
-	profiles: Map<string, NursePreferenceProfile>,
-): void {
-	for (const profile of profiles.values()) {
-		profile.consecutiveDays = 0;
-
-		if (profile.nightShiftCooldown > 0) {
-			profile.nightShiftCooldown--;
-			if (profile.nightShiftCooldown === 0) {
-				profile.consecutiveNights = 0;
-				profile.needsSecondNight = false;
-			}
-		}
 	}
 }
 
