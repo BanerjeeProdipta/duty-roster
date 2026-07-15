@@ -1,4 +1,4 @@
-const CACHE_NAME = 'duty-roster-v1';
+const CACHE_NAME = 'duty-roster-dev';
 const STATIC_ASSETS = [
   '/',
   '/manifest.webmanifest',
@@ -31,6 +31,27 @@ self.addEventListener('fetch', (event) => {
     return;
   }
   
+  // Navigations must always fetch fresh HTML so it references the current
+  // deploy's hashed asset URLs; a cached shell can point at chunks that no
+  // longer exist after a new deploy, breaking CSS/JS. Cache is only an
+  // offline fallback here.
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          const clone = response.clone();
+          if (response.ok) {
+            caches.open(CACHE_NAME)
+              .then((cache) => cache.put(event.request, clone))
+              .catch(() => undefined);
+          }
+          return response;
+        })
+        .catch(() => caches.match(event.request))
+    );
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request).then((cached) => {
       const networked = fetch(event.request)
