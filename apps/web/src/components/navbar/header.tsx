@@ -1,5 +1,6 @@
 "use client";
 
+import { can } from "@Duty-Roster/config/permissions";
 import { Button } from "@Duty-Roster/ui/components/button";
 import { cn } from "@Duty-Roster/ui/lib/utils";
 import { LayoutDashboard, LogIn, LogOut, Menu, X } from "lucide-react";
@@ -9,7 +10,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { authClient } from "@/lib/auth-client";
-import { ADMIN_NAV_ITEMS, PUBLIC_NAV_ITEMS, ROUTES } from "@/lib/paths";
+import { ALL_NAV_ITEMS, PUBLIC_NAV_ITEMS, ROUTES } from "@/lib/paths";
 
 const linkBase =
 	"relative flex items-center gap-1.5 px-3 py-1.5 font-medium text-sm rounded-full transition-colors duration-200 ease-out";
@@ -29,7 +30,7 @@ export default function Header() {
 		setHasMounted(true);
 	}, []);
 
-	const isAdmin = (session?.user as { role?: string })?.role === "admin";
+	const role = (session?.user as { role?: string })?.role;
 	const userName = (session?.user as { name?: string })?.name;
 
 	const handleSignOut = async () => {
@@ -39,10 +40,12 @@ export default function Header() {
 		toast.success("Signed out successfully");
 	};
 
-	const navItems = [
-		...PUBLIC_NAV_ITEMS,
-		...(hasMounted && !isPending && isAdmin ? ADMIN_NAV_ITEMS : []),
-	];
+	const navItems =
+		hasMounted && !isPending
+			? ALL_NAV_ITEMS.filter(
+					(item) => !item.permission || can(role, item.permission),
+				)
+			: PUBLIC_NAV_ITEMS;
 
 	const buildHref = (to: string) => {
 		const params = new URLSearchParams();

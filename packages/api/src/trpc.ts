@@ -1,3 +1,5 @@
+import type { Permission } from "@Duty-Roster/config/permissions";
+import { can } from "@Duty-Roster/config/permissions";
 import { initTRPC, TRPCError } from "@trpc/server";
 
 import type { Context } from "./context";
@@ -27,19 +29,19 @@ export const protectedProcedure = t.procedure.use(({ ctx, next }) => {
 	});
 });
 
-export const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
-	const session = ctx.session as {
-		user: unknown;
-	} | null;
-	const user = session?.user as { role?: string } | null;
+export function requirePermission(permission: Permission) {
+	return protectedProcedure.use(({ ctx, next }) => {
+		const session = ctx.session as { user: unknown } | null;
+		const user = session?.user as { role?: string } | null;
 
-	if (user?.role !== "admin") {
-		throw new TRPCError({
-			code: "FORBIDDEN",
-			message: "Admin access required",
-			cause: "Not admin",
-		});
-	}
+		if (!can(user?.role, permission)) {
+			throw new TRPCError({
+				code: "FORBIDDEN",
+				message: "Insufficient permissions",
+				cause: `Missing permission: ${permission}`,
+			});
+		}
 
-	return next({ ctx });
-});
+		return next({ ctx });
+	});
+}

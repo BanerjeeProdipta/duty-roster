@@ -20,6 +20,7 @@
 	},
 	"dependencies": {
 		"@Duty-Roster/auth": "workspace:*",
+		"@Duty-Roster/config": "workspace:*",
 		"@Duty-Roster/db": "workspace:*",
 		"@Duty-Roster/env": "workspace:*",
 		"@trpc/client": "catalog:",
@@ -30,7 +31,6 @@
 		"zod": "catalog:"
 	},
 	"devDependencies": {
-		"@Duty-Roster/config": "workspace:*",
 		"@types/jest": "^30.0.0",
 		"hono": "catalog:",
 		"jest": "^30.4.2",

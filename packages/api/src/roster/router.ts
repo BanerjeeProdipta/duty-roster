@@ -1,9 +1,12 @@
+import { PERMISSIONS } from "@Duty-Roster/config/permissions";
 import "regenerator-runtime";
 import { z } from "zod";
 
-import { adminProcedure, publicProcedure, router } from "../trpc";
+import { publicProcedure, requirePermission, router } from "../trpc";
 import { schedulesResponseSchema, shiftSchema } from "./schema";
 import * as rosterService from "./service";
+
+const manageRosterProcedure = requirePermission(PERMISSIONS.MANAGE_ROSTER);
 
 export const rosterRouter = router({
 	// ─────────────── READS ───────────────
@@ -49,7 +52,7 @@ export const rosterRouter = router({
 
 	// ─────────────── WRITES ───────────────
 
-	generateRoster: adminProcedure
+	generateRoster: manageRosterProcedure
 		.input(
 			z.object({
 				year: z.number().int().min(2000).max(2100),
@@ -58,7 +61,7 @@ export const rosterRouter = router({
 		)
 		.mutation(({ input }) => rosterService.generateRoster(input)),
 
-	prefillDefault: adminProcedure
+	prefillDefault: manageRosterProcedure
 		.input(
 			z.object({
 				year: z.number().int().min(2000).max(2100),
@@ -69,7 +72,7 @@ export const rosterRouter = router({
 			rosterService.prefillDefault(input.year, input.month),
 		),
 
-	updateNurseShiftPreferences: adminProcedure
+	updateNurseShiftPreferences: manageRosterProcedure
 		.input(
 			z.object({
 				preferences: z.array(
@@ -90,7 +93,7 @@ export const rosterRouter = router({
 			),
 		),
 
-	updateShift: adminProcedure
+	updateShift: manageRosterProcedure
 		.input(
 			z.object({
 				id: z.string(),
@@ -109,7 +112,7 @@ export const rosterRouter = router({
 			return result;
 		}),
 
-	batchUpdateShifts: adminProcedure
+	batchUpdateShifts: manageRosterProcedure
 		.input(
 			z.array(
 				z.object({
@@ -124,7 +127,7 @@ export const rosterRouter = router({
 			return rosterService.batchUpsertSchedules(input);
 		}),
 
-	updateNurse: adminProcedure
+	updateNurse: manageRosterProcedure
 		.input(
 			z.object({
 				nurseId: z.string(),
@@ -136,11 +139,11 @@ export const rosterRouter = router({
 		)
 		.mutation(({ input }) => rosterService.updateNurse(input)),
 
-	deleteNurse: adminProcedure
+	deleteNurse: manageRosterProcedure
 		.input(z.object({ nurseId: z.string() }))
 		.mutation(({ input }) => rosterService.deleteNurse(input.nurseId)),
 
-	createNurse: adminProcedure
+	createNurse: manageRosterProcedure
 		.input(
 			z
 				.object({

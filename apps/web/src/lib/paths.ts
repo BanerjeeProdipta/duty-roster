@@ -1,3 +1,5 @@
+import type { Permission } from "@Duty-Roster/config/permissions";
+import { PERMISSIONS } from "@Duty-Roster/config/permissions";
 import type { LucideIcon } from "lucide-react";
 import { CalendarDays, Grid2X2, Home, Users } from "lucide-react";
 
@@ -17,15 +19,13 @@ export const ROUTE_ICONS: Record<keyof typeof ROUTES, LucideIcon> = {
 	auth: Users,
 } as const;
 
-export const ADMIN_ROUTES = [ROUTES.dashboard, ROUTES.manageUsers] as const;
-
 export type RouteKey = keyof typeof ROUTES;
 
 export interface NavItem {
 	to: string;
 	label: string;
 	icon: LucideIcon;
-	adminOnly?: boolean;
+	permission?: Permission;
 }
 
 export const PUBLIC_NAV_ITEMS: NavItem[] = [
@@ -38,13 +38,13 @@ export const ADMIN_NAV_ITEMS: NavItem[] = [
 		to: ROUTES.dashboard,
 		label: "Dashboard",
 		icon: ROUTE_ICONS.dashboard,
-		adminOnly: true,
+		permission: PERMISSIONS.VIEW_DASHBOARD,
 	},
 	{
 		to: ROUTES.manageUsers,
 		label: "Manage",
 		icon: ROUTE_ICONS.manageUsers,
-		adminOnly: true,
+		permission: PERMISSIONS.MANAGE_ROSTER,
 	},
 ];
 

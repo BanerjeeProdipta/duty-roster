@@ -1,4 +1,10 @@
+import { can, PERMISSIONS } from "@Duty-Roster/config/permissions";
 import { type NextRequest, NextResponse } from "next/server";
+
+const ROUTE_PERMISSIONS = [
+	{ prefix: "/dashboard", permission: PERMISSIONS.VIEW_DASHBOARD },
+	{ prefix: "/manage-users", permission: PERMISSIONS.MANAGE_ROSTER },
+] as const;
 
 export async function middleware(request: NextRequest) {
 	const ctx = (
@@ -19,10 +25,14 @@ export async function middleware(request: NextRequest) {
 
 	const session = await getSession(request);
 	const isLoggedIn = !!session?.session;
+	const role = (session?.user as { role?: string } | undefined)?.role;
 
 	// Redirect logged-in users away from auth pages
 	if (isLoggedIn && pathname.startsWith("/auth")) {
-		return NextResponse.redirect(new URL("/dashboard", request.url));
+		const landing = can(role, PERMISSIONS.VIEW_DASHBOARD)
+			? "/dashboard"
+			: "/roster";
+		return NextResponse.redirect(new URL(landing, request.url));
 	}
 
 	// Allow public paths through
@@ -35,6 +45,14 @@ export async function middleware(request: NextRequest) {
 		const redirectUrl = new URL("/auth", request.url);
 		redirectUrl.searchParams.set("callbackUrl", pathname);
 		return NextResponse.redirect(redirectUrl);
+	}
+
+	// Block access to routes the user's role lacks permission for
+	const routeRule = ROUTE_PERMISSIONS.find(({ prefix }) =>
+		pathname.startsWith(prefix),
+	);
+	if (routeRule && !can(role, routeRule.permission)) {
+		return NextResponse.redirect(new URL("/roster", request.url));
 	}
 
 	return NextResponse.next();
