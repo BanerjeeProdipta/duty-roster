@@ -7,29 +7,37 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ```sh
 bun install             # install deps
 bun run dev             # all services (web :3001, server :3000, voice :3002, STT :5001)
-bun run dev:web         # Next.js only
-bun run dev:server      # Hono server only
+bun run dev:web         # Next.js only (turbo -F web dev)
+bun run dev:server      # Hono server only (turbo -F server dev)
+bun run dev:ai          # voice relay only (turbo -F stt-server dev)
 bun run check           # lint + format (biome check --write .)
-bun run check-types     # tsc --noEmit across all packages
+bun run check-types     # turbo check-types (tsc --noEmit / tsc -b per package)
 bun run build           # turbo build
 
 # Testing
-cd packages/api && bun run test    # Jest unit tests (roster utils)
+cd packages/api && bun run test    # Jest (ts-jest, ESM) — roster service/utils/solver tests
 # e2e: apps/web/e2e/ (Playwright, no root script)
 
-# Database
-bun run db:push          # push schema changes (drizzle-kit)
-bun run db:generate      # generate migrations
+# Database (all proxy to turbo -F @Duty-Roster/db)
+bun run db:push          # drizzle-kit push
+bun run db:generate      # drizzle-kit generate
+bun run db:migrate       # drizzle-kit migrate
 bun run db:studio        # open Drizzle Studio
+bun run db:seed          # seed data
 bun run db:setup-local   # push + seed for local dev
+
+# Deploy (Cloudflare)
+bun run deploy:server    # cd apps/server && build:cf && wrangler deploy
+bun run deploy:web       # cd apps/web && build:cf && wrangler pages deploy
+bun run deploy           # install → deploy:server → deploy:web
 ```
 
 ## Architecture
 
 ### Monorepo layout
 
-- **`apps/web`** — Next.js 15 frontend, deployed to Cloudflare Pages
-- **`apps/server`** — Hono + tRPC backend, deployed to Cloudflare Workers
+- **`apps/web`** — Next.js 15 frontend, deployed to Cloudflare Pages (`@cloudflare/next-on-pages`)
+- **`apps/server`** — Hono + tRPC backend, deployed to Cloudflare Workers (bundled with `tsdown`, not `tsc`)
 - **`apps/ai-server`** — Voice WebSocket relay (Bun)
 - **`stt/`** — Python/Vosk speech-to-text server
 - **`packages/api`** — tRPC router + roster business logic (service, utils, solver)
@@ -39,7 +47,9 @@ bun run db:setup-local   # push + seed for local dev
 - **`packages/ai-parser`** — AI intent parser for the assistant
 - **`packages/env`** — Zod-validated environment variables
 - **`packages/ui`** — Shared shadcn/ui components
-- **`packages/config`** — Shared tsconfig base
+- **`packages/config`** — Shared tsconfig base + `rosterConfig.ts` (coverage targets, solver constraints)
+
+All packages are scoped `@Duty-Roster/*`. `tsconfig.base.json` sets `noUncheckedIndexedAccess: true`, `noUnusedLocals: true`, `noUnusedParameters: true` — always guard array/object indexing against `undefined`.
 
 ### Request path
 
@@ -51,8 +61,8 @@ tRPC procedures are defined in `packages/api/src/roster/router.ts` and assembled
 
 Better-Auth handles sessions. The tRPC context (`packages/api/src/context.ts`) reads the session from cookies on each request. Three procedure tiers exist in `packages/api/src/trpc.ts`:
 - `publicProcedure` — no auth required
-- `protectedProcedure` — session required
-- `adminProcedure` — session + `user.role === "admin"` required
+- `protectedProcedure` — session required (throws `UNAUTHORIZED` if missing)
+- `adminProcedure` — session + `user.role === "admin"` required (throws `FORBIDDEN` otherwise)
 
 All roster mutations (generate, update, delete) use `adminProcedure`.
 
@@ -68,9 +78,9 @@ Cloudflare Workers inject env bindings via `c.env`, not `process.env`. The Hono 
 
 ### CP-SAT roster solver
 
-Generate flow: `service.ts` builds a solver payload → calls `runSolver()` in `utils.ts` → spawns `packages/api/src/roster/solver.py` as a subprocess → Python constructs a CP-SAT model (OR-Tools) → returns a roster matrix → service bulk-upserts into `nurse_schedule`.
+Generate flow: `service.ts` builds a solver payload → calls `runSolver()` in `utils.ts` → spawns `packages/api/src/roster/solver.py` as a subprocess (requires `python3` with `ortools` installed) → Python constructs a CP-SAT model (OR-Tools) → returns a roster matrix → service bulk-upserts into `nurse_schedule`.
 
-Daily coverage targets: weekdays `morning=20, evening=3, night=2`; Fridays `morning=3, evening=3, night=2`.
+Coverage targets and constraints (e.g. `MAX_CONSECUTIVE_NIGHTS`, `MAX_CONSECUTIVE_DAYS`) live in `packages/config/rosterConfig.ts` (`ROSTER_CONFIG`) — check that file directly for current numbers rather than assuming, it changes often.
 
 ### Frontend patterns
 
@@ -82,8 +92,11 @@ Daily coverage targets: weekdays `morning=20, evening=3, night=2`; Fridays `morn
 
 ### Linting & types
 
-Biome only — no ESLint. `biome check --write .` fixes lint and formatting. Husky pre-commit runs `lint-staged`. Use `import type` for type-only imports (`verbatimModuleSyntax: true`).
+- Biome only — no ESLint/Prettier. `bun run check` runs `biome check --write .`.
+- Biome auto-organizes imports on format (`assist.actions.source.organizeImports: "on"`). Combined with `verbatimModuleSyntax: true`, always use `import type` for type-only imports.
+- CSS classes in `clsx`/`cva`/`cn` calls are auto-sorted by Biome (`useSortedClasses` nursery rule).
+- Husky pre-commit runs `lint-staged` (biome check on staged files only), not the full `bun run check`.
 
 ### Voice assistant
 
-Feature lives under `apps/web/src/features/ai-assistant/`. The AI assistant popover (`AIPopover.tsx`) connects to the voice relay (`apps/ai-server`) and the LangChain agent endpoint (`POST /api/agent` on the Hono server). The Python STT server (`stt/server.py`) runs Vosk on a WebSocket at `:5001`. Setup requires `.venv/` Python env and Vosk model downloaded via `scripts/setup-stt.sh`.
+Feature lives under `apps/web/src/features/ai-assistant/`. The AI assistant popover (`AIPopover.tsx`) connects to the voice relay (`apps/ai-server`) and the LangChain agent endpoint (`POST /api/agent` on the Hono server). The Python STT server (`stt/server.py`) runs Vosk on a WebSocket at `:5001`. Setup requires a `.venv/` Python env and a Vosk model downloaded via `scripts/setup-stt.sh`.

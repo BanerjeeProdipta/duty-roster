@@ -125,15 +125,6 @@ export default function SignInForm({
 					</form.Field>
 				</div>
 
-				<div className="text-right">
-					<a
-						href="/auth/forgot-password"
-						className="text-primary text-sm hover:underline"
-					>
-						Forgot Password?
-					</a>
-				</div>
-
 				<form.Subscribe
 					selector={(state) => ({
 						canSubmit: state.canSubmit,
