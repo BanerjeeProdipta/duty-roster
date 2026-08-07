@@ -500,17 +500,27 @@ async function runSolverViaHttp(
 	solverUrl: string,
 	payload: Record<string, unknown>,
 ): Promise<SolverResult> {
+	const solverToken =
+		typeof process !== "undefined" ? process.env?.SOLVER_TOKEN : undefined;
+	if (!solverToken) {
+		console.error(
+			"SOLVER_TOKEN environment variable is not set but SOLVER_URL is configured.",
+		);
+		return {
+			success: false,
+			reason:
+				"Solver is misconfigured: SOLVER_TOKEN environment variable is not set",
+		};
+	}
+
 	const controller = new AbortController();
 	const timeout = setTimeout(() => controller.abort(), SOLVER_FETCH_TIMEOUT_MS);
 	try {
-		const solverToken =
-			(typeof process !== "undefined" && process.env?.SOLVER_TOKEN) ||
-			undefined;
 		const response = await fetch(`${solverUrl}/solve`, {
 			method: "POST",
 			headers: {
 				"Content-Type": "application/json",
-				...(solverToken ? { "X-Solver-Token": solverToken } : {}),
+				"X-Solver-Token": solverToken,
 			},
 			body: JSON.stringify(payload),
 			signal: controller.signal,
