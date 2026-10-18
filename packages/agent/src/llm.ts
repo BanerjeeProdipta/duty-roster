@@ -18,7 +18,7 @@ export function createLLM() {
 
 	if (groqKey) {
 		return new ChatGroq({
-			model: "meta-llama/llama-4-scout-17b-16e-instruct",
+			model: "openai/gpt-oss-120b",
 			temperature: 0,
 			apiKey: groqKey,
 		});

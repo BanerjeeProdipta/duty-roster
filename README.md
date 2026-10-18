@@ -2,6 +2,17 @@
 
 A modern duty roster scheduling system for nurses, built with TypeScript, Next.js, Hono, tRPC, and more.
 
+## Screenshots
+
+**Dashboard + AI Assistant**
+![Dashboard screenshot](docs/screenshots/dashboard.png)
+
+**Roster View**
+![Roster screenshot](docs/screenshots/roster.png)
+
+**Manage Nurses**
+![Manage nurses screenshot](docs/screenshots/manage-users.png)
+
 ## Features
 
 - **Automated Scheduling**: Constraint programming solver using OR-Tools for optimal nurse shift assignments
