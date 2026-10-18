@@ -25,11 +25,11 @@ export default function AuthLayout({
 						grainAnimated={false}
 					/>
 					<div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 text-center">
-						<p className="font-cursive font-medium text-4xl italic leading-snug lg:text-5xl">
-							Scheduling
+						<p className="font-sans font-semibold text-3xl text-white leading-snug tracking-tight lg:text-5xl">
+							Scheduling made
 						</p>
-						<p className="font-cursive font-medium text-4xl italic leading-snug lg:text-5xl">
-							made simple!
+						<p className="font-bold font-sans text-5xl text-white leading-snug tracking-tight lg:text-7xl">
+							simple!
 						</p>
 					</div>
 					<div className="relative z-20 flex h-full items-center justify-center p-16">
