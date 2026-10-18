@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Noto_Sans_Bengali, Poppins, Sacramento } from "next/font/google";
+import { Noto_Sans_Bengali, Poppins } from "next/font/google";
 
 import "../index.css";
 import { Suspense } from "react";
@@ -12,19 +12,13 @@ import ToasterWrapper from "@/components/ToasterWrapper";
 const poppins = Poppins({
 	variable: "--font-poppins",
 	subsets: ["latin"],
-	weight: ["400", "500", "600"],
+	weight: ["400", "500", "600", "700"],
 });
 
 const notoSansBengali = Noto_Sans_Bengali({
 	variable: "--font-bengali",
 	subsets: ["bengali"],
 	weight: ["400", "700"],
-});
-
-const sacramento = Sacramento({
-	variable: "--font-cursive",
-	subsets: ["latin"],
-	weight: "400",
 });
 
 export const metadata: Metadata = {
@@ -75,7 +69,7 @@ export default function RootLayout({
 	return (
 		<html lang="en" suppressHydrationWarning>
 			<body
-				className={`${poppins.variable} ${notoSansBengali.variable} ${sacramento.variable} font-sans antialiased`}
+				className={`${poppins.variable} ${notoSansBengali.variable} font-sans antialiased`}
 			>
 				<Providers>
 					<ServiceWorkerRegistration />
