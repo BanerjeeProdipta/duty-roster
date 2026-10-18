@@ -11,8 +11,8 @@ env:
   DATABASE_URL: ${{ secrets.DATABASE_URL }}
   BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
   SOLVER_TOKEN: ${{ secrets.SOLVER_TOKEN }}
-  NEXT_PUBLIC_SERVER_URL: ${{ vars.NEXT_PUBLIC_SERVER_URL }}
-  BETTER_AUTH_URL: ${{ vars.BETTER_AUTH_URL }}
+  GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+  NEXT_PUBLIC_SERVER_URL: ${{ secrets.NEXT_PUBLIC_SERVER_URL }}
 
 jobs:
   deploy:
@@ -44,7 +44,8 @@ jobs:
             --arg database_url "$DATABASE_URL" \
             --arg better_auth_secret "$BETTER_AUTH_SECRET" \
             --arg solver_token "$SOLVER_TOKEN" \
-            '{DATABASE_URL: $database_url, BETTER_AUTH_SECRET: $better_auth_secret, SOLVER_TOKEN: $solver_token}' \
+            --arg groq_api_key "$GROQ_API_KEY" \
+            '{DATABASE_URL: $database_url, BETTER_AUTH_SECRET: $better_auth_secret, SOLVER_TOKEN: $solver_token, GROQ_API_KEY: $groq_api_key}' \
             | npx wrangler secret bulk
 
       - name: Deploy server
