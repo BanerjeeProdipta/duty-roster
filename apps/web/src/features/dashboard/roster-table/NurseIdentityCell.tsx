@@ -25,11 +25,11 @@ export function NurseIdentityCell({
 	return (
 		<div
 			className={cn(
-				"relative h-full w-full bg-white px-3 py-3 transition-colors duration-200 hover:bg-gray-50/80",
+				"relative h-full w-full bg-white px-2.5 py-1.5 transition-colors duration-200 hover:bg-gray-50/80",
 				nurse.active === false && "opacity-60 grayscale",
 			)}
 		>
-			<div className="flex h-full flex-col justify-center gap-2">
+			<div className="flex h-full flex-col justify-center gap-1.5">
 				<div className="flex items-center justify-between gap-1 overflow-hidden">
 					{editable ? (
 						<Link href={`/manage-users?q=${nurse.name}`}>

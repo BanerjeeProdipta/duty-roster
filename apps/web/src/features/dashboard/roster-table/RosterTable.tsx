@@ -310,7 +310,7 @@ export function RosterTable({
 						<thead>
 							<tr>
 								<th
-									className="sticky top-0 left-0 z-[30] border-r border-b bg-gray-50 px-3 py-3 text-center text-gray-600 text-sm uppercase tracking-widest"
+									className="sticky top-0 left-0 z-[30] border-r border-b bg-gray-50 px-3 py-2 text-center text-gray-600 text-xs uppercase tracking-widest"
 									style={{
 										width: LAYOUT.nameColWidth,
 										height: LAYOUT.headerHeight,
@@ -413,6 +413,7 @@ export function RosterTable({
 													data-col-idx={vc.index}
 													className={cn(
 														"border-gray-200",
+														date.isToday && "bg-gray-50",
 														isSelected && "bg-blue-100",
 													)}
 													style={{
@@ -428,7 +429,6 @@ export function RosterTable({
 														)}
 														style={{
 															width: LAYOUT.cellWidth,
-															height: LAYOUT.rowHeight,
 														}}
 													>
 														<ShiftCellBadge

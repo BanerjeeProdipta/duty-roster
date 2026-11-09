@@ -1,8 +1,8 @@
 "use client";
 
 import { QueryClientProvider } from "@tanstack/react-query";
-import { lazy, Suspense } from "react";
-import { queryClient } from "@/utils/query-client";
+import { lazy, Suspense, useState } from "react";
+import { getQueryClient } from "@/utils/query-client";
 
 const ReactQueryDevtools = lazy(() =>
 	import("@tanstack/react-query-devtools").then((mod) => ({
@@ -11,6 +11,8 @@ const ReactQueryDevtools = lazy(() =>
 );
 
 export default function Providers({ children }: { children: React.ReactNode }) {
+	const [queryClient] = useState(getQueryClient);
+
 	return (
 		<QueryClientProvider client={queryClient}>
 			{children}

@@ -9,18 +9,30 @@ const SUGGESTED_PROMPTS = [
 	"Give Salma the day off on Monday",
 ];
 
+const READ_ONLY_SUGGESTED_PROMPTS = [
+	"Who's on morning shift today?",
+	"Show me Friday's roster",
+	"Who's working this weekend?",
+	"How many nurses are on night shift?",
+];
+
 interface PromptSuggestionsProps {
 	onSelect: (prompt: string) => void;
+	readOnly?: boolean;
 }
 
-export function PromptSuggestions({ onSelect }: PromptSuggestionsProps) {
+export function PromptSuggestions({
+	onSelect,
+	readOnly,
+}: PromptSuggestionsProps) {
+	const prompts = readOnly ? READ_ONLY_SUGGESTED_PROMPTS : SUGGESTED_PROMPTS;
 	return (
 		<div className="w-full pt-4">
 			<p className="mb-2 text-center font-medium text-[11px] text-gray-400 uppercase tracking-wide">
 				Try prompts like this
 			</p>
 			<div className="flex w-full flex-col divide-y divide-gray-100">
-				{SUGGESTED_PROMPTS.map((prompt) => (
+				{prompts.map((prompt) => (
 					<button
 						key={prompt}
 						type="button"

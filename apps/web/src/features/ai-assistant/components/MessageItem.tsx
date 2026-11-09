@@ -20,7 +20,7 @@ const BotIcon = () => (
 );
 
 const UserIcon = () => (
-	<div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-blue-600">
+	<div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-accent-primary">
 		<User className="size-4 text-white" />
 	</div>
 );
@@ -70,6 +70,7 @@ interface ParsedCommand {
 
 export interface ParsedMessage {
 	raw: string;
+	bn?: string;
 	showRaw?: boolean;
 	command?: ParsedCommand;
 	isSystem?: boolean;
@@ -79,11 +80,13 @@ export interface ParsedMessage {
 export function MessageItem({
 	message,
 	onToggleRaw,
+	showBn,
 }: {
 	message: ParsedMessage;
 	onToggleRaw?: () => void;
+	showBn?: boolean;
 }) {
-	const { command, raw, showRaw, isSystem } = message;
+	const { command, raw, bn, showRaw, isSystem } = message;
 	const isRecognized = !!command;
 
 	if (isSystem) {
@@ -91,7 +94,7 @@ export function MessageItem({
 			<div className="mt-4 flex w-full items-start gap-1.5">
 				<BotIcon />
 				<div className="flex-1 rounded-2xl border border-accent-primary bg-accent-primary/10 px-4 py-3">
-					<p className="text-gray-800 text-sm">{raw}</p>
+					<p className="text-gray-800 text-sm">{showBn && bn ? bn : raw}</p>
 				</div>
 			</div>
 		);

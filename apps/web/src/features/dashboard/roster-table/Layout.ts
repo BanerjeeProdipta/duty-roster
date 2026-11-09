@@ -1,6 +1,6 @@
 export const LAYOUT = {
-	nameColWidth: 160,
-	headerHeight: 90,
-	cellWidth: 140,
-	rowHeight: 80,
+	nameColWidth: 140,
+	headerHeight: 72,
+	cellWidth: 112,
+	rowHeight: 72,
 } as const;

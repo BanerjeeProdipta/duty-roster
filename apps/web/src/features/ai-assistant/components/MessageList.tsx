@@ -16,6 +16,8 @@ interface MessageListProps {
 	onToggleRaw?: (index: number) => void;
 	isProcessing: boolean;
 	onSelectPrompt?: (prompt: string) => void;
+	readOnly?: boolean;
+	showBn?: boolean;
 }
 
 export function MessageList({
@@ -27,6 +29,8 @@ export function MessageList({
 	onToggleRaw,
 	isProcessing,
 	onSelectPrompt,
+	readOnly,
+	showBn,
 }: MessageListProps) {
 	const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -53,7 +57,10 @@ export function MessageList({
 					</div>
 					{onSelectPrompt && (
 						<div className="mt-auto w-full">
-							<PromptSuggestions onSelect={onSelectPrompt} />
+							<PromptSuggestions
+								onSelect={onSelectPrompt}
+								readOnly={readOnly}
+							/>
 						</div>
 					)}
 				</div>
@@ -65,6 +72,7 @@ export function MessageList({
 					key={`msg-${i}`}
 					message={msg}
 					onToggleRaw={onToggleRaw ? () => onToggleRaw(i) : undefined}
+					showBn={showBn}
 				/>
 			))}
 

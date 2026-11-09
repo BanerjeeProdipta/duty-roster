@@ -1,4 +1,5 @@
 import { lazy, Suspense } from "react";
+import { AIAssistantWrapper } from "@/features/dashboard/components/AIAssistantWrapper";
 import { RosterHeader } from "@/features/dashboard/roster-table/RosterHeader";
 import { RosterTableSkeleton } from "@/features/dashboard/roster-table/RosterTableSkeleton";
 import { getMonthDateRange, getYearMonthFromSearchParams } from "@/utils";
@@ -64,6 +65,7 @@ export default function Home(props: {
 	return (
 		<Suspense fallback={<RosterTableSkeleton />}>
 			<HomeContent searchParams={props.searchParams} />
+			<AIAssistantWrapper />
 		</Suspense>
 	);
 }

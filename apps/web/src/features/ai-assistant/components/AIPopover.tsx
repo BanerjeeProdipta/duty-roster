@@ -22,6 +22,9 @@ interface AIPopoverProps {
 	onClose: () => void;
 	isProcessing: boolean;
 	onSelectPrompt?: (prompt: string) => void;
+	readOnly?: boolean;
+	showBn?: boolean;
+	onToggleShowBn?: () => void;
 }
 
 export function AIPopover({
@@ -40,7 +43,12 @@ export function AIPopover({
 	onClose,
 	isProcessing,
 	onSelectPrompt,
+	readOnly,
+	showBn,
+	onToggleShowBn,
 }: AIPopoverProps) {
+	const hasTranslation = messages.some((m) => m.bn && m.bn !== m.raw);
+
 	return (
 		<motion.div
 			initial={{ opacity: 0, scale: 0.95, y: 10 }}
@@ -49,7 +57,14 @@ export function AIPopover({
 			transition={{ duration: 0.15, ease: "easeOut" }}
 			className="fixed inset-0 z-[110] flex flex-col overflow-hidden rounded-none bg-white md:absolute md:inset-auto md:right-0 md:bottom-full md:mb-3 md:h-[520px] md:w-[380px] md:rounded-2xl md:border md:shadow-2xl"
 		>
-			<AIHeader isListening={isListening} ready={ready} onClose={onClose} />
+			<AIHeader
+				isListening={isListening}
+				ready={ready}
+				onClose={onClose}
+				showBn={showBn}
+				onToggleShowBn={onToggleShowBn}
+				hasTranslation={hasTranslation}
+			/>
 
 			<MessageList
 				messages={messages}
@@ -61,6 +76,8 @@ export function AIPopover({
 				onToggleRaw={onToggleRaw}
 				isProcessing={isProcessing}
 				onSelectPrompt={onSelectPrompt}
+				readOnly={readOnly}
+				showBn={showBn}
 			/>
 
 			<AIInput
