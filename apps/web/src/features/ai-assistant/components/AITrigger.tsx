@@ -8,7 +8,11 @@ import { useAIAssistantLogic } from "@/features/ai-assistant/hooks/useAIAssistan
 import { useAIAssistantState } from "@/features/ai-assistant/hooks/useAIAssistantState";
 import { AIPopover } from "./AIPopover";
 
-export function AITrigger() {
+interface AITriggerProps {
+	readOnly?: boolean;
+}
+
+export function AITrigger({ readOnly }: AITriggerProps = {}) {
 	const {
 		transcript,
 		partial,
@@ -35,6 +39,8 @@ export function AITrigger() {
 		setLastAction,
 		isProcessing,
 		setIsProcessing,
+		showBn,
+		toggleShowBn,
 	} = useAIAssistantState();
 
 	const { processMessage, speak, isSpeakingRef, lastSpeechEndedRef } =
@@ -226,6 +232,9 @@ export function AITrigger() {
 						onClose={handleClose}
 						isProcessing={isProcessing}
 						onSelectPrompt={handleSelectPrompt}
+						readOnly={readOnly}
+						showBn={showBn}
+						onToggleShowBn={toggleShowBn}
 					/>
 				)}
 			</AnimatePresence>

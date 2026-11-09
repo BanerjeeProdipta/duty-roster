@@ -25,10 +25,10 @@ export default function AuthLayout({
 						grainAnimated={false}
 					/>
 					<div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 text-center">
-						<p className="font-sans font-semibold text-3xl text-white leading-snug tracking-tight lg:text-5xl">
+						<p className="font-cursive text-4xl text-white leading-snug lg:text-6xl">
 							Scheduling made
 						</p>
-						<p className="font-bold font-sans text-5xl text-white leading-snug tracking-tight lg:text-7xl">
+						<p className="font-cursive text-6xl text-white leading-snug lg:text-8xl">
 							simple!
 						</p>
 					</div>

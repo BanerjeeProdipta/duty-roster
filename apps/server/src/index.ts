@@ -11,6 +11,7 @@ import "@Duty-Roster/env/server";
 import { createContext } from "@Duty-Roster/api/context";
 import { appRouter } from "@Duty-Roster/api/server";
 import { createAuth } from "@Duty-Roster/auth";
+import { can, PERMISSIONS } from "@Duty-Roster/config/permissions";
 import { trpcServer } from "@hono/trpc-server";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
@@ -100,12 +101,20 @@ app.post("/api/agent", async (c) => {
 			return c.json({ error: "Missing or invalid 'text' field" }, 400);
 		}
 
-		const { resolveBengaliToEnglish } = await import("@Duty-Roster/ai-parser");
+		const { resolveBengaliToEnglish, resolveNamesInText } = await import(
+			"@Duty-Roster/ai-parser"
+		);
 		const resolvedText = resolveBengaliToEnglish(text);
+
+		const session = await createAuth().api.getSession({
+			headers: c.req.raw.headers,
+		});
+		const role = (session?.user as { role?: string } | undefined)?.role;
+		const readOnly = !can(role, PERMISSIONS.MANAGE_ROSTER);
 
 		const { buildAgent } = await import("@Duty-Roster/agent");
 
-		const agent = buildAgent();
+		const agent = buildAgent({ readOnly });
 
 		const messages = [
 			...(history || []).map((m) =>
@@ -126,10 +135,16 @@ app.post("/api/agent", async (c) => {
 		]);
 
 		const lastMessage = result.messages[result.messages.length - 1];
-		const response =
+		const rawResponse =
 			typeof lastMessage?.content === "string" ? lastMessage.content : "";
 
-		return c.json({ response });
+		// Agent tool output may embed nurse names straight from the DB, which
+		// are stored in Bengali — normalize to English for the default reply,
+		// and keep a fully-Bengali-named variant for the translate toggle.
+		const response = resolveBengaliToEnglish(rawResponse);
+		const bnResponse = resolveNamesInText(response);
+
+		return c.json({ response, bnResponse });
 	} catch (e) {
 		console.error("[agent] error:", e);
 		return c.json({ error: (e as Error).message }, 500);

@@ -29,6 +29,8 @@ interface UseAIAssistantStateReturn {
 	setLastAction: (action: "confirmed" | "cancelled" | null) => void;
 	isProcessing: boolean;
 	setIsProcessing: (processing: boolean) => void;
+	showBn: boolean;
+	toggleShowBn: () => void;
 }
 
 export function useAIAssistantState(): UseAIAssistantStateReturn {
@@ -42,9 +44,14 @@ export function useAIAssistantState(): UseAIAssistantStateReturn {
 		"confirmed" | "cancelled" | null
 	>(null);
 	const [isProcessing, setIsProcessing] = useState(false);
+	const [showBn, setShowBn] = useState(false);
 
 	const toggleOpen = useCallback(() => {
 		setOpen((prev) => !prev);
+	}, []);
+
+	const toggleShowBn = useCallback(() => {
+		setShowBn((prev) => !prev);
 	}, []);
 
 	return {
@@ -63,5 +70,7 @@ export function useAIAssistantState(): UseAIAssistantStateReturn {
 		setLastAction,
 		isProcessing,
 		setIsProcessing,
+		showBn,
+		toggleShowBn,
 	};
 }

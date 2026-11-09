@@ -34,7 +34,7 @@ export function ShiftCellBadge({
 			data-shift-badge
 			data-testid={`shift-cell-${nurseId}-${date}`}
 			className={cn(
-				"flex h-12 w-12 items-center justify-center rounded-lg font-bold text-lg",
+				"flex h-9 w-9 items-center justify-center rounded-lg p-2 font-bold text-sm",
 				"cursor-pointer transition-all duration-200",
 				!type && "border-2 border-gray-300 border-dashed",
 				SHIFT_STYLES[type],

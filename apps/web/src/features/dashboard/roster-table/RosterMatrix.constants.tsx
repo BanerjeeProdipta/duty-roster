@@ -32,8 +32,8 @@ export const SHIFT_TIMES: Record<ShiftType, string> = {
 };
 
 export const SHIFT_ICONS: Record<ShiftType, React.ReactNode> = {
-	morning: <Sun className="h-8 w-8" />,
-	evening: <Sunset className="h-8 w-8" />,
-	night: <Moon className="h-8 w-8" />,
-	off: <Coffee className="h-8 w-8" />,
+	morning: <Sun className="h-5 w-5" />,
+	evening: <Sunset className="h-5 w-5" />,
+	night: <Moon className="h-5 w-5" />,
+	off: <Coffee className="h-5 w-5" />,
 };

@@ -22,17 +22,17 @@ export function DayHeaderCell({
 				height: LAYOUT.headerHeight,
 				flex: `0 0 ${LAYOUT.cellWidth}px`,
 				width: LAYOUT.cellWidth,
-				padding: "10px",
+				padding: "6px",
 			}}
 		>
-			<span className="mb-0.5 block font-black text-gray-900">
+			<span className="block font-black text-gray-900 text-sm">
 				{date.date.getUTCDate()}
 			</span>
-			<span className="mb-2 block font-medium font-mono text-gray-600 text-xs">
+			<span className="mb-1 block font-medium font-mono text-[10px] text-gray-600">
 				{date.label}
 			</span>
 
-			<div className="mt-1 flex items-center justify-center gap-0.5 border-gray-100 border-t pt-1.5">
+			<div className="flex items-center justify-center gap-0.5 border-gray-100 border-t pt-1">
 				<ShiftBadge
 					count={counts?.morning || 0}
 					min={

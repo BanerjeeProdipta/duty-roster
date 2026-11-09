@@ -13,47 +13,45 @@ import { queryScheduleTool } from "./tools/query-schedule";
 import { queryShiftTool } from "./tools/query-shift";
 import { setShiftTool } from "./tools/set-shift";
 
-const tools = [
-	queryScheduleTool,
-	queryShiftTool,
-	listNursesTool,
-	setShiftTool,
-	generateRosterTool,
-];
+const readTools = [queryScheduleTool, queryShiftTool, listNursesTool];
+const writeTools = [setShiftTool, generateRosterTool];
 
 const today = new Date();
 const currentDate = today.toISOString().slice(0, 10);
 const currentMonth = today.toLocaleString("default", { month: "long" });
 const currentYear = today.getFullYear();
 
-const SYSTEM_PROMPT = `You are a duty roster assistant. Current date: ${currentDate}.
+function buildSystemPrompt(includeWrites: boolean) {
+	const writeRules = includeWrites
+		? `- If the user wants to set/update a single nurse's shift on a specific date, use setShift.
+- If the user wants to generate/create/build the roster for a month (e.g. "generate roster for August"), use generateRoster with that month's year/month — do NOT ask for a specific date. Assume the current year (${currentYear}) if the user doesn't say one. If no month is given at all, ask "Which month?".
+- If info is missing for setShift, ask for JUST the missing field: "Which nurse?" or "Which date?".
+`
+		: `- You are in read-only mode. You cannot set shifts or generate rosters. If asked to do so, say the user must sign in as an admin to make changes.
+`;
+
+	const writeToolsDoc = includeWrites
+		? `- setShift(nurseName, shiftName, dateKey)
+- generateRoster(year, month)
+`
+		: "";
+
+	return `You are a duty roster assistant. Current date: ${currentDate}.
 
 CRITICAL: Be extremely concise. Use 1 sentence max. No filler like "To confirm" or "I need to know".
+CRITICAL: Always reply in English, in English sentence structure, regardless of the input language or of any Bengali text (e.g. a nurse's name) appearing in a tool's result. Never switch to Bengali grammar, suffixes, or words — keep nurse names exactly as given, written in English.
 
 Rules:
 - If the user asks "who", "what", "which", or "list", use queryShift, querySchedule, or listNurses.
-- If the user wants to set/update a single nurse's shift on a specific date, use setShift.
-- If the user wants to generate/create/build the roster for a month (e.g. "generate roster for August"), use generateRoster with that month's year/month — do NOT ask for a specific date. Assume the current year (${currentYear}) if the user doesn't say one. If no month is given at all, ask "Which month?".
-- If info is missing for setShift, ask for JUST the missing field: "Which nurse?" or "Which date?".
-- Use conversation history to resolve "it", "her", "him", or previously mentioned names/dates.
+${writeRules}- Use conversation history to resolve "it", "her", "him", or previously mentioned names/dates.
 - Respond with ONLY the result or the briefest possible question.
 
 Tools:
 - querySchedule(nurseName, dateKey)
 - queryShift(shiftName, dateKey)
 - listNurses()
-- setShift(nurseName, shiftName, dateKey)
-- generateRoster(year, month)
-
+${writeToolsDoc}
 Current month: ${currentMonth} ${currentYear}.`;
-
-const llm = createLLM().bindTools(tools);
-const toolNode = new ToolNode(tools);
-
-async function callModel(state: typeof MessagesAnnotation.State) {
-	const messages = [new SystemMessage(SYSTEM_PROMPT), ...state.messages];
-	const response = await llm.invoke(messages);
-	return { messages: [response] };
 }
 
 function routeAfterAgent(state: typeof MessagesAnnotation.State) {
@@ -98,7 +96,18 @@ async function formatResponse(state: typeof MessagesAnnotation.State) {
 	return {};
 }
 
-export function buildAgent() {
+export function buildAgent({ readOnly = false }: { readOnly?: boolean } = {}) {
+	const tools = readOnly ? readTools : [...readTools, ...writeTools];
+	const llm = createLLM().bindTools(tools);
+	const toolNode = new ToolNode(tools);
+	const systemPrompt = buildSystemPrompt(!readOnly);
+
+	async function callModel(state: typeof MessagesAnnotation.State) {
+		const messages = [new SystemMessage(systemPrompt), ...state.messages];
+		const response = await llm.invoke(messages);
+		return { messages: [response] };
+	}
+
 	const agent = new StateGraph(MessagesAnnotation)
 		.addNode("agent", callModel)
 		.addNode("tools", toolNode)
@@ -108,7 +117,10 @@ export function buildAgent() {
 			tools: "tools",
 			format_response: "format_response",
 		})
-		.addEdge("tools", "agent")
+		// Tool results are already deterministic, English-templated strings —
+		// skip a second LLM pass over them so it can't re-paraphrase into
+		// Bengali when a resolved nurse name happens to be Bengali.
+		.addEdge("tools", "format_response")
 		.addEdge("format_response", END)
 		.compile();
 

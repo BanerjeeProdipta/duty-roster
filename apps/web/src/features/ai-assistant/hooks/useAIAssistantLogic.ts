@@ -158,16 +158,21 @@ export function useAIAssistantLogic({
 		async (
 			text: string,
 			history?: { role: string; content: string }[],
-		): Promise<string | null> => {
+		): Promise<{ response: string; bnResponse: string } | null> => {
 			try {
 				const res = await fetch(`${AGENT_URL}/api/agent`, {
 					method: "POST",
 					headers: { "Content-Type": "application/json" },
 					body: JSON.stringify({ text, history }),
+					credentials: "include",
 				});
 				if (!res.ok) return null;
 				const data = await res.json();
-				return data.response ?? null;
+				if (!data.response) return null;
+				return {
+					response: data.response,
+					bnResponse: data.bnResponse ?? data.response,
+				};
 			} catch {
 				return null;
 			}
@@ -243,11 +248,15 @@ export function useAIAssistantLogic({
 				if (agentResponse) {
 					setMessages((prev) => [
 						...prev,
-						{ raw: agentResponse, isSystem: true } as ParsedMessage,
+						{
+							raw: agentResponse.response,
+							bn: agentResponse.bnResponse,
+							isSystem: true,
+						} as ParsedMessage,
 					]);
 					setAwaitingResponse(false);
-					if (!skipTTS) speakSafely(agentResponse);
-					const dateMatch = agentResponse.match(/\d{4}-\d{2}-\d{2}/);
+					if (!skipTTS) speakSafely(agentResponse.response);
+					const dateMatch = agentResponse.response.match(/\d{4}-\d{2}-\d{2}/);
 					if (dateMatch) {
 						const [yearStr, monthStr] = dateMatch[0].split("-");
 						const year = Number.parseInt(yearStr, 10);

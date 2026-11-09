@@ -9,18 +9,37 @@ import { QueryCache, QueryClient } from "@tanstack/react-query";
  * Sonner is lazy-imported here so it's excluded from the initial layout
  * bundle — it's only needed when a query actually errors.
  */
-export const queryClient = new QueryClient({
-	queryCache: new QueryCache({
-		onError: (error, query) => {
-			// Lazy-import sonner so it's not in the initial layout chunk
-			import("sonner").then(({ toast }) => {
-				toast.error(error.message, {
-					action: {
-						label: "retry",
-						onClick: () => query.invalidate(),
-					},
+function makeQueryClient() {
+	return new QueryClient({
+		queryCache: new QueryCache({
+			onError: (error, query) => {
+				// Lazy-import sonner so it's not in the initial layout chunk
+				import("sonner").then(({ toast }) => {
+					toast.error(error.message, {
+						action: {
+							label: "retry",
+							onClick: () => query.invalidate(),
+						},
+					});
 				});
-			});
-		},
-	}),
-});
+			},
+		}),
+	});
+}
+
+// Providers is a "use client" component but is still rendered on the server
+// for every request. A module-level singleton would be shared across
+// requests in the same server process, leaking cached data between users/
+// renders. So: a fresh client per server render, one persistent client in
+// the browser.
+let browserQueryClient: QueryClient | undefined;
+
+export function getQueryClient() {
+	if (typeof window === "undefined") {
+		return makeQueryClient();
+	}
+	if (!browserQueryClient) {
+		browserQueryClient = makeQueryClient();
+	}
+	return browserQueryClient;
+}

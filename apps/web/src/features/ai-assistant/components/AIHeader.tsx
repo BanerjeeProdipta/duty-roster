@@ -1,14 +1,24 @@
 "use client";
 
-import { Bot, X } from "lucide-react";
+import { Bot, Languages, X } from "lucide-react";
 
 interface AIHeaderProps {
 	isListening: boolean;
 	ready: boolean;
 	onClose?: () => void;
+	showBn?: boolean;
+	onToggleShowBn?: () => void;
+	hasTranslation?: boolean;
 }
 
-export function AIHeader({ isListening, ready, onClose }: AIHeaderProps) {
+export function AIHeader({
+	isListening,
+	ready,
+	onClose,
+	showBn,
+	onToggleShowBn,
+	hasTranslation,
+}: AIHeaderProps) {
 	return (
 		<div className="flex items-center justify-between border-gray-100 border-b bg-gray-50 px-4 py-3">
 			<div className="flex items-center gap-2">
@@ -22,16 +32,29 @@ export function AIHeader({ isListening, ready, onClose }: AIHeaderProps) {
 					</p>
 				</div>
 			</div>
-			{onClose && (
-				<button
-					type="button"
-					onClick={onClose}
-					className="flex size-8 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-gray-200 hover:text-gray-600 lg:hidden"
-					aria-label="Close assistant"
-				>
-					<X className="size-5" />
-				</button>
-			)}
+			<div className="flex items-center gap-1">
+				{hasTranslation && onToggleShowBn && (
+					<button
+						type="button"
+						onClick={onToggleShowBn}
+						className="flex items-center gap-1 rounded-full px-2 py-1 text-accent-primary text-xs transition-colors hover:bg-accent-primary/10"
+						aria-label={showBn ? "Show English" : "Show Bangla translation"}
+					>
+						<Languages className="size-3.5" />
+						{showBn ? "English" : "বাংলা"}
+					</button>
+				)}
+				{onClose && (
+					<button
+						type="button"
+						onClick={onClose}
+						className="flex size-8 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-gray-200 hover:text-gray-600 lg:hidden"
+						aria-label="Close assistant"
+					>
+						<X className="size-5" />
+					</button>
+				)}
+			</div>
 		</div>
 	);
 }
