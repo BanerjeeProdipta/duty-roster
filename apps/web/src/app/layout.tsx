@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { Noto_Sans_Bengali, Poppins, Sacramento } from "next/font/google";
+import { Noto_Sans_Bengali, Poppins } from "next/font/google";
+import localFont from "next/font/local";
 
 import "../index.css";
 import { Suspense } from "react";
@@ -21,10 +22,14 @@ const notoSansBengali = Noto_Sans_Bengali({
 	weight: ["400", "700"],
 });
 
-const sacramento = Sacramento({
+// Self-hosted (next/font/local) rather than next/font/google: fetching the
+// Google Fonts CDN at build time is unreliable in Cloudflare's Pages build
+// sandbox and previously broke that build entirely.
+const sacramento = localFont({
+	src: "../fonts/Sacramento-Regular.ttf",
 	variable: "--font-cursive",
-	subsets: ["latin"],
-	weight: ["400"],
+	weight: "400",
+	display: "swap",
 });
 
 export const metadata: Metadata = {
