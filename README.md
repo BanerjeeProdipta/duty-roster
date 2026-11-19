@@ -129,4 +129,4 @@ See `docs/` for detailed documentation:
 - `BUSINESS_LOGIC.md` - Scheduling constraints and solver
 - `VOICE_ASSISTANT_PRD.md` - Voice features implementation
 - `solver_explanation.md` - Technical solver details CP-SAT
-- `ERD.md` - Entity Relationship Diagram for the database
+- [`ERD.md`](docs/ERD.md) - Entity Relationship Diagram for the database
