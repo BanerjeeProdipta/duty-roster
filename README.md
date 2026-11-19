@@ -126,7 +126,8 @@ duty-roster/
 
 See `docs/` for detailed documentation:
 
-- `BUSINESS_LOGIC.md` - Scheduling constraints and solver
-- `VOICE_ASSISTANT_PRD.md` - Voice features implementation
-- `solver_explanation.md` - Technical solver details CP-SAT
+- [`BUSINESS_LOGIC.md`](docs/BUSINESS_LOGIC.md) - Scheduling constraints and solver
+- [`ASSISTANT_PRD.md`](docs/ASSISTANT_PRD.md) - AI assistant product requirements
+- [`DB_MIGRATION.md`](docs/DB_MIGRATION.md) - Database migration guide
+- [`solver_explanation.md`](docs/solver_explanation.md) - Technical solver details for CP-SAT
 - [`ERD.md`](docs/ERD.md) - Entity Relationship Diagram for the database
